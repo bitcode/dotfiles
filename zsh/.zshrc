@@ -27,6 +27,7 @@ export LC_CTYPE=en_US.UTF-8
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
+export PATH=$PATH:/usr/local/go/bin
 
 #------- Aliases ---------
 
