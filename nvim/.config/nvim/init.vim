@@ -2,6 +2,7 @@ call plug#begin('~/.vim/plugged')
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
 Plug 'fatih/vim-go', { 'tag': '*' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'rust-lang/rust.vim'
 Plug 'racer-rust/vim-racer'
@@ -34,6 +35,9 @@ Plug 'airblade/vim-gitgutter'
 Plug 'tpope/vim-fugitive'
 Plug 'francoiscabrol/ranger.vim'
 Plug 'rbgrouleff/bclose.vim'
+Plug 'alvan/vim-closetag'
+Plug 'townk/vim-autoclose'
+Plug 'mattn/emmet-vim'
 call plug#end()
 filetype plugin indent on    " required
 
@@ -55,6 +59,8 @@ set mouse=a
 set clipboard=unnamedplus
 set laststatus=2
 set guifont=Iosevka\ Regular:h16
+set splitbelow
+set autochdir
 
 " ----- Rainbow parenthesis settings -----
 
@@ -136,6 +142,8 @@ let g:NERDTreeExactMatchHighlightFullName = 1
 let g:NERDTreePatternMatchHighlightFullName = 1
 let g:NERDTreeHighlightFolders = 1
 let g:NERDTreeHighlightFoldersFullName = 1
+let g:NERDTreeChDirMode = 3
+noremap rwd <c-r>:RangerWorkingDirectory<CR>
 
 " ----- NERDtree Git Plugin -----------
 
@@ -283,6 +291,49 @@ nnoremap <C-K> <C-W><C-K>
 nnoremap <C-L> <C-W><C-L>
 nnoremap <C-H> <C-W><C-H>
 
+" ------ Auuto Close HTML Tags Plugin ---------
+
+" filenames like *.xml, *.html, *.xhtml, ...
+" These are the file extensions where this plugin is enabled.
+"
+let g:closetag_filenames = '*.html,*.xhtml,*.phtml'
+
+" filenames like *.xml, *.xhtml, ...
+" This will make the list of non-closing tags self-closing in the specified files.
+"
+let g:closetag_xhtml_filenames = '*.xhtml,*.jsx'
+
+" filetypes like xml, html, xhtml, ...
+" These are the file types where this plugin is enabled.
+"
+let g:closetag_filetypes = 'html,xhtml,phtml'
+
+" filetypes like xml, xhtml, ...
+" This will make the list of non-closing tags self-closing in the specified files.
+"
+let g:closetag_xhtml_filetypes = 'xhtml,jsx'
+
+" integer value [0|1]
+" This will make the list of non-closing tags case-sensitive (e.g. `<Link>` will be closed while `<link>` won't.)
+"
+let g:closetag_emptyTags_caseSensitive = 1
+
+" dict
+" Disables auto-close if not in a "valid" region (based on filetype)
+"
+let g:closetag_regions = {
+    \ 'typescript.tsx': 'jsxRegion,tsxRegion',
+    \ 'javascript.jsx': 'jsxRegion',
+    \ }
+
+" Shortcut for closing tags, default is '>'
+"
+let g:closetag_shortcut = '>'
+
+" Add > at current position without closing the current tag, default is ''
+"
+let g:closetag_close_shortcut = '<leader>>'
+
 " ------ NERDtree auto open w/ no args --------
 
 function! StartUp()
@@ -291,6 +342,14 @@ function! StartUp()
     end
 endfunction
 autocmd VimEnter * call StartUp() 
+
+" --- vsCode integration -------------------
+
+if exists('g:vscode')
+    " VSCode extension
+else
+    " ordinary neovim
+endif
 
 " --- Conquer of Completion Settings -------
 
