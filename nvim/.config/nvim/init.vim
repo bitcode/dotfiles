@@ -1,4 +1,4 @@
-call plug#begin('~/.vim/plugged')
+call plug#begin('$HOME/.vim/plugged')
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
 Plug 'fatih/vim-go', { 'tag': '*' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
@@ -61,6 +61,7 @@ set laststatus=2
 set guifont=Iosevka\ Regular:h16
 set splitbelow
 set autochdir
+set relativenumber
 
 " ----- Rainbow parenthesis settings -----
 
@@ -350,6 +351,12 @@ if exists('g:vscode')
 else
     " ordinary neovim
 endif
+
+" --- Vim Diff ThePrimeagen keybinds ---
+
+nmap <leader>gh :diffget //3<CR>
+nmap <leader>gu :diffget //2<CR>
+nmap <leader>gs :G<CR>
 
 " --- Conquer of Completion Settings -------
 
