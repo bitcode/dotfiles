@@ -18,7 +18,7 @@ plugins=(
   zsh-syntax-highlighting
   kubectl
 )
-#ZSH_TMUX_AUTOSTART='true'
+ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
 export LC_CTYPE=en_US.UTF-8
@@ -30,6 +30,8 @@ source $HOME/.cargo/env
 export PATH=$PATH:/usr/bin/node
 export PATH=$PATH:/home/bit/.config/coc/extensions/node_modules/coc-clangd
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+export VISUAL=nvim
+export EDITOR=nvim
 #------- Aliases ---------
 
 alias win='cd /mnt/c/Users/mylam'

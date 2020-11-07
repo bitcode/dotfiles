@@ -38,6 +38,7 @@ Plug 'rbgrouleff/bclose.vim'
 Plug 'alvan/vim-closetag'
 Plug 'townk/vim-autoclose'
 Plug 'mattn/emmet-vim'
+Plug 'voldikss/vim-floaterm'
 call plug#end()
 filetype plugin indent on    " required
 
