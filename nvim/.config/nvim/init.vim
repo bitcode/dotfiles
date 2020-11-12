@@ -39,6 +39,7 @@ Plug 'alvan/vim-closetag'
 Plug 'townk/vim-autoclose'
 Plug 'mattn/emmet-vim'
 Plug 'voldikss/vim-floaterm'
+Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 call plug#end()
 filetype plugin indent on    " required
 
@@ -101,7 +102,6 @@ let g:rainbow_conf = {
 
 " ------- 256 ColorTerm -----------------
 
-"set term=gnome-256color
 "set term=xterm-256color
 
 " -------- Smooth Scrolling Options -------
@@ -149,7 +149,7 @@ noremap rwd <c-r>:RangerWorkingDirectory<CR>
 
 " ----- NERDtree Git Plugin -----------
 
-let g:NERDTreeIndicatorMapCustom = {
+let g:NERDTreeGitStatusIndicatorMapCustom = {
     \ "Modified"  : "✹",
     \ "Staged"    : "✚",
     \ "Untracked" : "✭",

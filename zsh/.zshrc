@@ -47,6 +47,7 @@ alias lla='ls -la'
 alias lt='ls --tree'
 alias lz='ls -alZ | more'
 alias printCanon='lp -d Canon_MF260_Series_UFRII_LT'
+set -o vi
 
 #------- swap caps with escape ---
 
