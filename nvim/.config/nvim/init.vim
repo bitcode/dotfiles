@@ -1,5 +1,4 @@
 call plug#begin('$HOME/.vim/plugged')
-Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
 Plug 'fatih/vim-go', { 'tag': '*' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
@@ -23,8 +22,6 @@ Plug 'morhetz/gruvbox'
 Plug 'blackrush/vim-gocode'
 Plug 'shougo/vimshell.vim'
 Plug 'shougo/vimproc.vim'
-Plug 'xuyuanp/nerdtree-git-plugin'
-Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 Plug 'ctrlpvim/ctrlp.vim'
 Plug 'luochen1990/rainbow'
 Plug 'roxma/vim-tmux-clipboard'
@@ -39,7 +36,9 @@ Plug 'alvan/vim-closetag'
 Plug 'townk/vim-autoclose'
 Plug 'mattn/emmet-vim'
 Plug 'voldikss/vim-floaterm'
-Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
+Plug 'nvim-lua/popup.nvim'
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
 call plug#end()
 filetype plugin indent on    " required
 
@@ -136,31 +135,19 @@ let g:go_highlight_variable_declarations = 1
 let g:go_auto_sameids = 1
 let g:go_fmt_command = "goimports"
 
-"---- NERDtree plugin settings -------------
+" ----- Telescope Settings -----------
 
-let NERDTreeShowHidden = 1
-let g:NERDTreeFileExtensionHighlightFullName = 1
-let g:NERDTreeExactMatchHighlightFullName = 1
-let g:NERDTreePatternMatchHighlightFullName = 1
-let g:NERDTreeHighlightFolders = 1
-let g:NERDTreeHighlightFoldersFullName = 1
-let g:NERDTreeChDirMode = 3
-noremap rwd <c-r>:RangerWorkingDirectory<CR>
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 
-" ----- NERDtree Git Plugin -----------
-
-let g:NERDTreeGitStatusIndicatorMapCustom = {
-    \ "Modified"  : "✹",
-    \ "Staged"    : "✚",
-    \ "Untracked" : "✭",
-    \ "Renamed"   : "➜",
-    \ "Unmerged"  : "═",
-    \ "Deleted"   : "✖",
-    \ "Dirty"     : "✗",
-    \ "Clean"     : "✔︎",
-    \ 'Ignored'   : '☒',
-    \ "Unknown"   : "?"
-    \ }
+" Using lua functions
+nnoremap <leader>ff <cmd>lua require('telescope.builtin').find_files()<cr>
+nnoremap <leader>fg <cmd>lua require('telescope.builtin').live_grep()<cr>
+nnoremap <leader>fb <cmd>lua require('telescope.builtin').buffers()<cr>
+nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
 
 " ----- Rust Plugin Settings ----------
 
@@ -246,7 +233,6 @@ hi ReactLifeCycleMethods ctermfg=204 guifg=#D19A66
 
 " ---- Ranger Settings ----------------------
 
-let g:NERDTreeHijackNetrw = 0 
 let g:ranger_command_override = 'ranger --cmd "set show_hidden=true"'
 
 " ---- Markdown Plugin ----------------------
@@ -286,6 +272,7 @@ if &term =~ '256color'
     " work properly when Vim is used inside tmux and GNU screen.
     set t_ut=
 endif
+
 " ------ Navigate Vim Panes with H, J, K, L ----
 
 nnoremap <C-J> <C-W><C-J>
@@ -335,15 +322,6 @@ let g:closetag_shortcut = '>'
 " Add > at current position without closing the current tag, default is ''
 "
 let g:closetag_close_shortcut = '<leader>>'
-
-" ------ NERDtree auto open w/ no args --------
-
-function! StartUp()
-    if 0 == argc()
-        NERDTree
-    end
-endfunction
-autocmd VimEnter * call StartUp() 
 
 " --- vsCode integration -------------------
 

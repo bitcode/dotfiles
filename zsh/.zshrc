@@ -1,3 +1,10 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 export ZSH="/home/bit/.oh-my-zsh"
 ZSH_THEME=powerlevel10k/powerlevel10k
 # Uncomment the following line to display red dots whilst waiting for completion.
@@ -34,6 +41,7 @@ export VISUAL=nvim
 export EDITOR=nvim
 #------- Aliases ---------
 
+alias tls='tmux ls'
 alias win='cd /mnt/c/Users/mylam'
 alias rc='rustc'
 alias dc='cd ..'
@@ -51,7 +59,7 @@ set -o vi
 
 #------- swap caps with escape ---
 
-# setxkbmap -option caps:swapescape
+setxkbmap -option caps:swapescape
 
 #----- Recon Bash Scripts -----
  
@@ -80,4 +88,3 @@ curl http://ipinfo.io/$1
 sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
-
