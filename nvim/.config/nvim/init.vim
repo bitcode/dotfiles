@@ -39,6 +39,7 @@ Plug 'voldikss/vim-floaterm'
 Plug 'nvim-lua/popup.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
+Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
 call plug#end()
 filetype plugin indent on    " required
 
@@ -99,6 +100,19 @@ let g:rainbow_conf = {
 \	}
 \}
 
+" Setting current directory 
+
+function! OnTabEnter(path)
+	if isdirectory(a:path)
+		let dirname = a:path
+	else
+		let dirname = fnameofmodify(a:path, ":h")
+	endif
+	execute "tcd ". dirname
+endfunction()
+
+autocmd TabNewEntered * call OnTabEnter(expand("<amatch>"))
+
 " ------- 256 ColorTerm -----------------
 
 "set term=xterm-256color
@@ -136,6 +150,10 @@ let g:go_auto_sameids = 1
 let g:go_fmt_command = "goimports"
 
 " ----- Telescope Settings -----------
+
+" Pickers
+
+:nnoremap <Leader>pp :lua require'telescope.builtin'.file_browser{}
 
 " Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>

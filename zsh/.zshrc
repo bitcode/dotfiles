@@ -88,3 +88,6 @@ curl http://ipinfo.io/$1
 sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
+
+export NVM_DIR="/home/bit/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
