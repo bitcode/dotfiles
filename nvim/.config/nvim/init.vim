@@ -13,7 +13,6 @@ Plug 'mxw/vim-jsx'
 Plug 'peitalin/vim-jsx-typescript'
 Plug 'maxmellon/vim-jsx-pretty'
 Plug 'tpope/vim-fugitive'
-Plug 'fatih/vim-go'
 Plug 'git://git.wincent.com/command-t.git'
 Plug 'vim-airline/vim-airline'
 Plug 'ryanoasis/vim-devicons'
@@ -62,7 +61,6 @@ set clipboard=unnamedplus
 set laststatus=2
 set guifont=Iosevka\ Regular:h16
 set splitbelow
-set autochdir
 set relativenumber
 
 " ----- Rainbow parenthesis settings -----

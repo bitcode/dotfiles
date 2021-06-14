@@ -23,6 +23,7 @@ plugins=(
   taskwarrior
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-vim-mode
   kubectl
 )
 ZSH_TMUX_AUTOSTART='true'
@@ -57,9 +58,18 @@ alias lz='ls -alZ | more'
 alias printCanon='lp -d Canon_MF260_Series_UFRII_LT'
 set -o vi
 
+#------- Vim Mode Cursor Styling ---
+
+MODE_CURSOR_VIINS="#00ff00 blinking bar"
+MODE_CURSOR_REPLACE="$MODE_CURSOR_VIINS #ff0000"
+MODE_CURSOR_VICMD="green block"
+MODE_CURSOR_SEARCH="#ff00ff steady underline"
+MODE_CURSOR_VISUAL="$MODE_CURSOR_VICMD steady bar"
+MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
+
 #------- swap caps with escape ---
 
-setxkbmap -option caps:swapescape
+#setxkbmap -option caps:swapescape
 
 #----- Recon Bash Scripts -----
  
