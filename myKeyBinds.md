@@ -2,23 +2,31 @@
 
 ## Telescope
 
-`\ff` find_files
-`\fg` live_grep
-`\fb` buffers
-`\fh` help_tags
+`\ff` find_files<br> 
+`\fg` live_grep<br>
+`\fb` buffers<br>
+`\fh` help_tags<br>
 
-`C-n` next
-`C-p` previous
+`C-n` next<br>
+`C-p` previous<br>
 
-`C-x` go to file as a split
-`C-v` go to file as a vsplit
-`C-t` go to file in new tab
+`C-x` go to file as a split<br>
+`C-v` go to file as a vsplit<br>
+`C-t` go to file in new tab<br>
 
 ## FloatTerminal
 
-let g:floaterm_keymap_new    = `\ft`
-let g:floaterm_keymap_prev   = `\fp`
-let g:floaterm_keymap_next   = `\fn`
-let g:floaterm_keymap_toggle = `\ft`
+let g:floaterm_keymap_new    = `\ft`<br>
+let g:floaterm_keymap_prev   = `\fp`<br>
+let g:floaterm_keymap_next   = `\fn`<br>
+let g:floaterm_keymap_toggle = `\ft`<br>
+
+## Nvim Editing
+
+- Editing Multiple Lines Simultaneously:<br>
+
+    - `V` to enter visual block mode<br>
+    - move down with  `jj` to select the columns<br>
+    - `Shift-I` type the text you want<br>
 
 
