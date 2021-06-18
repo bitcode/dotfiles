@@ -5,7 +5,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-export ZSH="/home/bit/.oh-my-zsh"
+export ZSH="/Users/marc.droz/.oh-my-zsh"
 ZSH_THEME=powerlevel10k/powerlevel10k
 # Uncomment the following line to display red dots whilst waiting for completion.
  COMPLETION_WAITING_DOTS="true"
@@ -36,7 +36,7 @@ export LC_CTYPE=en_US.UTF-8
 export PATH=$PATH:/usr/local/go/bin
 source $HOME/.cargo/env
 export PATH=$PATH:/usr/bin/node
-export PATH=$PATH:/home/bit/.config/coc/extensions/node_modules/coc-clangd
+export PATH=$PATH:/Users/marc.droz/.config/coc/extensions/node_modules/coc-clangd
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export VISUAL=nvim
 export EDITOR=nvim
@@ -99,5 +99,5 @@ sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
 
-export NVM_DIR="/home/bit/.nvm"
+export NVM_DIR="/Users/marc.droz/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

@@ -5,20 +5,17 @@ Plug 'junegunn/fzf.vim'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'rust-lang/rust.vim'
 Plug 'racer-rust/vim-racer'
-Plug 'scrooloose/syntastic'
 Plug 'luochen1990/rainbow'
 Plug 'leafgarland/typescript-vim'
 Plug 'pangloss/vim-javascript'
 Plug 'mxw/vim-jsx'
 Plug 'peitalin/vim-jsx-typescript'
-Plug 'maxmellon/vim-jsx-pretty'
 Plug 'tpope/vim-fugitive'
 Plug 'git://git.wincent.com/command-t.git'
 Plug 'vim-airline/vim-airline'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'morhetz/gruvbox'
-Plug 'blackrush/vim-gocode'
 Plug 'shougo/vimshell.vim'
 Plug 'shougo/vimproc.vim'
 Plug 'ctrlpvim/ctrlp.vim'
@@ -44,7 +41,7 @@ filetype plugin indent on    " required
 
 " ------------ Settings ------------------
 
-language en_US.UTF8
+"language en_US.UTF8
 syntax enable
 syntax on
 colorscheme gruvbox
@@ -114,6 +111,13 @@ autocmd TabNewEntered * call OnTabEnter(expand("<amatch>"))
 " ------- 256 ColorTerm -----------------
 
 "set term=xterm-256color
+
+" _______ Floaterm --------------------
+
+let g:floaterm_keymap_new    = '<Leader>fn'
+let g:floaterm_keymap_prev   = '<Leader>fp'
+let g:floaterm_keymap_next   = '<Leader>fn'
+let g:floaterm_keymap_toggle = '<Leader>ft'
 
 " -------- Smooth Scrolling Options -------
 			
