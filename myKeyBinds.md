@@ -32,7 +32,6 @@ let g:floaterm_keymap_toggle = `\ft`<br>
 ## Nvim Navigation
 
 - Swap split screens with `C-w-J` 
-<br>
 - From horizontal to vertical `C-w-H`
 - From vertical to horizontal `C-w-L`
 
