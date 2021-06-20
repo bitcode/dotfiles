@@ -29,4 +29,10 @@ let g:floaterm_keymap_toggle = `\ft`<br>
     - move down with  `jj` to select the columns<br>
     - `Shift-I` type the text you want<br>
 
+## Nvim Navigation
+
+- Swap split screens with `C-w-J` 
+<br>
+- From horizontal to vertical `C-w-H`
+- From vertical to horizontal `C-w-L`
 
