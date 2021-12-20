@@ -37,6 +37,9 @@ Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
 Plug 'styled-components/vim-styled-components', { 'branch': 'main' }
+Plug 'tomlion/vim-solidity'
+Plug 'neovim/nvim-lspconfig'
+Plug 'williamboman/nvim-lsp-installer'
 call plug#end()
 filetype plugin indent on    " required
 

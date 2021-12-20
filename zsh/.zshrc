@@ -26,7 +26,7 @@ plugins=(
   zsh-vim-mode
   kubectl
 )
-ZSH_TMUX_AUTOSTART='true'
+#ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
 export LC_CTYPE=en_US.UTF-8
@@ -69,7 +69,7 @@ MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 
 #------- swap caps with escape ---
 
-#setxkbmap -option caps:swapescape
+setxkbmap -option caps:swapescape
 
 #----- Recon Bash Scripts -----
  
