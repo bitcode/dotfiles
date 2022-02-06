@@ -35,3 +35,15 @@ let g:floaterm_keymap_toggle = `\ft`<br>
 - From horizontal to vertical `C-w-H`
 - From vertical to horizontal `C-w-L`
 
+## DWM 
+
+- `Ctrl + Shift + PageUp / PageDoen` Zoom in / Zoom out text
+- 
+
+## C.o.C. NeoVim
+
+- Select python interpreter `:CocCommand python.setInterpreter`
+
+## Tmux
+
+- Kill session `preifx + b + d` or `tmux kill-session -t <session>`

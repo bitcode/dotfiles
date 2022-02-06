@@ -39,7 +39,10 @@ Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
 Plug 'styled-components/vim-styled-components', { 'branch': 'main' }
 Plug 'tomlion/vim-solidity'
 Plug 'neovim/nvim-lspconfig'
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}  " We recommend updating the parsers on update
 Plug 'williamboman/nvim-lsp-installer'
+Plug 'github/copilot.vim'
+Plug 'davidhalter/jedi-vim'
 call plug#end()
 filetype plugin indent on    " required
 
@@ -115,6 +118,12 @@ autocmd TabNewEntered * call OnTabEnter(expand("<amatch>"))
 " ------- 256 ColorTerm -----------------
 
 "set term=xterm-256color
+
+"lua
+
+lua << EOF
+require'lspconfig'.solang.setup{}
+EOF
 
 " _______ Floaterm --------------------
 

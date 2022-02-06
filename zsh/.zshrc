@@ -40,6 +40,8 @@ export PATH=$PATH:/Users/marc.droz/.config/coc/extensions/node_modules/coc-clang
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export VISUAL=nvim
 export EDITOR=nvim
+export PYTHONPATH=/usr/bin/python3
+export BROWSER=google-chrome-stable
 #------- Aliases ---------
 
 alias tls='tmux ls'
@@ -57,6 +59,7 @@ alias lt='ls --tree'
 alias lz='ls -alZ | more'
 alias printCanon='lp -d Canon_MF260_Series_UFRII_LT'
 set -o vi
+alias py='python3'
 
 #------- Vim Mode Cursor Styling ---
 
@@ -70,6 +73,10 @@ MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 #------- swap caps with escape ---
 
 setxkbmap -option caps:swapescape
+
+# fix pycharm java issue
+JAVA_OPTS="--add-opens java.base/java.util=ALL-UNNAMED"
+JAVA_OPTS="--illegal-access=permit"
 
 #----- Recon Bash Scripts -----
  
