@@ -25,6 +25,7 @@ plugins=(
   zsh-syntax-highlighting
   zsh-vim-mode
   kubectl
+  zsh_codex
 )
 #ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh
@@ -36,12 +37,13 @@ export LC_CTYPE=en_US.UTF-8
 export PATH=$PATH:/usr/local/go/bin
 source $HOME/.cargo/env
 export PATH=$PATH:/usr/bin/node
-export PATH=$PATH:/Users/marc.droz/.config/coc/extensions/node_modules/coc-clangd
+export PATH=$PATH:/home/bit/.config/coc/extensions/node_modules/coc-clangd
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export VISUAL=nvim
 export EDITOR=nvim
+export PATH=$PATH:/home/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
-export BROWSER=google-chrome-stable
+export BROWSER=/usr/bin/chromium # for web-browser
 #------- Aliases ---------
 
 alias tls='tmux ls'
@@ -75,9 +77,9 @@ MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 
 setxkbmap -option caps:swapescape
 
-# fix pycharm java issue
-JAVA_OPTS="--add-opens java.base/java.util=ALL-UNNAMED"
-JAVA_OPTS="--illegal-access=permit"
+#------- zsh_codex ---
+
+bindkey '^X' create_completion 
 
 #----- Recon Bash Scripts -----
  

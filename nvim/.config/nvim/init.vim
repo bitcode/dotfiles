@@ -36,6 +36,7 @@ Plug 'nvim-lua/popup.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
+Plug 'nvim-telescope/telescope-file-browser.nvim'
 Plug 'styled-components/vim-styled-components', { 'branch': 'main' }
 Plug 'tomlion/vim-solidity'
 Plug 'neovim/nvim-lspconfig'
@@ -66,6 +67,11 @@ set laststatus=2
 set guifont=Iosevka\ Regular:h16
 set splitbelow
 set relativenumber
+autocmd BufNewFile,BufRead * setlocal formatoptions-=cro " disable line wrapping
+
+" ------------ settings ------------------
+
+nnoremap <F5> :silent update<Bar>silent !/usr/bin/chromium %:p &<CR>
 
 " ----- Rainbow parenthesis settings -----
 
