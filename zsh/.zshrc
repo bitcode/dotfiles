@@ -44,6 +44,7 @@ export EDITOR=nvim
 export PATH=$PATH:/home/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
 export BROWSER=/usr/bin/chromium # for web-browser
+export PATH=$PATH:/bin/lua-language-server
 #------- Aliases ---------
 
 alias tls='tmux ls'
@@ -111,3 +112,5 @@ lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:dig
 
 export NVM_DIR="/Users/marc.droz/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+alias luamake=/tmp/lua-language-server/3rd/luamake/luamake
