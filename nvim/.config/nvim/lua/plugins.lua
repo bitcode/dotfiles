@@ -1,80 +1,45 @@
 -- This file can be loaded by calling `lua require('plugins')` from your init.vim
 
-local packer_group = vim.api.nvim_create_augroup("Packer", { clear = true })
-vim.api.nvim_create_autocmd(
-  "BufWritePost",
-  { command = "source <afile> | PackerCompile", group = packer_group, pattern = "init.lua" }
-)
+-- Only required if you have packer configured as `opt`
+vim.cmd [[packadd packer.nvim]]
 
-local fn = vim.fn
-local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
-if fn.empty(fn.glob(install_path)) > 0 then
-  packer_bootstrap = fn.system({
-    "git",
-    "clone",
-    "--depth",
-    "1",
-    "https://github.com/wbthomason/packer.nvim",
-    install_path,
-  })
-end
-vim.api.nvim_command("packadd packer.nvim")
--- returns the require for use in `config` parameter of packer's use
--- expects the name of the config file
-function get_setup(name)
-  return string.format('require("setup/%s")', name)
-end
-
-return require("packer").startup({
-  function(use)
-    -- Packer can manage itself
+return require('packer').startup(function()
+    use 'neovim/nvim-lspconfig' -- Configurations for Nvim LSP
     use { 'sainnhe/gruvbox-material' }
     use {'iamcco/markdown-preview.nvim', run = 'cd app && yarn install', cmd = 'MarkdownPreview'}
     use { 'nvim-lua/completion-nvim' }
     use { 'tjdevries/nlua.nvim' }
     use "folke/lua-dev.nvim" -- fix Sumneko 
     use({ "wbthomason/packer.nvim" })
-    use({ "themercorp/themer.lua", config = get_setup("themer") })
-    use({ "folke/which-key.nvim", config = get_setup("whichkey") })
-    use({ "akinsho/bufferline.nvim", requires = "kyazdani42/nvim-web-devicons", config = get_setup("bufferline") })
-    use({ "akinsho/toggleterm.nvim", config = get_setup("toggleterm") })
-    use({ "ahmedkhalf/project.nvim", config = get_setup("project") })
+    use { "themercorp/themer.lua"}
+    use({ "folke/which-key.nvim" })
+    use({ "akinsho/bufferline.nvim", requires = "kyazdani42/nvim-web-devicons"})
+    use({ "akinsho/toggleterm.nvim" })
+    use({ "ahmedkhalf/project.nvim" })
     use({ "kyazdani42/nvim-web-devicons" })
     use({
       "nvim-lualine/lualine.nvim",
-      config = get_setup("lualine"),
       event = "VimEnter",
       requires = { "kyazdani42/nvim-web-devicons", opt = true },
     })
     use({
       "folke/trouble.nvim",
       requires = "kyazdani42/nvim-web-devicons",
-      config = get_setup("trouble"),
     })
     use({
       "folke/todo-comments.nvim",
       requires = "nvim-lua/plenary.nvim",
-      config = get_setup("todo"),
     })
     use({
       "folke/zen-mode.nvim",
-      config = get_setup("zen-mode"),
     })
     use({
       "norcalli/nvim-colorizer.lua",
       event = "BufReadPre",
-      config = get_setup("colorizer"),
     })
-    use({
-      "nvim-treesitter/nvim-treesitter",
-      config = get_setup("treesitter"),
-      run = ":TSUpdate",
-    })
-    use("nvim-treesitter/nvim-treesitter-textobjects")
     use({
       "windwp/nvim-autopairs",
       after = "nvim-cmp",
-      config = get_setup("autopairs"),
     })
     use({
       "hrsh7th/nvim-cmp",
@@ -90,75 +55,35 @@ return require("packer").startup({
         { "f3fora/cmp-spell", { "hrsh7th/cmp-calc" }, { "hrsh7th/cmp-emoji" } },
         { "rafamadriz/friendly-snippets" },
       },
-      config = get_setup("cmp"),
     })
-    use({ "kyazdani42/nvim-tree.lua", config = get_setup("tree") })
+    use({ "kyazdani42/nvim-tree.lua" })
     use({
       "rlane/pounce.nvim",
-      config = get_setup("pounce"),
     })
     use({
       "lewis6991/gitsigns.nvim",
       requires = { "nvim-lua/plenary.nvim" },
       event = "BufReadPre",
-      config = get_setup("gitsigns"),
     })
 
     use({ "p00f/nvim-ts-rainbow" })
 
-    use({ "jose-elias-alvarez/null-ls.nvim", config = get_setup("null-ls") })
-    use({ "neovim/nvim-lspconfig", config = get_setup("lsp") })
-    use({ "williamboman/nvim-lsp-installer", config = get_setup("lsp-installer") })
+    use({ "jose-elias-alvarez/null-ls.nvim" })
+    use({ "williamboman/nvim-lsp-installer" })
     use({
       "numToStr/Comment.nvim",
       opt = true,
       keys = { "gc", "gcc" },
-      config = get_setup("comment"),
     })
-    use({
-      "nvim-telescope/telescope.nvim",
-      module = "telescope",
-      cmd = "Telescope",
-      requires = {
-        { "nvim-lua/popup.nvim" },
-        { "nvim-lua/plenary.nvim" },
-        { "nvim-telescope/telescope-fzf-native.nvim", run = "make" },
-      },
-      config = get_setup("telescope"),
-    })
-    use({ "nvim-telescope/telescope-file-browser.nvim" })
     use({ "onsails/lspkind-nvim", requires = { { "famiu/bufdelete.nvim" } } })
     use({ "tpope/vim-repeat" })
     use({ "tpope/vim-surround" })
     use({ "wellle/targets.vim" })
-    -- use({ "Shatur/neovim-session-manager", config = get_setup("session") })
-    use({
-      "rmagatti/session-lens",
-      requires = { "rmagatti/auto-session", "nvim-telescope/telescope.nvim" },
-      config = get_setup("session"),
-    })
-    use({ "windwp/nvim-ts-autotag" })
-    use({
-      "winston0410/range-highlight.nvim",
-      requires = { { "winston0410/cmd-parser.nvim" } },
-      config = get_setup("range-highlight"),
-    })
-    use({ "filipdutescu/renamer.nvim", config = get_setup("renamer") })
-    use({ "goolord/alpha-nvim", config = get_setup("alpha") })
-
-    use({ "luukvbaal/stabilize.nvim", config = get_setup("stabilize") })
-    if packer_bootstrap then
-      require("packer").sync()
-    end
-  end,
-  config = {
-    display = {
-      open_fn = require("packer.util").float,
-    },
-    profile = {
-      enable = true,
-      threshold = 1, -- the amount in ms that a plugins load time must be over for it to be included in the profile
-    },
-  },
-})
-
+    use({ "filipdutescu/renamer.nvim" })
+    use({ "goolord/alpha-nvim" })
+    use {
+        'nvim-treesitter/nvim-treesitter',
+        run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
+    }
+    use({ "luukvbaal/stabilize.nvim" })
+end)
