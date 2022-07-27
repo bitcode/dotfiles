@@ -7,19 +7,16 @@ return require('packer').startup(function()
     use 'neovim/nvim-lspconfig' -- Configurations for Nvim LSP
     use { 'sainnhe/gruvbox-material' }
     use {'iamcco/markdown-preview.nvim', run = 'cd app && yarn install', cmd = 'MarkdownPreview'}
-    use { 'nvim-lua/completion-nvim' }
     use { 'tjdevries/nlua.nvim' }
     use "folke/lua-dev.nvim" -- fix Sumneko 
     use({ "wbthomason/packer.nvim" })
     use { "themercorp/themer.lua"}
     use({ "folke/which-key.nvim" })
-    use({ "akinsho/bufferline.nvim", requires = "kyazdani42/nvim-web-devicons"})
     use({ "akinsho/toggleterm.nvim" })
     use({ "ahmedkhalf/project.nvim" })
     use({ "kyazdani42/nvim-web-devicons" })
     use({
       "nvim-lualine/lualine.nvim",
-      event = "VimEnter",
       requires = { "kyazdani42/nvim-web-devicons", opt = true },
     })
     use({
@@ -86,4 +83,9 @@ return require('packer').startup(function()
         run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
     }
     use({ "luukvbaal/stabilize.nvim" })
+    use {
+  'nvim-telescope/telescope.nvim', tag = '0.1.0',
+-- or                            , branch = '0.1.x',
+  requires = { {'nvim-lua/plenary.nvim'} }
+}
 end)

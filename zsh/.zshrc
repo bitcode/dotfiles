@@ -45,6 +45,7 @@ export PATH=$PATH:/home/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
 export BROWSER=/usr/bin/chromium # for web-browser
 export PATH=$PATH:/bin/lua-language-server
+export PATH="$HOME/tools/lua-language-server/bin/Linux:$PATH"
 #------- Aliases ---------
 
 alias tls='tmux ls'
