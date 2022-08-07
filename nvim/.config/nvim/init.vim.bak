@@ -130,21 +130,6 @@ autocmd TabNewEntered * call OnTabEnter(expand("<amatch>"))
 " -------- lua setup -------------------
 
 lua <<EOF
--- this is a comment
-require'lspconfig'.pyright.setup{}
-require'lspconfig'.solang.setup{}
-require'lspconfig'.cssls.setup{}
-require'lspconfig'.html.setup{}
-require("nvim-lsp-installer").setup {}
-require("lspconfig").pyright.setup {}
-require'lspconfig'.emmet_ls.setup{}
-local use = require('packer').use
-require('packer').startup(function()
-  use 'wbthomason/packer.nvim' -- Package manager
-  use 'neovim/nvim-lspconfig' -- Configurations for Nvim LSP
-end)
--- Mappings.
--- See `:help vim.diagnostic.*` for documentation on any of the below functions
 local opts = { noremap=true, silent=true }
 vim.keymap.set('n', '<space>e', vim.diagnostic.open_float, opts)
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)

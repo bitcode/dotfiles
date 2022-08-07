@@ -3,8 +3,12 @@
 -- Only required if you have packer configured as `opt`
 vim.cmd [[packadd packer.nvim]]
 
-return require('packer').startup(function()
-    use 'neovim/nvim-lspconfig' -- Configurations for Nvim LSP
+return require('packer').startup(function(use)
+    use {
+        'neovim/nvim-lspconfig', -- Configurations for Nvim LSP
+        'williamboman/mason.nvim',
+        'williamboman/mason-lspconfig.nvim',
+        }
     use { 'sainnhe/gruvbox-material' }
     use {'iamcco/markdown-preview.nvim', run = 'cd app && yarn install', cmd = 'MarkdownPreview'}
     use { 'tjdevries/nlua.nvim' }
@@ -30,14 +34,8 @@ return require('packer').startup(function()
     use({
       "folke/zen-mode.nvim",
     })
-    use({
-      "norcalli/nvim-colorizer.lua",
-      event = "BufReadPre",
-    })
-    use({
-      "windwp/nvim-autopairs",
-      after = "nvim-cmp",
-    })
+    use { 'L3MON4D3/LuaSnip' }
+    use { 'saadparwaiz1/cmp_luasnip' }
     use({
       "hrsh7th/nvim-cmp",
       requires = {
@@ -46,11 +44,7 @@ return require('packer').startup(function()
         { "hrsh7th/cmp-buffer" },
         { "hrsh7th/cmp-path" },
         { "hrsh7th/cmp-cmdline" },
-        { "hrsh7th/vim-vsnip" },
-        { "hrsh7th/cmp-vsnip" },
-        { "hrsh7th/vim-vsnip-integ" },
         { "f3fora/cmp-spell", { "hrsh7th/cmp-calc" }, { "hrsh7th/cmp-emoji" } },
-        { "rafamadriz/friendly-snippets" },
       },
     })
     use({ "kyazdani42/nvim-tree.lua" })
@@ -62,30 +56,17 @@ return require('packer').startup(function()
       requires = { "nvim-lua/plenary.nvim" },
       event = "BufReadPre",
     })
-
     use({ "p00f/nvim-ts-rainbow" })
-
     use({ "jose-elias-alvarez/null-ls.nvim" })
-    use({ "williamboman/nvim-lsp-installer" })
-    use({
-      "numToStr/Comment.nvim",
-      opt = true,
-      keys = { "gc", "gcc" },
-    })
     use({ "onsails/lspkind-nvim", requires = { { "famiu/bufdelete.nvim" } } })
-    use({ "tpope/vim-repeat" })
-    use({ "tpope/vim-surround" })
-    use({ "wellle/targets.vim" })
-    use({ "filipdutescu/renamer.nvim" })
-    use({ "goolord/alpha-nvim" })
-    use {
-        'nvim-treesitter/nvim-treesitter',
-        run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
-    }
-    use({ "luukvbaal/stabilize.nvim" })
+    use { "nvim-telescope/telescope-file-browser.nvim" }
     use {
   'nvim-telescope/telescope.nvim', tag = '0.1.0',
 -- or                            , branch = '0.1.x',
   requires = { {'nvim-lua/plenary.nvim'} }
 }
+    use {
+        'nvim-treesitter/nvim-treesitter',
+        run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
+    }
 end)
