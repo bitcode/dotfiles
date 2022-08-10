@@ -1,5 +1,6 @@
 require('utils')
 require('lsp_lua')
+require('lspkind')
 require('plugins')
 require('lua-dev')
 require('config')

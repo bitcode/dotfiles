@@ -29,6 +29,10 @@ let g:floaterm_keymap_toggle = `\ft`<br>
     - move down with  `jj` to select the columns<br>
     - `Shift-I` type the text you want<br>
 
+## Nvim Commands
+
+    - `:w !sudo tee %` to save as admin
+
 ## Nvim Navigation
 
 - Swap split screens with `C-w-J` 

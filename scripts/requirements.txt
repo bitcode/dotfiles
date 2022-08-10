@@ -1,0 +1,7 @@
+jedi
+pyx
+pythonx
+pyxdo
+neovim
+pynvim
+

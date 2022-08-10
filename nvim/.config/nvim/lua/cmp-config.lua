@@ -2,6 +2,7 @@
 -- to make Luasnip work with cmp
 local cmp = require('cmp')
 local luasnip = require('luasnip')
+local lspkind = require('lspkind')
 
 cmp.setup {
   completion = {
@@ -56,6 +57,47 @@ cmp.setup {
       "s",
     }),
   },
+  formatting = {
+		format = lspkind.cmp_format({
+			mode = "symbol_text",
+			preset = "codicons",
+			maxwidth = 50,
+			menu = {
+				buffer = "[BUF]",
+				nvim_lsp = "[LSP]",
+				nvim_lua = "[API]",
+				path = "[PATH]",
+				luasnip = "[SNIP]",
+			},
+            symbol_map = {
+      Text = "",
+      Method = "",
+      Function = "",
+      Constructor = "",
+      Field = "ﰠ",
+      Variable = "",
+      Class = "ﴯ",
+      Interface = "",
+      Module = "",
+      Property = "ﰠ",
+      Unit = "塞",
+      Value = "",
+      Enum = "",
+      Keyword = "",
+      Snippet = "",
+      Color = "",
+      File = "",
+      Reference = "",
+      Folder = "",
+      EnumMember = "",
+      Constant = "",
+      Struct = "פּ",
+      Event = "",
+      Operator = "",
+      TypeParameter = ""
+  },
+		}),
+	},
   sources = {
     { name = 'nvim_lsp' },
     { name = 'luasnip' },
@@ -68,23 +110,6 @@ cmp.setup {
     { name = 'emoji' },
     { name = 'friendly-snippets' },
   },
--- formatting = {
---		fields = { "kind", "abbr", "menu" },
---		format = function(entry, vim_item)
---			-- Kind icons
---			vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
---			-- vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind) -- This concatonates the icons with the name of the item kind
---			vim_item.menu = ({
---				copilot = "[Copilot]",
---				luasnip = "LuaSnip",
---				nvim_lua = "[NVim Lua]",
---				nvim_lsp = "[LSP]",
---				buffer = "[Buffer]",
---				path = "[Path]",
---			})[entry.source.name]
---			return vim_item
---		end,
---	},
     confirm_opts = {
     --behavior = cmp.ConfirmBehavior.Replace,
     select = false,
