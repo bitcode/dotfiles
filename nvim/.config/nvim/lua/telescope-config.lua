@@ -1,4 +1,5 @@
 local actions = require('telescope.actions')
+
 require('telescope').setup {
   defaults = {
     layout_config = {
@@ -8,8 +9,18 @@ require('telescope').setup {
       horizontal = {mirror = false},
       vertical = {mirror = false}
     },
+    file_ignore_patterns = { "node_modules/*", ".git/*" },
     find_command = {
       'rg', '--no-heading', '--with-filename', '--line-number', '--column', '--smart-case'
+    },
+    vimgrep_arguments = {
+      'rg',
+      '--no-heading',
+      '--with-filename',
+      '--line-number',
+      '--column',
+      '--smart-case',
+      '--hidden'
     },
     prompt_prefix = " ",
     selection_caret = " ",
@@ -19,7 +30,6 @@ require('telescope').setup {
     sorting_strategy = "descending",
     layout_strategy = "horizontal",
     file_sorter = require'telescope.sorters'.get_fuzzy_file,
-    file_ignore_patterns = {},
     generic_sorter = require'telescope.sorters'.get_generic_fuzzy_sorter,
     path_display = {},
     winblend = 0,

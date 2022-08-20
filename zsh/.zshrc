@@ -65,6 +65,7 @@ alias printCanon='lp -d Canon_MF260_Series_UFRII_LT'
 set -o vi
 alias py='python3'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
+alias lg='lazygit'
 
 #------- Vim Mode Cursor Styling ---
 

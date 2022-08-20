@@ -209,7 +209,7 @@ make sure ~/.config/nvim folder exists
 
 ### global npm packages
 
-npm i -g @remix-project/remixd neovim bash-language-server pyright vscode-langservers-extracted typescript typescript-language-server emmet-ls
+npm i -g @remix-project/remixd neovim pyright vscode-langservers-extracted typescript slidev@latest
 
 ### install Neovim Plugin Manager Packer
 
