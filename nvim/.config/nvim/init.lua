@@ -35,7 +35,14 @@ require('cmp-config')
 require('sumneko-config')
 require('mason').setup()
 require('mason-lspconfig').setup()
-require("null-ls").setup()
+require("null-ls").setup({
+    sources = {
+        require("null-ls").builtins.formatting.stylua,
+        require("null-ls").builtins.diagnostics.eslint,
+        require("null-ls").builtins.formatting.prettier,
+    },
+})
+require('null-ls-config')
 require('cmp_nvim_lsp')
 require("toggleterm").setup()
 require'cmp'.setup.cmdline(':', {
