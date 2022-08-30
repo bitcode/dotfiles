@@ -5,6 +5,7 @@ local mappings = {
     fb = {":Telescope file_browser<cr>", "Built-in File Browser"},
     fh = {":Telescope help_tags<cr>", "Help Tags"},
 
+    fm = {":lua vim.lsp.buf.format()<cr>", "Format"},
 }
 local opts = {prefix = '<leader>'}
 wk.register(mappings, opts)

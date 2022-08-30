@@ -15,7 +15,16 @@ require('whichkey-config')
 require('telescope')
 require('telescope-config')
 require('telescope-file-browser-config')
+require('telescope').load_extension('projects')
 require'lspconfig'.tsserver.setup{}
+require("nvim-tree").setup({
+  sync_root_with_cwd = true,
+  respect_buf_cwd = true,
+  update_focused_file = {
+    enable = true,
+    update_root = true
+  },
+})
 require'cmp'.setup {
   sources = {
     { name = 'nvim-lsp' },
@@ -31,17 +40,22 @@ require'cmp'.setup {
     { name = 'nvim-lua' }
   }
 }
+--require('markdown-preview')
+require('gitsigns').setup()
+require('gitsigns-config')
+require('tabnine-config')
 require('cmp-config')
 require('sumneko-config')
 require('mason').setup()
 require('mason-lspconfig').setup()
 require("null-ls").setup({
     sources = {
+        require("null-ls").builtins.formatting.prettier,
         require("null-ls").builtins.formatting.stylua,
         require("null-ls").builtins.diagnostics.eslint,
-        require("null-ls").builtins.formatting.prettier,
     },
 })
+require('nvim-autopairs').setup {}
 require('null-ls-config')
 require('cmp_nvim_lsp')
 require("toggleterm").setup()
@@ -80,3 +94,4 @@ require'lspconfig'.emmet_ls.setup {
 require'lspconfig'.marksman.setup {
   capabilities = capabilities,
 }
+

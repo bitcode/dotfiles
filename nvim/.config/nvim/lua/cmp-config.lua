@@ -50,7 +50,7 @@ mapping = cmp.mapping.preset.insert({
 				nvim_lsp = "[LSP]",
 				nvim_lua = "[API]",
 				path = "[PATH]",
-                --cmp_tabnine = "[TABN]",
+                cmp_tabnine = "[TABN]",
 				luasnip = "[SNIP]",
 			},
             symbol_map = {
@@ -79,7 +79,7 @@ mapping = cmp.mapping.preset.insert({
       Event = "",
       Operator = "",
       TypeParameter = "",
-      --cmp_tabnine = "",
+      TabNine = "",
   },
 		}),
 	},
@@ -122,4 +122,3 @@ mapping = cmp.mapping.preset.insert({
     capabilities = capabilities
   },
 }
-
