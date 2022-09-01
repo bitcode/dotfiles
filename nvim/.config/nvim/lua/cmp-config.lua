@@ -50,8 +50,9 @@ mapping = cmp.mapping.preset.insert({
 				nvim_lsp = "[LSP]",
 				nvim_lua = "[API]",
 				path = "[PATH]",
-                cmp_tabnine = "[TABN]",
+                		cmp_tabnine = "[TABN]",
 				luasnip = "[SNIP]",
+				copilot = "CP",
 			},
             symbol_map = {
       Text = "",
@@ -80,6 +81,7 @@ mapping = cmp.mapping.preset.insert({
       Operator = "",
       TypeParameter = "",
       TabNine = "",
+      Copilot = "",
   },
 		}),
 	},
@@ -94,7 +96,7 @@ mapping = cmp.mapping.preset.insert({
     { name = 'spell' },
     { name = 'emoji' },
     { name = 'friendly-snippets' },
-    { name = 'cmp_tabnine' }
+    { name = 'copilot' }
   },
     confirm_opts = {
     --behavior = cmp.ConfirmBehavior.Replace,
