@@ -17,6 +17,9 @@ return require("packer").startup(function(use)
 			vim.fn["mkdp#util#install"]()
 		end,
 	})
+	use({
+		"ray-x/lsp_signature.nvim",
+	})
 	use("folke/lua-dev.nvim") -- fix Sumneko
 	use({ "wbthomason/packer.nvim" })
 	use({ "themercorp/themer.lua" })
@@ -95,9 +98,7 @@ return require("packer").startup(function(use)
 			require("nvim-treesitter.install").update({ with_sync = true })
 		end,
 	})
-	use({ "monkoose/matchparen.nvim" })
 	use({ "hrsh7th/cmp-nvim-lsp-signature-help" })
-	use({ "tzachar/cmp-tabnine", run = "./install.sh", requires = "hrsh7th/nvim-cmp" })
 	use({
 		"windwp/nvim-autopairs",
 		config = function()

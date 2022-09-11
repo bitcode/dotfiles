@@ -1,10 +1,10 @@
 require("utils")
-require("copilot").setup({
-	cmp = {
-		enabled = true,
-		method = "getCompletionsCycling",
-	},
-})
+--require("copilot").setup({
+--	cmp = {
+--		enabled = true,
+--		method = "getCompletionsCycling",
+--	},
+--})
 require("toggleterm-config")
 require("lsp_lua")
 require("lspkind")
@@ -79,11 +79,7 @@ require("nvim-treesitter.configs").setup({
 		additional_vim_regex_highlighting = false,
 	},
 })
-require("matchparen").setup({
-	on_startup = true, -- Should it be enabled by default
-	hl_group = "MatchParen", -- highlight group for matched characters
-	augroup_name = "matchparen", -- almost no reason to touch this unless there is already augroup with such name
-})
+require "lsp_signature".setup()
 -- The nvim-cmp almost supports LSP's capabilities so You should advertise it to LSP servers..
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)

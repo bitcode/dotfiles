@@ -50,7 +50,6 @@ mapping = cmp.mapping.preset.insert({
 				nvim_lsp = "[LSP]",
 				nvim_lua = "[API]",
 				path = "[PATH]",
-                		cmp_tabnine = "[TABN]",
 				luasnip = "[SNIP]",
 				copilot = "CP",
 			},
