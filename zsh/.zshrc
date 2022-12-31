@@ -23,11 +23,10 @@ plugins=(
   taskwarrior
   zsh-autosuggestions
   zsh-syntax-highlighting
-  zsh-vim-mode
-  kubectl
+  zsh-vi-mode
   zsh_codex
 )
-#ZSH_TMUX_AUTOSTART='true'
+ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
 export LC_CTYPE=en_US.UTF-8
@@ -37,16 +36,20 @@ export LC_CTYPE=en_US.UTF-8
 export PATH=$PATH:/usr/local/go/bin
 source $HOME/.cargo/env
 export PATH=$PATH:/usr/bin/node
-export PATH=$PATH:/home/bit/.config/coc/extensions/node_modules/coc-clangd
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export VISUAL=nvim
 export EDITOR=nvim
-export PATH=$PATH:/home/bit/.local/bin
+export PATH=$PATH:/$HOME/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
 export BROWSER=/usr/bin/chromium # for web-browser
 #export PATH=$PATH:/bin/lua-language-server
-export PATH="$HOME/tools/lua-language-server/bin/Linux:$PATH"
-export PATH="$HOME/.nix-profile/bin:$PATH"
+export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH
+#export PATH=$HOME/.nix-profile/bin:$PATH
+#source $HOME/zsh-vim-mode/zsh-vim-mode.plugin.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+export OPENAI_API_KEY=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
+#export DISPLAY=$(route.exe print | grep 0.0.0.0 | head -1 | awk '{print $4}'):0.0
+
 #------- Aliases ---------
 
 alias tls='tmux ls'
@@ -83,6 +86,7 @@ setxkbmap -option caps:swapescape
 
 #------- zsh_codex ---
 
+zle -N create_completion
 bindkey '^X' create_completion 
 
 #----- Recon Bash Scripts -----
@@ -113,7 +117,7 @@ sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
 
-export NVM_DIR="/Users/marc.droz/.nvm"
+export NVM_DIR="/$HOME/$USER/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 
 alias luamake=/tmp/lua-language-server/3rd/luamake/luamake

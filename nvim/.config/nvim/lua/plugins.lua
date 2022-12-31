@@ -1,3 +1,4 @@
+--require("cmp").setup.cmdline(":", {
 -- This file can be loaded by calling `lua require('plugins')` from your init.vim
 
 -- Only required if you have packer configured as `opt`
@@ -10,17 +11,11 @@ return require("packer").startup(function(use)
 		"williamboman/mason-lspconfig.nvim",
 	})
 	use({ "sainnhe/gruvbox-material" })
-	use({ "styled-components/vim-styled-components" })
-	use({
-		"iamcco/markdown-preview.nvim",
-		run = function()
-			vim.fn["mkdp#util#install"]()
-		end,
-	})
+	--	use({ "styled-components/vim-styled-components" })
 	use({
 		"ray-x/lsp_signature.nvim",
 	})
-	use("folke/lua-dev.nvim") -- fix Sumneko
+	use("folke/neodev.nvim") -- fix Sumneko
 	use({ "wbthomason/packer.nvim" })
 	use({ "themercorp/themer.lua" })
 	use({ "folke/which-key.nvim" })
@@ -36,6 +31,19 @@ return require("packer").startup(function(use)
 		end,
 	})
 	use({ "kyazdani42/nvim-web-devicons" })
+	use({
+		"jackMort/ChatGPT.nvim",
+		config = function()
+			require("chatgpt").setup({
+				-- optional configuration
+			})
+		end,
+		requires = {
+			"MunifTanjim/nui.nvim",
+			"nvim-lua/plenary.nvim",
+			"nvim-telescope/telescope.nvim",
+		},
+	})
 	use({
 		"nvim-lualine/lualine.nvim",
 		requires = { "kyazdani42/nvim-web-devicons", opt = true },
@@ -55,7 +63,7 @@ return require("packer").startup(function(use)
 	use({ "saadparwaiz1/cmp_luasnip" })
 	use({
 		"zbirenbaum/copilot.lua",
-		event = { "VimEnter" },
+		event = "VimEnter",
 		config = function()
 			vim.defer_fn(function()
 				require("copilot").setup()
@@ -64,7 +72,10 @@ return require("packer").startup(function(use)
 	})
 	use({
 		"zbirenbaum/copilot-cmp",
-		module = "copilot_cmp",
+		after = { "copilot.lua" },
+		config = function()
+			require("copilot_cmp").setup()
+		end,
 	})
 	use({
 		"hrsh7th/nvim-cmp",

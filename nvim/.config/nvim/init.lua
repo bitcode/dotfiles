@@ -1,17 +1,11 @@
 require("utils")
---require("copilot").setup({
---	cmp = {
---		enabled = true,
---		method = "getCompletionsCycling",
---	},
---})
+--require("copilot").setup({})
 require("toggleterm-config")
 require("lsp_lua")
 require("lspkind")
 require("plugins")
-require("lua-dev")
+require("neodev")
 require("config")
---require('vim-styled-components')
 require("config.colorscheme")
 require("config.completion")
 require("config.fugitive")
@@ -22,7 +16,7 @@ require("whichkey-config")
 require("telescope")
 require("telescope-config")
 require("telescope-file-browser-config")
---require('telescope').load_extension('projects')
+require('telescope').load_extension('projects')
 require("lspconfig").tsserver.setup({})
 require("nvim-tree").setup({
 	sync_root_with_cwd = true,
@@ -45,10 +39,9 @@ require("cmp").setup({
 		{ name = "emoji" },
 		{ name = "cmp_tabnine" },
 		{ name = "nvim-lua" },
-		{ name = "copilot" },
+		--{ name = "copilot" },
 	},
 })
---require('markdown-preview')
 require("gitsigns").setup()
 require("gitsigns-config")
 require("tabnine-config")
@@ -80,21 +73,22 @@ require("nvim-treesitter.configs").setup({
 	},
 })
 require "lsp_signature".setup()
+
 -- The nvim-cmp almost supports LSP's capabilities so You should advertise it to LSP servers..
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)
+--local capabilities = vim.lsp.protocol.make_client_capabilities()
+--capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)
 
 --
-require("lspconfig").tsserver.setup({
-	capabilities = capabilities,
-})
+--require("lspconfig").tsserver.setup({
+--	capabilities = capabilities,
+--})
 
 -- The following example advertise capabilities to `clangd`.
-require("lspconfig").emmet_ls.setup({
-	capabilities = capabilities,
-})
+--require("lspconfig").emmet_ls.setup(
+--capabilities = capabilities,
+--})
 
 -- The following example advertise capabilities to `clangd`.
-require("lspconfig").marksman.setup({
-	capabilities = capabilities,
-})
+--require("lspconfig").marksman.setup({
+--	capabilities = capabilities,
+--})
