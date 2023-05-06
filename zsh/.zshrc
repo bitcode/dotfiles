@@ -47,8 +47,10 @@ export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH
 #export PATH=$HOME/.nix-profile/bin:$PATH
 #source $HOME/zsh-vim-mode/zsh-vim-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-export OPENAI_API_KEY=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
+export OPENAI_API_KEY=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
 #export DISPLAY=$(route.exe print | grep 0.0.0.0 | head -1 | awk '{print $4}'):0.0
+export PATH=$PATH:$HOME/bit/.local/bin
+export LANGCHAIN_API_KEY="your_api_key_here"
 
 #------- Aliases ---------
 
@@ -117,7 +119,8 @@ sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
 
-export NVM_DIR="/$HOME/$USER/.nvm"
+export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 alias luamake=/tmp/lua-language-server/3rd/luamake/luamake

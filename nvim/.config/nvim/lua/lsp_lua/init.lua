@@ -60,13 +60,40 @@ require("lspconfig")["tsserver"].setup({
     on_attach = on_attach,
     flags = lsp_flags,
 })
-require("lspconfig")["sumneko_lua"].setup({
+-- Add support for lua-language-server (lua_ls)
+require("lspconfig")["lua-language-server"].setup({
     on_attach = on_attach,
     flags = lsp_flags,
-    -- Server-specific settings...
-    settings = {},
+    settings = {
+        Lua = {
+            runtime = {
+                version = "LuaJIT",
+                path = vim.split(package.path, ";"),
+            },
+            diagnostics = {
+                globals = {"vim"},
+            },
+            workspace = {
+                library = {
+                    [vim.fn.expand("$VIMRUNTIME/lua")] = true,
+                    [vim.fn.expand("$VIMRUNTIME/lua/vim/lsp")] = true,
+                },
+            },
+        },
+    },
 })
 
+-- Add support for python-lsp-server (py-lsp)
+require("lspconfig")["pylsp"].setup({
+    on_attach = on_attach,
+    flags = lsp_flags,
+})
+
+-- Add support for rust-analyzer (rust_analyzer)
+require("lspconfig")["rust_analyzer"].setup({
+    on_attach = on_attach,
+    flags = lsp_flags,
+})
 -- To get builtin LSP running, do something like:
 -- NOTE: This replaces the calls where you would have before done `require('nvim_lsp').sumneko_lua.setup()`
 --require('nlua.lsp.nvim').setup(require('lspconfig'), {

@@ -1,4 +1,5 @@
 local actions = require('telescope.actions')
+require('telescope').load_extension('file_browser')
 
 require('telescope').setup {
   defaults = {
@@ -7,9 +8,21 @@ require('telescope').setup {
       prompt_position = "top",
       preview_cutoff = 120,
       horizontal = {mirror = false},
-      vertical = {mirror = false}
+      vertical = {mirror = false},
     },
-    file_ignore_patterns = { "node_modules/*", ".git/*" },
+    pickers = {
+      find_files = {
+        find_command = {
+          "ff",
+          ".",
+          "--type",
+          "file",
+          "--hidden",
+          "--strip-cwd-prefix",
+        },
+      },
+    },
+    file_ignore_patterns = {"node_modules/*", ".git/*"},
     find_command = {
       'rg', '--no-heading', '--with-filename', '--line-number', '--column', '--smart-case'
     },
@@ -20,7 +33,7 @@ require('telescope').setup {
       '--line-number',
       '--column',
       '--smart-case',
-      '--hidden'
+      '--hidden',
     },
     prompt_prefix = " ",
     selection_caret = " ",
@@ -54,7 +67,26 @@ require('telescope').setup {
         ["<C-j>"] = actions.move_selection_next,
         ["<C-k>"] = actions.move_selection_previous,
         ["<C-q>"] = actions.smart_send_to_qflist + actions.open_qflist
-      }
-    }
-  }
+      },
+    },
+  },
+  extensions = {
+    file_browser = {
+      theme = "ivy",
+      -- disables netrw and use telescope-file-browser in its place
+      hijack_netrw = true,
+      mappings = {
+        i = {
+          -- your custom insert mode mappings
+        },
+        n = {
+          -- your custom normal mode mappings
+          ["<leader>fb"] = function()
+            local opts = {}
+            require("telescope").extensions.file_browser.file_browser(opts)
+          end,
+        },
+      },
+    },
+  },
 }

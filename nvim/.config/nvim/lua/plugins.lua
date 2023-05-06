@@ -15,7 +15,6 @@ return require("packer").startup(function(use)
 	use({
 		"ray-x/lsp_signature.nvim",
 	})
-	use("folke/neodev.nvim") -- fix Sumneko
 	use({ "wbthomason/packer.nvim" })
 	use({ "themercorp/themer.lua" })
 	use({ "folke/which-key.nvim" })
@@ -109,11 +108,15 @@ return require("packer").startup(function(use)
 			require("nvim-treesitter.install").update({ with_sync = true })
 		end,
 	})
+--	use {
+--    	'bitcode/metacode_ai', branch = 'master'
+--    	requires = {'nvim-telescope/telescope.nvim'}
+--	}
 	use({ "hrsh7th/cmp-nvim-lsp-signature-help" })
 	use({
 		"windwp/nvim-autopairs",
 		config = function()
-			require("nvim-autopairs").setup({})
+		require("nvim-autopairs").setup({})
 		end,
 	})
 end)

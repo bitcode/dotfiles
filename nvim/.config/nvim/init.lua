@@ -1,10 +1,12 @@
+-- To prevent warnings about undefined `vim` global variable
+if _G.vim == nil then _G.vim = {} end
 require("utils")
 --require("copilot").setup({})
 require("toggleterm-config")
-require("lsp_lua")
+--require("lsp_lua")
 require("lspkind")
 require("plugins")
-require("neodev")
+--require("neodev")
 require("config")
 require("config.colorscheme")
 require("config.completion")
@@ -17,7 +19,8 @@ require("telescope")
 require("telescope-config")
 require("telescope-file-browser-config")
 require('telescope').load_extension('projects')
-require("lspconfig").tsserver.setup({})
+--require('telescope').load_extension('metacode_ai')
+--require("lspconfig").tsserver.setup({})
 require("nvim-tree").setup({
 	sync_root_with_cwd = true,
 	respect_buf_cwd = true,
@@ -46,9 +49,10 @@ require("gitsigns").setup()
 require("gitsigns-config")
 require("tabnine-config")
 require("cmp-config")
-require("sumneko-config")
 require("mason").setup()
-require("mason-lspconfig").setup()
+require("mason-lspconfig").setup{
+    ensure_installed = {"rust_analyzer", "lua_ls", "emmet_ls", "tsserver", "html", "cssls", "bashls", "pylsp", "clangd", "gopls"},
+}
 require("null-ls").setup({
 	sources = {
 		require("null-ls").builtins.formatting.prettier,
@@ -73,22 +77,13 @@ require("nvim-treesitter.configs").setup({
 	},
 })
 require "lsp_signature".setup()
-
--- The nvim-cmp almost supports LSP's capabilities so You should advertise it to LSP servers..
---local capabilities = vim.lsp.protocol.make_client_capabilities()
---capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)
-
---
---require("lspconfig").tsserver.setup({
---	capabilities = capabilities,
---})
-
--- The following example advertise capabilities to `clangd`.
---require("lspconfig").emmet_ls.setup(
---capabilities = capabilities,
---})
-
--- The following example advertise capabilities to `clangd`.
---require("lspconfig").marksman.setup({
---	capabilities = capabilities,
---})
+-- set directory to the current file's directory
+vim.cmd([[
+  augroup auto_change_directory
+    autocmd!
+    autocmd VimEnter * if argc() == 0 | lcd %:p:h | endif
+    autocmd BufEnter * lcd %:p:h
+  augroup END
+]])
+--vim.cmd("command! MetaCodeAITelescope lua require('metacode_ai_telescope').metacode_ai_picker()")
+--vim.api.nvim_set_keymap('n', '<leader>m', ':MetaCodeAITelescope<CR>', {noremap = true, silent = true})
