@@ -1,5 +1,7 @@
 local actions = require('telescope.actions')
 require('telescope').load_extension('file_browser')
+vim.cmd("command! MetaCodeAITelescope lua require('telescope').extensions.metacode_ai.metacode_ai_picker({finders = require('telescope.finders')})")
+vim.api.nvim_set_keymap('n', '<leader>m', ':MetaCodeAITelescope<CR>', {noremap = true, silent = true})
 
 require('telescope').setup {
   defaults = {

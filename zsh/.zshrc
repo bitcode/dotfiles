@@ -25,6 +25,7 @@ plugins=(
   zsh-syntax-highlighting
   zsh-vi-mode
   zsh_codex
+  zsh-history-substring-search
 )
 ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh

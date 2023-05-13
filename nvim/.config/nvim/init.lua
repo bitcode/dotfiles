@@ -18,7 +18,7 @@ require("whichkey-config")
 require("telescope")
 require("telescope-config")
 require("telescope-file-browser-config")
-require('telescope').load_extension('projects')
+--require('telescope').load_extension('projects')
 --require('telescope').load_extension('metacode_ai')
 --require("lspconfig").tsserver.setup({})
 require("nvim-tree").setup({
