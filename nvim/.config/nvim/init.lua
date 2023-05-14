@@ -2,7 +2,7 @@
 if _G.vim == nil then _G.vim = {} end
 require("utils")
 --require("copilot").setup({})
-require("toggleterm-config")
+--require("toggleterm-config")
 --require("lsp_lua")
 require("lspkind")
 require("plugins")
@@ -20,15 +20,17 @@ require("telescope-config")
 require("telescope-file-browser-config")
 --require('telescope').load_extension('projects')
 --require('telescope').load_extension('metacode_ai')
---require("lspconfig").tsserver.setup({})
-require("nvim-tree").setup({
-	sync_root_with_cwd = true,
-	respect_buf_cwd = true,
-	update_focused_file = {
-		enable = true,
-		update_root = true,
-	},
-})
+require("lspconfig").pylsp.setup({})
+require("lspconfig").clangd.setup({})
+require("lspconfig").gopls.setup({})
+require("lspconfig").bashls.setup({})
+require("lspconfig").cssls.setup({})
+require("lspconfig").html.setup({})
+require("lspconfig").tsserver.setup({})
+require("lspconfig").emmet_ls.setup({})
+require("lspconfig").pyright.setup({})
+--require("lspconfig").lua_ls.setup({})
+require("lspconfig").rust_analyzer.setup({})
 require("cmp").setup({
 	sources = {
 		{ name = "nvim-lsp" },
@@ -40,15 +42,13 @@ require("cmp").setup({
 		{ name = "spell" },
 		{ name = "calc" },
 		{ name = "emoji" },
-		{ name = "cmp_tabnine" },
 		{ name = "nvim-lua" },
-		--{ name = "copilot" },
+		{ name = "copilot" },
 	},
 })
 require("gitsigns").setup()
 require("gitsigns-config")
-require("tabnine-config")
-require("cmp-config")
+--require("cmp-config")
 require("mason").setup()
 require("mason-lspconfig").setup{
     ensure_installed = {"rust_analyzer", "lua_ls", "emmet_ls", "tsserver", "html", "cssls", "bashls", "pylsp", "clangd", "gopls"},

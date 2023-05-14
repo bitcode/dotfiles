@@ -24,16 +24,17 @@ plugins=(
   zsh-autosuggestions
   zsh-syntax-highlighting
   zsh-vi-mode
-  zsh_codex
   zsh-history-substring-search
+  virtualenv
 )
-ZSH_TMUX_AUTOSTART='true'
+#ZSH_TMUX_AUTOSTART='true'
 source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
 export LC_CTYPE=en_US.UTF-8
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 #test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
+export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 export PATH=$PATH:/usr/local/go/bin
 source $HOME/.cargo/env
 export PATH=$PATH:/usr/bin/node
@@ -42,13 +43,13 @@ export VISUAL=nvim
 export EDITOR=nvim
 export PATH=$PATH:/$HOME/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
-export BROWSER=/usr/bin/chromium # for web-browser
+#export BROWSER=/usr/bin/chromium # for web-browser
 #export PATH=$PATH:/bin/lua-language-server
-export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH
+#export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH
 #export PATH=$HOME/.nix-profile/bin:$PATH
 #source $HOME/zsh-vim-mode/zsh-vim-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-export OPENAI_API_KEY=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
+export OPENAI_API_KEY=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
 #export DISPLAY=$(route.exe print | grep 0.0.0.0 | head -1 | awk '{print $4}'):0.0
 export PATH=$PATH:$HOME/bit/.local/bin
 export LANGCHAIN_API_KEY="your_api_key_here"
@@ -73,6 +74,7 @@ set -o vi
 alias py='python3'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
 alias lg='lazygit'
+alias python='/usr/bin/python3'
 
 #------- Vim Mode Cursor Styling ---
 

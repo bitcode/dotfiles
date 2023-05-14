@@ -1,4 +1,17 @@
 -- lsp setup
+local lspconfig = require('lspconfig')
+lspconfig.pyright.setup {}
+lspconfig.tsserver.setup {}
+lspconfig.lua_ls.setup {}
+lspconfig.emmet_ls.setup {}
+lspconfig.gopls.setup {}
+lspconfig.pylsp.setup {}
+lspconfig.rust_analyzer.setup {
+  -- Server-specific settings. See `:help lspconfig-setup`
+  settings = {
+    ['rust-analyzer'] = {},
+  },
+}
 -- Set Default Prefix.
 -- Note: You can set a prefix per lsp server in the lv-globals.lua file
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
@@ -48,54 +61,3 @@ local lsp_flags = {
     -- This is the default in Nvim 0.7+
     debounce_text_changes = 150,
 }
-require("lspconfig")["emmet_ls"].setup({
-    on_attach = on_attach,
-    flags = lsp_flags,
-})
-require("lspconfig")["tsserver"].setup({
-    -- on_attach = function(client, bufnr) client.server_capabilities.documentFormattingProvider = false
-    --    client.server_capabilities.documentRangeFormattingProvider = false
-    --   on_attach(client, bufnr)
-    --   end,
-    on_attach = on_attach,
-    flags = lsp_flags,
-})
--- Add support for lua-language-server (lua_ls)
-require("lspconfig")["lua-language-server"].setup({
-    on_attach = on_attach,
-    flags = lsp_flags,
-    settings = {
-        Lua = {
-            runtime = {
-                version = "LuaJIT",
-                path = vim.split(package.path, ";"),
-            },
-            diagnostics = {
-                globals = {"vim"},
-            },
-            workspace = {
-                library = {
-                    [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-                    [vim.fn.expand("$VIMRUNTIME/lua/vim/lsp")] = true,
-                },
-            },
-        },
-    },
-})
-
--- Add support for python-lsp-server (py-lsp)
-require("lspconfig")["pylsp"].setup({
-    on_attach = on_attach,
-    flags = lsp_flags,
-})
-
--- Add support for rust-analyzer (rust_analyzer)
-require("lspconfig")["rust_analyzer"].setup({
-    on_attach = on_attach,
-    flags = lsp_flags,
-})
--- To get builtin LSP running, do something like:
--- NOTE: This replaces the calls where you would have before done `require('nvim_lsp').sumneko_lua.setup()`
---require('nlua.lsp.nvim').setup(require('lspconfig'), {
--- on_attach = on_attach,
---})
