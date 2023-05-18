@@ -34,5 +34,26 @@ vim.cmd 'au TextYankPost * lua vim.highlight.on_yank {on_visual = false}'
 
 -- utils.opt helper function is used to set various Vim options at global, buffer, and window scopes.
 
-vim.keymap.set('n', '<Leader>F5', ':silent update<Bar>silent !/usr/bin/chromium %:p &<CR>')
-vim.keymap.set('n', '<Leader>F3', ':set hlsearch!<CR>')
+-- navigate panes
+local function move_window(direction)
+  local winnr = vim.api.nvim_win_get_number(vim.api.nvim_get_current_win())
+  local winlist = vim.api.nvim_list_wins()
+  local new_winnr = winnr
+  if direction == "left" then
+    new_winnr = winnr - 1
+  elseif direction == "down" then
+    new_winnr = winnr + 1
+  elseif direction == "up" then
+    new_winnr = winnr - winlist[1] + 1
+  elseif direction == "right" then
+    new_winnr = winnr + winlist[1] - 1
+  end
+  if new_winnr >= 1 and new_winnr <= #winlist then
+    vim.api.nvim_set_current_win(winlist[new_winnr])
+  end
+end
+
+vim.keymap.set("n", "<C-h>", function() move_window("left") end)
+vim.keymap.set("n", "<C-j>", function() move_window("down") end)
+vim.keymap.set("n", "<C-k>", function() move_window("up") end)
+vim.keymap.set("n", "<C-l>", function() move_window("right") end)

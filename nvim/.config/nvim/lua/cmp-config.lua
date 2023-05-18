@@ -4,6 +4,7 @@ local cmp = require('cmp')
 local luasnip = require('luasnip')
 local lspkind = require('lspkind')
 
+
 cmp.setup {
   completion = {
       completeopt = 'menu,menuone,noinsert',
@@ -119,7 +120,25 @@ mapping = cmp.mapping.preset.insert({
   require('lspconfig')['tsserver'].setup {
     capabilities = capabilities
   },
-  require('lspconfig')['sumneko_lua'].setup {
+  require('lspconfig')['pyright'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['rust_analyzer'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['pylsp'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['bashls'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['vimls'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['jsonls'].setup {
+    capabilities = capabilities
+  },
+  require('lspconfig')['html'].setup {
     capabilities = capabilities
   },
 }

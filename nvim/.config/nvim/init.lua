@@ -1,23 +1,21 @@
 -- To prevent warnings about undefined `vim` global variable
 if _G.vim == nil then _G.vim = {} end
-require("utils")
---require("copilot").setup({})
---require("toggleterm-config")
---require("lsp_lua")
-require("lspkind")
-require("plugins")
---require("neodev")
-require("config")
+require("utils") -- use to configure global, local, current windows
+--require("copilot").setup({}) copilot works without this line
+require("toggleterm-config") -- terminal
+require("lsp_lua") -- don't know
+require("lspkind") -- lsp icons
+require("plugins") -- packer plugins
+--require("neodev") -- signature lua lsp
+require("config") -- loads 4 config files 
 require("config.colorscheme")
-require("config.completion")
-require("config.fugitive")
-require("lualine-config")
-require("settings")
-require("lualine").setup()
-require("whichkey-config")
-require("telescope")
-require("telescope-config")
-require("telescope-file-browser-config")
+require("lualine-config") -- statusline
+require("settings") -- nvim regular settings, view utils 
+require("lualine").setup() -- statusline
+require("whichkey-config") -- keybindings
+require("telescope") -- fuzzy finder
+require("telescope-config") -- fuzzy finder config
+require("telescope-file-browser-config") -- file browser
 --require('telescope').load_extension('projects')
 --require('telescope').load_extension('metacode_ai')
 require("lspconfig").pylsp.setup({})
@@ -51,7 +49,7 @@ require("gitsigns-config")
 --require("cmp-config")
 require("mason").setup()
 require("mason-lspconfig").setup{
-    ensure_installed = {"rust_analyzer", "lua_ls", "emmet_ls", "tsserver", "html", "cssls", "bashls", "pylsp", "clangd", "gopls"},
+    ensure_installed = {"rust_analyzer","pylsp", "lua_ls", "emmet_ls", "tsserver", "cssls", "bashls", "clangd", "gopls"},
 }
 require("null-ls").setup({
 	sources = {
