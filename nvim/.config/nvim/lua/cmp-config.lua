@@ -100,7 +100,7 @@ mapping = cmp.mapping.preset.insert({
   },
     confirm_opts = {
     --behavior = cmp.ConfirmBehavior.Replace,
-    select = false,
+    select = true,
   },
     -- experimental
     window = {
