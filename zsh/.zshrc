@@ -43,6 +43,7 @@ export VISUAL=nvim
 export EDITOR=nvim
 export PATH=$PATH:/$HOME/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
+export XDG_CONFIG_HOME=$HOME/.config/
 #export BROWSER=/usr/bin/chromium # for web-browser
 #export PATH=$PATH:/bin/lua-language-server
 #export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH

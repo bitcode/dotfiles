@@ -16,6 +16,7 @@ return require("packer").startup(function(use)
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
 	})
+    use('windwp/nvim-ts-autotag')
 	use({ "sainnhe/gruvbox-material" })
 	--	use({ "styled-components/vim-styled-components" })
 	use({
@@ -92,10 +93,6 @@ return require("packer").startup(function(use)
 			{ "hrsh7th/cmp-cmdline" },
 			{ "f3fora/cmp-spell", { "hrsh7th/cmp-calc" }, { "hrsh7th/cmp-emoji" } },
 		},
-	})
-	use({ "kyazdani42/nvim-tree.lua" })
-	use({
-		"rlane/pounce.nvim",
 	})
 	use({ "lewis6991/gitsigns.nvim" })
 	use({ "p00f/nvim-ts-rainbow" })

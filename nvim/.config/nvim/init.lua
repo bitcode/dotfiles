@@ -3,7 +3,12 @@ if _G.vim == nil then _G.vim = {} end
 require("utils") -- use to configure global, local, current windows
 --require("copilot").setup({}) copilot works without this line
 require("toggleterm-config") -- terminal
-require("lsp_lua") -- don't know
+require'nvim-treesitter.configs'.setup {
+  autotag = {
+    enable = true,
+  }
+}
+require("lsp_lua") -- global lsp configuration
 require("lspkind") -- lsp icons
 require("plugins") -- packer plugins
 --require("neodev") -- signature lua lsp
@@ -13,10 +18,10 @@ require("lualine-config") -- statusline
 require("settings") -- nvim regular settings, view utils 
 require("lualine").setup() -- statusline
 require("whichkey-config") -- keybindings
-require("telescope") -- fuzzy finder
+require("telescope")
 require("telescope-config") -- fuzzy finder config
 require("telescope-file-browser-config") -- file browser
---require('telescope').load_extension('projects')
+require('telescope').load_extension('projects')
 --require('telescope').load_extension('metacode_ai')
 require("lspconfig").pylsp.setup({})
 require("lspconfig").clangd.setup({})
@@ -27,7 +32,7 @@ require("lspconfig").html.setup({})
 require("lspconfig").tsserver.setup({})
 require("lspconfig").emmet_ls.setup({})
 require("lspconfig").pyright.setup({})
---require("lspconfig").lua_ls.setup({})
+require("lspconfig").lua_ls.setup({})
 require("lspconfig").rust_analyzer.setup({})
 require("cmp").setup({
 	sources = {
@@ -35,7 +40,7 @@ require("cmp").setup({
 		{ name = "buffer" },
 		{ name = "path" },
 		{ name = "cmdline" },
-		{ name = "nvim_lsp_document_symbol" },
+    	{ name = "nvim_lsp_document_symbol" },
 		{ name = "nvim_lsp_signature_help" },
 		{ name = "spell" },
 		{ name = "calc" },
@@ -46,7 +51,7 @@ require("cmp").setup({
 })
 require("gitsigns").setup()
 require("gitsigns-config")
---require("cmp-config")
+require("cmp-config")
 require("mason").setup()
 require("mason-lspconfig").setup{
     ensure_installed = {"rust_analyzer","pylsp", "lua_ls", "emmet_ls", "tsserver", "cssls", "bashls", "clangd", "gopls"},
@@ -58,7 +63,7 @@ require("null-ls").setup({
 		require("null-ls").builtins.diagnostics.eslint,
 	},
 })
-require("nvim-autopairs").setup({})
+require("nvim-ts-autotag")
 require("null-ls-config")
 require("cmp_nvim_lsp")
 require("toggleterm").setup()

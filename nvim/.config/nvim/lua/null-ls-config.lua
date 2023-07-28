@@ -20,7 +20,6 @@ null_ls.setup({
     sources = {
         formatting.prettier,
         formatting.stylua,
-        --diagnostics.eslint,
         --diagnostics.luacheck,
         code_actions.eslint,
     }

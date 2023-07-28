@@ -32,6 +32,10 @@ vim.cmd [[set wildignore=*.o,*~,*/.git*,*/target/*]]
 -- Highlight on yank
 vim.cmd 'au TextYankPost * lua vim.highlight.on_yank {on_visual = false}'
 
+-- matchpairs configuration
+
+vim.g.vim_matchtag_enable_by_default = true
+
 -- utils.opt helper function is used to set various Vim options at global, buffer, and window scopes.
 
 -- navigate panes
