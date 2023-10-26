@@ -97,19 +97,6 @@ reboot
 
 # Post Installs
 
-### DWM Flexipatch
-
-`cd /usr/src/`
-`git clone https://github.com/bakkeby/dwm-flexipatch.git`
-`cd dwm-flexipatch`
-`sudo make clean install`
-
-### ST
-
-`cd /usr/src/`
-`git clone git://git.suckless.org/st`
-`cd st`
-`sudo make clean install`
 
 ### Install python packages with python pip
 
@@ -117,20 +104,6 @@ pip install -r /path/to/requirements.txt
 pip3 install pynvim --upgrade
 pip3 install openai
 
-### rofi ( install is in basePacks )
-
-rofi config is in: `~/.config/rofi/config.rasi`
-more info @ `https://wiki.archlinux.org/title/Rofi#Configuration`
-
-to add rofi to dwm lets edit config.h
-`static const char *roficmd[] = { "rofi", "-show", "drun", "-show-icons", NULL };`
-and
-`{ MODKEY, XK_d, spawn, {.v = roficmd } },`
-
-download gruvbox theme
-git clone https://github.com/bardisty/gruvbox-rofi ~/.config/rofi/themes/gruvbox
-
-use `rofi-theme-selector` to select the theme
 
 get google chrome from AUR
 `git clone https://aur.archlinux.org/google-chrome.git`
@@ -193,34 +166,15 @@ install with prefix + I
 
 `cargo install --git https://github.com/Peltoche/lsd.git --branch master`
 
-### Install Vim Plug
-
-`sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'`
-
 ### download and install dot files
 
 make sure ~/.config/nvim folder exists
 `git clone https://github.com/bitcode/dotfiles.git`
 `stow zsh nvim tmux`
 
-### download SecList from github
-
-`git clone https://github.com/danielmiessler/SecLists.git`
-
 ### global npm packages
 
-npm i -g @remix-project/remixd neovim pyright vscode-langservers-extracted typescript slidev@latest
-
-### install Neovim Plugin Manager Packer
-
-`git clone --depth 1 https://github.com/wbthomason/packer.nvim\ ~/.local/share/nvim/site/pack/packer/start/packer.nvim`
-
-### rofi configuration for dwm
-
-`static const char *roficmd[] = { "rofi", "-show", "drun", "-show-icons", NULL };`
-and
-`{ MODKEY XK_d, spawn, {.v = roficmd } },`
-in config.h. ( The last one goes into `static Key keys[] = {...` )
+npm i -g neovim pyright 
 
 ### things to do manually
 
@@ -239,6 +193,4 @@ makepkg -sri
 if it fails to validate import key
 `gpg --recv-key <key>`
 
-### Manually install lua-language-server
-https://github.com/sumneko/lua-language-server
 

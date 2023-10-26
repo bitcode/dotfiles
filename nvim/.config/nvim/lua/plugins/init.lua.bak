@@ -1,5 +1,4 @@
-local function load_plugins()
-	return  { 
+return  { 
 		"neovim/nvim-lspconfig", -- Configurations for Nvim LSP
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
@@ -12,27 +11,6 @@ local function load_plugins()
 		"kyazdani42/nvim-web-devicons",
 		"L3MON4D3/LuaSnip",
 		"saadparwaiz1/cmp_luasnip",
-		{
-			"nvim-lualine/lualine.nvim",
-			dependencies = { "kyazdani42/nvim-web-devicons" },
-			event = 'BufEnter',
-			config = function()
-				require('lualine').setup{}
-			local colors = {
-			  bg       = '#202328',
-			  fg       = '#bbc2cf',
-			  yellow   = '#ECBE7B',
-			  cyan     = '#008080',
-			  darkblue = '#081633',
-			  green    = '#98be65',
-			  orange   = '#FF8800',
-			  violet   = '#a9a1e1',
-			  magenta  = '#c678dd',
-			  blue     = '#51afef',
-			  red      = '#ec5f67',
-			}
-		end	
-		},
 		{
 			"folke/trouble.nvim",
 			dependencies = { "kyazdani42/nvim-web-devicons" },
@@ -72,6 +50,3 @@ local function load_plugins()
 	    		event = "InsertEnter",
 		},
 	}
-end
-
-	return { load_plugins = load_plugins }		

@@ -20,7 +20,8 @@ echo "127.0.1.1 netopsbox.localdomain netopsbox" >> /etc/hosts
 echo root:password | chpasswd
 
 # Install packages
-pacman -S grub efibootmgr networkmanager network-manager-applet dialog wpa_supplicant mtools dosfstools base-devel linux-headers nvidia nvidia-utils nvidia-settings xorg openssh openvpn rofi xorg-xinit base-devel cmake unzip ninja tree tree-sitter curl nodejs-lts-fermium zsh stow ranger okular highlight pygmentize python-pygments xdg-utils npm xsel python-pyx python-pip wget ripgrep fd lua luarocks go go-tools discord pipewire pipewire-pulse pipewire-alsa alsa-utils lib32-libpulse pyright
+pacman -S grub wmctrl xclip wl-clipboard
+ networkmanager iwd dhcpcd openssh openvpn cmake unzip ninja tree tree-sitter curl ranger zsh stow ranger okular highlight pygmentize python-pygments xdg-utils xsel python-pip wget ripgrep fd lua luarocks go go-tools discord lib32-libpulse curl wget stow lynx nmap tcpdump fontconfig python3 gcc clang cmake pkg-config unxzip caca-utils w3m mediainfo poppler atool
 
 # GRUB
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
@@ -29,13 +30,11 @@ grub-mkconfig -o /boot/grub/grub.cfg
 # Services
 systemctl enable NetworkManager
 systemctl enable sshd
-systemctl enable avahi-daemon
-systemctl enable reflector.timer
+systemctl enable iwd
+systemctl enable dhcpcd@device.service
 
-# Package installation
-sudo pacman -Syu
-sudo pacman -S wget curl git tmux vim stow lynx nmap tcpdump fontconfig openssl python gcc go clang cmake pkg-config unzip caca-utils highlight atool w3m poppler mediainfo go gopls clang caca-utils highlight atool w3m poppler readline 
-yay -S --noconfirm python3.10 python3.10-venv 
+# Nvim Plugin Manager Lazy.nvim
+
 
 # Rust install
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -59,16 +58,16 @@ nvm alias default node
 source ~/.bashrc
 
 # Install npm packages
-npm install -g prettier eslint bash-language-server neovim typescript typescript-language-server pyright rls clangd lua-language-server
+npm install -g neovim typescript typescript-language-server
 
 # Neovim from source
-git clone https://github.com/neovim/neovim
-cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo
+git clone https://github.com/neovim/neovim<br>
+cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo<br>
 sudo make install
 
 # Neovim prerequisites
-python3 -m pip install --user --upgrade pynvim
-pip3 install neovim selenium python-dotenv pynvim openai jedi pyx pythonx virtualenv python-lsp-server
+python3 -m pip install --user --upgrade pynvim<br>
+pip3 install neovim pynvim
 
 # Install nerdfonts
 git clone https://github.com/ryanoasis/nerd-fonts.git

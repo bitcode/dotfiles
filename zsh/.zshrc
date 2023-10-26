@@ -50,10 +50,10 @@ export XDG_CONFIG_HOME=$HOME/.config/
 #export PATH=$HOME/.nix-profile/bin:$PATH
 #source $HOME/zsh-vim-mode/zsh-vim-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-export OPENAI_API_KEY=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
 #export DISPLAY=$(route.exe print | grep 0.0.0.0 | head -1 | awk '{print $4}'):0.0
 export PATH=$PATH:$HOME/bit/.local/bin
 export LANGCHAIN_API_KEY="your_api_key_here"
+source $HOME/dotfiles/zsh/tmux_autostart.sh
 
 #------- Aliases ---------
 
@@ -88,7 +88,8 @@ MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 
 #------- swap caps with escape ---
 
-setxkbmap -option caps:swapescape
+#setxkbmap -option caps:swapescape
+
 
 #------- zsh_codex ---
 
@@ -126,5 +127,3 @@ lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:dig
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-alias luamake=/tmp/lua-language-server/3rd/luamake/luamake
