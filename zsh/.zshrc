@@ -28,7 +28,7 @@ plugins=(
   virtualenv
 )
 #ZSH_TMUX_AUTOSTART='true'
-source $ZSH/oh-my-zsh.sh
+#source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
 export LC_CTYPE=en_US.UTF-8
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
@@ -127,3 +127,4 @@ lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:dig
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+source ~/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
