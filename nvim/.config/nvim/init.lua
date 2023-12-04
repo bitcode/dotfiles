@@ -13,6 +13,9 @@ vim.opt.rtp:prepend(lazypath)
 -- Load the plugins.lua file
 require("lazy").setup(require("plugins"))
 -- Load gruvbox
+require("gruvbox").setup({
+	transparent_mode = true,
+})
 vim.o.background = "dark" -- or "light" for light mode
 vim.cmd([[colorscheme gruvbox]])
 -- Load Mason Config
