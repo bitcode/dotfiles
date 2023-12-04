@@ -10,7 +10,6 @@ ZSH_THEME=powerlevel10k/powerlevel10k
 # Uncomment the following line to display red dots whilst waiting for completion.
  COMPLETION_WAITING_DOTS="true"
 plugins=(
-  vscode
   git
   pip
   history
@@ -30,35 +29,31 @@ plugins=(
 #ZSH_TMUX_AUTOSTART='true'
 #source $ZSH/oh-my-zsh.sh
 ZSH_DISABLE_COMPFIX='true'
+export ZSH_CUSTOM=$HOME/.oh-my-zsh/custom/plugins
 export LC_CTYPE=en_US.UTF-8
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 #test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
-export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
-export PATH=$PATH:/usr/local/go/bin
-source $HOME/.cargo/env
-export PATH=$PATH:/usr/bin/node
-export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export VISUAL=nvim
 export EDITOR=nvim
+export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:/usr/bin/node
+export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
 export PATH=$PATH:/$HOME/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
 #export BROWSER=/usr/bin/chromium # for web-browser
-#export PATH=$PATH:/bin/lua-language-server
-#export PATH=$HOME/tools/lua-language-server/bin/Linux:$PATH
-#export PATH=$HOME/.nix-profile/bin:$PATH
-#source $HOME/zsh-vim-mode/zsh-vim-mode.plugin.zsh
-source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-#export DISPLAY=$(route.exe print | grep 0.0.0.0 | head -1 | awk '{print $4}'):0.0
 export PATH=$PATH:$HOME/bit/.local/bin
-export LANGCHAIN_API_KEY="your_api_key_here"
 source $HOME/dotfiles/zsh/tmux_autostart.sh
-
+source $HOME/.cargo/env
+source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 #------- Aliases ---------
 
 alias tls='tmux ls'
-alias win='cd /mnt/c/Users/mylam'
 alias rc='rustc'
 alias dc='cd ..'
 alias tsource='tmux source-file ~/.tmux.conf'
@@ -90,41 +85,13 @@ MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 
 #setxkbmap -option caps:swapescape
 
-
-#------- zsh_codex ---
-
-zle -N create_completion
-bindkey '^X' create_completion 
-
-#----- Recon Bash Scripts -----
- 
-certspotter(){
-curl -s https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1
-} #h/t Michiel Prins
-
-crtsh(){
-curl -s https://crt.sh/\?q\=\%.$1\&output\=json | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u
-}
-
-certnmap(){
-curl https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1  | nmap -T5 -Pn -sS -i - -$
-} #h/t Jobert Abma
-
-certbrute(){
-cat $1.txt | while read line; do python3 dirsearch.py -e . -u "https://$line"; done
-}
-
-ipinfo(){
-curl http://ipinfo.io/$1
-}
-
 #------SiteMap Script -----
 
 sitemap(){
 lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:digit:]]+\.' | awk '{print $2}' | cut -d\? -f1 | sort | uniq
 }
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
 source ~/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
