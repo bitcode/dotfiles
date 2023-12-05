@@ -454,7 +454,8 @@ font:
 #   - (Windows) powershell
 shell:
   program: /usr/bin/zsh
-    #    args:
+  args:
+    - exec tmux -e
 
 # Startup directory
 #

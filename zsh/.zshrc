@@ -45,7 +45,7 @@ export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
 #export BROWSER=/usr/bin/chromium # for web-browser
 export PATH=$PATH:$HOME/bit/.local/bin
-source $HOME/dotfiles/zsh/tmux_autostart.sh
+#source $HOME/dotfiles/zsh/tmux_autostart.sh
 source $HOME/.cargo/env
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
