@@ -1,9 +1,6 @@
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
 
 export ZSH="/home/bit/.oh-my-zsh"
 ZSH_THEME=powerlevel10k/powerlevel10k
@@ -31,27 +28,21 @@ plugins=(
 ZSH_DISABLE_COMPFIX='true'
 export ZSH_CUSTOM=$HOME/.oh-my-zsh/custom/plugins
 export LC_CTYPE=en_US.UTF-8
-[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 #test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
 export VISUAL=nvim
 export EDITOR=nvim
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:/usr/bin/node
-export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
-export PATH=$PATH:/$HOME/bit/.local/bin
 export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
-#export BROWSER=/usr/bin/chromium # for web-browser
-export PATH=$PATH:$HOME/bit/.local/bin
+export BROWSER=/usr/bin/firefox # for web-browser
 #source $HOME/dotfiles/zsh/tmux_autostart.sh
 source $HOME/.cargo/env
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $HOME/.oh-my-zsh/custom/themes/powerlevel10k.zsh-theme
 source $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+source ~/powerlevel10k/powerlevel10k.zsh-theme
 #------- Aliases ---------
 
 alias tls='tmux ls'
@@ -82,10 +73,6 @@ MODE_CURSOR_SEARCH="#ff00ff steady underline"
 MODE_CURSOR_VISUAL="$MODE_CURSOR_VICMD steady bar"
 MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
 
-#------- swap caps with escape ---
-
-#setxkbmap -option caps:swapescape
-
 #------SiteMap Script -----
 
 sitemap(){
@@ -95,3 +82,5 @@ lynx -dump "http://hackerone.com" | sed -n '/^References$/,$p' | grep -E '[[:dig
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
