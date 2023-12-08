@@ -37,12 +37,12 @@ export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
 export BROWSER=/usr/bin/firefox # for web-browser
 #source $HOME/dotfiles/zsh/tmux_autostart.sh
-source $HOME/.cargo/env
+source $HOME/.cargo/bin
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-source ~/powerlevel10k/powerlevel10k.zsh-theme
+source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 #------- Aliases ---------
 
 alias tls='tmux ls'
