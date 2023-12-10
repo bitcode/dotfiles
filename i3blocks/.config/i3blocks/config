@@ -1,0 +1,56 @@
+# Global i3blocks config file
+#
+# The 'separator' and 'separator_block_width' keys can be used here if you want 
+# to change the appearance of the separators between blocks
+separator=true
+separator_block_width=15
+
+# Define each block below
+
+# Battery block
+[battery]
+command=$HOME/.config/i3blocks/scripts/battery/battery
+interval=30
+# You can also specify any additional properties you might want, 
+# e.g., color, min_width, align, etc.
+
+# CPU usage block
+[cpu_usage]
+command=$HOME/.config/i3blocks/scripts/cpu_usage/cpu_usage
+interval=10
+
+# Custom block example (jas)
+[jas]
+command=$HOME/.config/i3blocks/scripts/jas/jas
+interval=once
+
+# Media Player
+[mediaplayer]
+command=$HOME/.config/i3blocks/scripts/mediaplayer/mediaplayer
+interval=5
+
+# Memory Block
+[memory]
+command=$HOME/.config/i3blocks/scripts/memory/memory
+interval=10
+
+# Shutdown Menu
+[shutdown_menu]
+command=$HOME/.config/i3blocks/scripts/shutdown_menu/shutdown_menu
+interval=once
+
+# Spotify (Note: This is assuming 'spotify.py' is executable)
+#[spotify]
+#command=$HOME/.config/i3blocks/scripts/spotify/spotify.py
+#interval=5
+
+# Temperature Block
+[temperature]
+command=$HOME/.config/i3blocks/scripts/temperature/temperature
+interval=30
+
+# Volume Block
+[volume]
+command=$HOME/.config/i3blocks/scripts/volume/volume
+interval=once
+signal=10

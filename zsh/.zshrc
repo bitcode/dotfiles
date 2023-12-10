@@ -32,6 +32,7 @@ export LC_CTYPE=en_US.UTF-8
 #test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
 export VISUAL=nvim
 export EDITOR=nvim
+export PATH="$HOME/.cargo/bin:$PATH"
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
@@ -63,6 +64,7 @@ alias py='python3'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
 alias lg='lazygit'
 alias python='/usr/bin/python3'
+alias askollama='ask --model=orca2'
 
 #------- Vim Mode Cursor Styling ---
 
@@ -84,3 +86,4 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion

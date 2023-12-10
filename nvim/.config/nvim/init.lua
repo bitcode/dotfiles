@@ -28,6 +28,8 @@ require("mason").setup({
         }
     }
 })
+-- Load Gen
+require('gen').setup({})
 -- Load Telescope
 require('telescope').setup{
   defaults = {
@@ -42,6 +44,22 @@ require('telescope').setup{
     -- ...
   }
 }
+-- Load lspkind
+require("lspkind").setup()
+-- Load Mason LSPconfig
+require("mason-lspconfig").setup()
+-- Load CMPs
+require('cmp').setup({
+  sources = {
+    { name = 'buffer' },
+    { name = 'path' },
+    { name = 'nvim-lua' },
+    { name = 'nvim-lsp' },
+    { name = 'luaSnip' },
+    { name = 'cmp_luasnip' },
+  },
+})
+require("lualine").setup()
 -- Settings
 vim.o.number = true  -- Enable line numbers
 vim.g.mapleader = ' '
