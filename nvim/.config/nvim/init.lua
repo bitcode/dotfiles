@@ -9,6 +9,7 @@ if not vim.loop.fs_stat(lazypath) then
     lazypath,
   })
 end
+
 vim.opt.rtp:prepend(lazypath)
 -- Load the plugins.lua file
 require("lazy").setup(require("plugins"))
@@ -28,6 +29,8 @@ require("mason").setup({
         }
     }
 })
+-- Load Cody
+require("sg").setup {}
 -- Load Gen
 require('gen').setup({})
 -- Load Telescope
@@ -45,7 +48,7 @@ require('telescope').setup{
   }
 }
 -- Load lspkind
-require("lspkind").setup()
+--require("lspkind").setup()
 -- Load Mason LSPconfig
 require("mason-lspconfig").setup()
 -- Load CMPs

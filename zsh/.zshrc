@@ -28,6 +28,8 @@ plugins=(
 ZSH_DISABLE_COMPFIX='true'
 export ZSH_CUSTOM=$HOME/.oh-my-zsh/custom/plugins
 export LC_CTYPE=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 #test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
 export VISUAL=nvim
@@ -44,6 +46,8 @@ source $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.z
 source $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+source $HOME/.envs.sh
+
 #------- Aliases ---------
 
 alias tls='tmux ls'

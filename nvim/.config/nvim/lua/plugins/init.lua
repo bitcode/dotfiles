@@ -6,6 +6,13 @@ return  {
     "williamboman/mason.nvim"
   },
   {
+    "sourcegraph/sg.nvim",
+    dependencies = { "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]] },
+
+    -- If you have a recent version of lazy.nvim, you don't need to add this!
+    --build = "nvim -l build/init.lua",
+  },
+  {
     'nvim-telescope/telescope.nvim', tag = '0.1.5',
 -- or                              , branch = '0.1.x',
       dependencies = { 'nvim-lua/plenary.nvim' }
