@@ -40,6 +40,9 @@ return {
         { name = 'lspkind' },
         { name = 'git' },
         { name = 'nvim_lsp' },
+        { name = 'cmdline_history' },
+        { name = 'nvim_lsp_document_symbol' },
+        { name = 'nvim-lsp-signature-help' },
       })
     })
     cmp.setup.cmdline({ '/', '?' }, {
