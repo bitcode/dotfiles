@@ -1,48 +1,56 @@
 return {
   "hrsh7th/nvim-cmp",
-  name = "nvim-cmp",
+  name = "cmp",
   priority = 1000,
   config = function()
     local cmp = require'cmp'
-
+    local lspkind = require('lspkind')
+    cmp.setup({
+      formatting = {
+        format = lspkind.cmp_format({
+          fields = {'menu', 'abbr', 'kind'},
+          ellipsis_char = '...',
+        })
+      }
+    })
     cmp.setup({
       snippet = {
-        -- REQUIRED - you must specify a snippet engine
-        expand = function(args)
-          require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
-          -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
-          -- vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
-        end,
+       -- REQUIRED - you must specify a snippet engine
+       expand = function(args)
+         require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+         -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
+         -- vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+       end,
       },
-      window = {
-         completion = cmp.config.window.bordered(),
-         documentation = cmp.config.window.bordered(),
-      },
-      experimental = {
-        ghost_text = true,
-        --native_menu = false,
-      },
-      mapping = cmp.mapping.preset.insert({
-        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-        ['<C-f>'] = cmp.mapping.scroll_docs(4),
-        ['<C-Space>'] = cmp.mapping.complete(),
-        ['<C-e>'] = cmp.mapping.abort(),
-        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-      }),
-      sources = cmp.config.sources({
-        { name = 'luasnip' },
-        { name = 'cody', keyword_length = 2 },
-        { name = 'nvim-lsp' },
-        { name = 'buffer' },
-        { name = 'cmdline' },
-        { name = 'path' },
-        { name = 'nvim-lua' },
-        { name = 'lspkind' },
-        { name = 'git' },
-        { name = 'nvim_lsp' },
-        { name = 'cmdline_history' },
-        { name = 'nvim_lsp_document_symbol' },
-        { name = 'nvim-lsp-signature-help' },
+     window = {
+       completion = cmp.config.window.bordered(),
+       documentation = cmp.config.window.bordered(),
+     },
+     experimental = {
+       ghost_text = true,
+       native_menu = false,
+     },
+     mapping = cmp.mapping.preset.insert({
+       ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+       ['<C-f>'] = cmp.mapping.scroll_docs(4),
+       ['<C-Space>'] = cmp.mapping.complete(),
+       ['<C-e>'] = cmp.mapping.abort(),
+       ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+     }),
+     sources = cmp.config.sources({
+       { name = 'cody', keyword_length = 2 },
+       { name = 'nvim_lsp_document_symbol' },
+       { name = 'nvim-lsp-signature-help' },
+       { name = 'luasnip' },
+       { name = 'nvim-lsp' },
+       { name = 'buffer' },
+       { name = 'cmdline' },
+       { name = 'path' },
+       { name = 'nvim-lua' },
+       { name = 'lspkind' },
+       { name = 'git' },
+       { name = 'nvim_lsp' },
+       { name = 'cmdline_history' },
       })
     })
     cmp.setup.cmdline({ '/', '?' }, {
@@ -58,7 +66,7 @@ return {
       }, {
         { name = 'cmdline' }
       })
-    }) 
+    })
     local capabilities = require('cmp_nvim_lsp').default_capabilities()
     require('lspconfig')['lua_ls'].setup {
       capabilities = capabilities

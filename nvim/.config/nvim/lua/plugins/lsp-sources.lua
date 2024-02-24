@@ -44,4 +44,14 @@ return {
   name = "nvim-lsp-signature-help",
   priority = 1000,
   },
+  {
+  "onsails/lspkind.nvim",
+  name = "lspkind",
+  priority = 1000,
+  },
+  {
+  "L3MON4D3/LuaSnip",
+  name = "luasnip",
+  priority = 1000,
+  },
   }
