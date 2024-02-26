@@ -1,5 +1,5 @@
 # Import additional configuration files
-import = ["~/dotfiles/alacritty/.config/alacritty/themes/themes/everforest_dark.toml"]
+import = ["~/.config/alacritty/themes/everforest_dark.toml"]
 
 # Environment variables
 #env = { TERM = "alacritty" }
@@ -16,10 +16,10 @@ opacity = 0.8
 
 # Font configuration
 [font]
-normal = { family = "JetBrains Mono Nerd Font" }
-bold = { family = "JetBrains Mono Nerd Font" }
-italic = { family = "JetBrains Mono Nerd Font" }
-bold_italic = { family = "JetBrains Mono Nerd Font" }
+normal = { family = "JetBrains Mono Nerd Font", style = "normal" }
+bold = { family = "JetBrains Mono Nerd Font", style = "bold" }
+italic = { family = "JetBrains Mono Nerd Font", style = "italic" }
+bold_italic = { family = "JetBrains Mono Nerd Font", style = "bold_italic" }
 
 # Colors
 #[colors]
