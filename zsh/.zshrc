@@ -48,6 +48,8 @@ source $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-
 source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 #source $HOME/.envs.sh
 export PATH=$PATH:/usr/local/bin/geckodriver
+export PATH=$PATH:/usr/local/bin/alacritty
+export TERM=alacritty
 
 #------- Aliases ---------
 
