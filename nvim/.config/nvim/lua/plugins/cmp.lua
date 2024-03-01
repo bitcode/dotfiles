@@ -38,18 +38,17 @@ return {
        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
      }),
      sources = cmp.config.sources({
+       { name = 'nvim_lsp', keyword_length = 2 },
+       { name = 'nvim_lsp_document_symbol', keyword_length = 2 },
+       { name = 'nvim-lsp-signature-help', keyword_length = 2 },
+       { name = 'luasnip', keyword_length = 2 },
        { name = 'cody', keyword_length = 2 },
-       { name = 'nvim_lsp_document_symbol' },
-       { name = 'nvim-lsp-signature-help' },
-       { name = 'luasnip' },
-       { name = 'nvim-lsp' },
-       { name = 'buffer' },
-       { name = 'cmdline' },
-       { name = 'path' },
-       { name = 'nvim-lua' },
-       { name = 'lspkind' },
-       { name = 'git' },
-       { name = 'nvim_lsp' },
+       { name = 'buffer', keyword_length = 2 },
+       --{ name = 'cmdline' },
+       { name = 'path', keyword_length = 2 },
+       { name = 'nvim-lua', keyword_length = 2 },
+       { name = 'lspkind', keyword_length = 2 },
+       { name = 'git', keyword_length = 2 },
        { name = 'cmdline_history' },
       })
     })
