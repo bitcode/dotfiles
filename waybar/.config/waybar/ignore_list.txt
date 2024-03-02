@@ -1,0 +1,1 @@
+multi_clip_wayland.sh

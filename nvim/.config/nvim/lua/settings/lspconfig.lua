@@ -24,6 +24,7 @@ lspconfig.lua_ls.setup {
 },
 },
 lspconfig.cssmodules_ls.setup {},
+lspconfig.bashls.setup {},
 lspconfig.emmet_language_server.setup {},
 lspconfig.html.setup {},
 lspconfig.pylsp.setup {},

@@ -19,11 +19,11 @@ return {
   name = "nvim-lua",
   priority = 1000,
   },
---  {
---  "hrsh7th/cmp-nvim-lsp",
---  name = "nvim_lsp",
---  priority = 1000,
---  },
+  {
+  "hrsh7th/cmp-nvim-lsp",
+  name = "nvim_lsp",
+  priority = 1000,
+  },
   {
   "petertriho/cmp-git",
   name = "git",

@@ -1,5 +1,5 @@
 # Import additional configuration files
-import = ["~/.config/alacritty/themes/everforest_dark.toml"]
+import = ["~/dotfiles/alacritty/.config/alacritty/themes/everforest_dark.toml"]
 
 # Environment variables
 #env = { TERM = "alacritty" }

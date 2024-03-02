@@ -7,7 +7,9 @@
     "custom/weather",
     "hyprland/workspaces"
   ],
-  "modules-center": [],
+  "modules-center": [
+    "custom/github"
+  ],
   "modules-right": [
     "tray",
     "group/scroll",
@@ -246,7 +248,7 @@
     "tooltip-format": "Games running: {count}"
   },
   "custom/github": {
-    "format": "{}",
+    "format": "{text}  ",
     "return-type": "json",
     "interval": 3600,
     "exec": "$HOME/.config/waybar/bin/github.sh",

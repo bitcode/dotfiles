@@ -73,6 +73,9 @@ return {
     require('lspconfig')['cssmodules_ls'].setup {
       capabilities = capabilities
     }
+    require('lspconfig')['bashls'].setup {
+      capabilities = capabilities
+    }
     require('lspconfig')['emmet_language_server'].setup {
       capabilities = capabilities
     }

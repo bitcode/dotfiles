@@ -16,8 +16,8 @@ EOF
 	exit 1
 }
 
-token=$(cat ${HOME}/.config/github/notifications.token)
-count=$(curl -u niksingh710:${token} https://api.github.com/notifications | jq '. | length')
+token=$(cat ${HOME}/notifications.token)
+count=$(curl -u bitcode:${token} https://api.github.com/notifications | jq '. | length')
 
 if [[ "$count" != "0" ]]; then
 	cat <<EOF

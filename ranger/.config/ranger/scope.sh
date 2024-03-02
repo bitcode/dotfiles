@@ -97,7 +97,8 @@ handle_extension() {
         ## HTML
         htm|html|xhtml)
             ## Preview as text conversion
-            w3m -dump "${FILE_PATH}" && exit 5
+            #w3m -dump "${FILE_PATH}" && exit 5
+            swayimg -dump "${FILE_PATH}" && exit 5
             lynx -dump -- "${FILE_PATH}" && exit 5
             elinks -dump "${FILE_PATH}" && exit 5
             pandoc -s -t markdown -- "${FILE_PATH}" && exit 5
@@ -151,13 +152,14 @@ handle_image() {
 
             ## `w3mimgdisplay` will be called for all images (unless overriden
             ## as above), but might fail for unsupported types.
-            exit 7;;
+            swayimg -f "${FILE_PATH}" && exit 7
+            exit;;
 
         ## Video
         # video/*)
         #     # Thumbnail
-        #     ffmpegthumbnailer -i "${FILE_PATH}" -o "${IMAGE_CACHE_PATH}" -s 0 && exit 6
-        #     exit 1;;
+             ffmpegthumbnailer -i "${FILE_PATH}" -o "${IMAGE_CACHE_PATH}" -s 0 && exit 6
+             exit 1;;
 
         ## PDF
         # application/pdf)
