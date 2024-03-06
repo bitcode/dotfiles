@@ -7,6 +7,7 @@ return {
       local methods = null_ls.methods
       local sources = null_ls.builtins
 
+
       null_ls.setup({
           sources = {
               null_ls.builtins.formatting.stylua.with({

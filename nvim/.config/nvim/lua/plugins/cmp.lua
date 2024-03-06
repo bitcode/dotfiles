@@ -9,7 +9,39 @@ return {
       formatting = {
         format = lspkind.cmp_format({
           fields = {'menu', 'abbr', 'kind'},
+          mode = 'symbol',
           ellipsis_char = '...',
+          show_labelDetails = true,
+    lspkind.init({
+    symbol_map = {
+      Text = "󰉿",
+      Method = "󰆧",
+      Function = "󰊕",
+      Constructor = "",
+      Field = "󰜢",
+      Variable = "󰀫",
+      Class = "󰠱",
+      Interface = "",
+      Module = "",
+      Property = "󰜢",
+      Unit = "󰑭",
+      Value = "󰎠",
+      Enum = "",
+      Keyword = "󰌋",
+      Snippet = "",
+      Color = "󰏘",
+      File = "󰈙",
+      Reference = "󰈇",
+      Folder = "󰉋",
+      EnumMember = "",
+      Constant = "󰏿",
+      Struct = "󰙅",
+      Event = "",
+      Operator = "󰆕",
+      TypeParameter = "",
+      Copilot = "",
+    },
+    })
         })
       }
     })
@@ -38,32 +70,18 @@ return {
        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
      }),
      sources = cmp.config.sources({
+       { name = 'copilot', keyword_length = 1 },
        { name = 'nvim_lsp', keyword_length = 2 },
        { name = 'nvim_lsp_document_symbol', keyword_length = 2 },
        { name = 'nvim-lsp-signature-help', keyword_length = 2 },
        { name = 'luasnip', keyword_length = 2 },
-       { name = 'cody', keyword_length = 2 },
        { name = 'buffer', keyword_length = 2 },
        --{ name = 'cmdline' },
        { name = 'path', keyword_length = 2 },
        { name = 'nvim-lua', keyword_length = 2 },
        { name = 'lspkind', keyword_length = 2 },
        { name = 'git', keyword_length = 2 },
-       { name = 'cmdline_history' },
-      })
-    })
-    cmp.setup.cmdline({ '/', '?' }, {
-      mapping = cmp.mapping.preset.cmdline(),
-      sources = {
-        { name = 'buffer' }
-      }
-    })
-    cmp.setup.cmdline(':', {
-      mapping = cmp.mapping.preset.cmdline(),
-      sources = cmp.config.sources({
-        { name = 'path' }
-      }, {
-        { name = 'cmdline' }
+       { name = 'cmdline_history', keyword_length = 4 },
       })
     })
     local capabilities = require('cmp_nvim_lsp').default_capabilities()

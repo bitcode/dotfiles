@@ -1,7 +1,7 @@
 return  {
-  "ellisonleao/gruvbox.nvim", 
+  "ellisonleao/gruvbox.nvim",
   name = "gruvbox.nvim",
-  priority = 1000, 
+  priority = 1000,
   config = true,
   }
 
