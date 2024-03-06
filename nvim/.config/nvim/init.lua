@@ -15,3 +15,4 @@ vim.g.maplocalleader = ' '
 require("lazy").setup("plugins")
 require("settings")
 require('lualine').setup()
+require("settings.keybinds")

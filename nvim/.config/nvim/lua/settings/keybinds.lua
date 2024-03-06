@@ -1,4 +1,5 @@
 -- Keybinds
 
 -- NvimDevDocs
-vim.keymap.set('n', '<leader>fz', function() require('nvim-devdocs').DevdocsOpenFloat() end, {silent = true})
+require('nvim-devdocs')
+vim.api.nvim_set_keymap('n', '<leader>fz', ':DevdocsOpenCurrentFloat<CR>', { silent = true })

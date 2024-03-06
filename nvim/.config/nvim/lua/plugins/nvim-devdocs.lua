@@ -6,5 +6,6 @@ return {
     "nvim-treesitter/nvim-treesitter",
   },
   opts = {
+    wrap = true,
   }
 }
