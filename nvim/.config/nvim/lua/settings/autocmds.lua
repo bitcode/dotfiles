@@ -1,1 +1,1 @@
-autocmd BufWritePre <buffer> lua_ls vim.lsp.buf.formatting_sync()
+autocmd BufWritePre <buffer> lua vim.lsp.buf.format()

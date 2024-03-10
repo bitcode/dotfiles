@@ -12,6 +12,12 @@ lspconfig.tsserver.setup {
   },
 }
 lspconfig.lua_ls.setup {
+  on_attach = function(client, bufnr)
+    require('completion').on_attach(client, bufnr)
+    config.on_attach(client, bufnr)
+    client.server_capabilities.documentFormatProvider = true
+    client.server_capabilities.documentRangeFormatProvider = true
+  end,
   settings = {
   Lua = {
   format = {
@@ -73,7 +79,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
     vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
     vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-    vim.keymap.set('n', '<space>f', function()
+        vim.keymap.set('n', '<space>fmt', function()
       vim.lsp.buf.format { async = true }
     end, opts)
   end,

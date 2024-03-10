@@ -50,6 +50,7 @@ source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 export PATH=$PATH:/usr/local/bin/geckodriver
 export PATH=$PATH:/usr/local/bin/alacritty
 export TERM=alacritty
+#export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
 
 #------- Aliases ---------
 

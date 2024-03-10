@@ -1,4 +1,5 @@
 {
+  "CopilotChat.nvim": { "branch": "main", "commit": "bf64a21fc4cf8dc11396bbe8a51584bda26fd8c3" },
   "buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
   "cmdline": { "branch": "main", "commit": "8ee981b4a91f536f52add291594e89fb6645e451" },
   "cmdline_history": { "branch": "master", "commit": "003573b72d4635ce636234a826fa8c4ba2895ffe" },
