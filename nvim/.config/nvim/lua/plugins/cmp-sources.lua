@@ -10,12 +10,6 @@ return {
   priority = 1000,
   },
   {
-  "zbirenbaum/copilot-cmp",
-  config = function ()
-    require("copilot_cmp").setup()
-  end
-  },
-  {
   "hrsh7th/cmp-path",
   name = "path",
   priority = 1000,

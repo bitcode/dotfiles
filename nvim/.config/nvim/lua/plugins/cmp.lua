@@ -39,7 +39,6 @@ return {
       Event = "",
       Operator = "󰆕",
       TypeParameter = "",
-      Copilot = "",
     },
     })
         })
@@ -70,7 +69,6 @@ return {
        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
      }),
      sources = cmp.config.sources({
-       { name = 'copilot', keyword_length = 1 },
        { name = 'nvim_lsp', keyword_length = 2 },
        { name = 'nvim_lsp_document_symbol', keyword_length = 2 },
        { name = 'nvim-lsp-signature-help', keyword_length = 2 },

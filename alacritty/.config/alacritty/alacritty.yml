@@ -10,7 +10,7 @@
 # to the user's home directory starting with `~/`.
 import:
 #  - /path/to/alacritty.yml
-  - ~/.config/alacritty/themes/themes/everforest_dark.yaml
+  - ~/.config/alacritty/themes/themes/everforest-dark.yml
 # Any items in the `env` entry below will be added as
 # environment variables. Some entries may override variables
 # set by alacritty itself.
@@ -124,55 +124,18 @@ window:
 
 # Font configuration
 font:
-  # Normal (roman) font face
   normal:
-    # Font family
-    #
-    # Default:
-    #   - (macOS) Menlo
-    #   - (Linux/BSD) monospace
-    #   - (Windows) Consolas
     family: "JetBrains Mono Nerd Font"
-
-    # The `style` can be specified to pick a specific face.
-    style: Regular
-
-  # Bold font face
+    style: "normal"
   bold:
-    # Font family
-    #
-    # If the bold family is not specified, it will fall back to the
-    # value specified for the normal font.
     family: "JetBrains Mono Nerd Font"
-
-
-    # The `style` can be specified to pick a specific face.
-    style: Bold
-
-  # Italic font face
+    style: "bold"
   italic:
-    # Font family
-    #
-    # If the italic family is not specified, it will fall back to the
-    # value specified for the normal font.
     family: "JetBrains Mono Nerd Font"
-
-    # The `style` can be specified to pick a specific face.
-    style: Italic
-
-  # Bold italic font face
+    style: "italic"
   bold_italic:
-    # Font family
-    #
-    # If the bold italic family is not specified, it will fall back to the
-    # value specified for the normal font.
     family: "JetBrains Mono Nerd Font"
-
-    # The `style` can be specified to pick a specific face.
-    style: Bold Italic
-
-  # Point size
-  size: 12.0
+    style: "bold_italic"
 
   # Offset is the extra space around each character. `offset.y` can be thought
   # of as modifying the line spacing, and `offset.x` as modifying the letter

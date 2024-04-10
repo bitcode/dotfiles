@@ -39,6 +39,7 @@ export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
 export PYTHONPATH=/usr/bin/python3
 export XDG_CONFIG_HOME=$HOME/.config/
 export BROWSER=/usr/bin/firefox # for web-browser
+export TERM=xterm-256color
 #source $HOME/dotfiles/zsh/tmux_autostart.sh
 source $HOME/.cargo/bin
 source $HOME/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
@@ -50,6 +51,12 @@ source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 export PATH=$PATH:/usr/local/bin/geckodriver
 export PATH=$PATH:/usr/local/bin/alacritty
 export TERM=alacritty
+export LD_LIBRARY_PATH="/home/bit/.pyenv/versions/3.12.2/lib/:$LD_LIBRARY_PATH"
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+export MAX_PATH="/home/bit/.modular/pkg/packages.modular.com_max/bin/"
+export PATH="/home/bit/.modular/pkg/packages.modular.com_mojo/bin:$PATH"
+export MODULAR_HOME="/home/bit/.modular"
 #export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
 
 #------- Aliases ---------
