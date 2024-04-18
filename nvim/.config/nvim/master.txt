@@ -1,0 +1,1033 @@
+# File: ./ignore.txt
+multi_clip_wayland.sh
+multi_clip_xclip.sh
+lazy-lock.json
+# File: ./init.lua
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+  if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", -- latest stable release
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+vim.g.mapleader = ' '
+vim.g.maplocalleader = ' '
+require("lazy").setup("plugins")
+require("settings")
+require('lualine').setup()
+# File: ./lazy-lock.json
+{
+  "buffer": { "branch": "main", "commit": "3022dbc9166796b644a841a02de8dd1cc1d311fa" },
+  "cmdline": { "branch": "main", "commit": "d250c63aa13ead745e3a40f61fdd3470efde3923" },
+  "cmdline_history": { "branch": "master", "commit": "003573b72d4635ce636234a826fa8c4ba2895ffe" },
+  "cmp": { "branch": "main", "commit": "ce16de5665c766f39c271705b17fff06f7bcb84f" },
+  "floaterm": { "branch": "master", "commit": "4e28c8dd0271e10a5f55142fb6fe9b1599ee6160" },
+  "git": { "branch": "main", "commit": "8d8993680d627c8f13bd85094eba84604107dbdd" },
+  "gitmoji": { "branch": "main", "commit": "326ddf01cbf3425566a089126ece7e8bd2560601" },
+  "gitsigns": { "branch": "main", "commit": "c097cb255096f333e14d341082a84f572b394fa2" },
+  "gruvbox.nvim": { "branch": "main", "commit": "6e4027ae957cddf7b193adfaec4a8f9e03b4555f" },
+  "harpoon": { "branch": "master", "commit": "ccae1b9bec717ae284906b0bf83d720e59d12b91" },
+  "lazy.nvim": { "branch": "main", "commit": "31ddbea7c10b6920c9077b66c97951ca8682d5c8" },
+  "lspkind": { "branch": "master", "commit": "1735dd5a5054c1fb7feaf8e8658dbab925f4f0cf" },
+  "lualine.nvim": { "branch": "master", "commit": "0a5a66803c7407767b799067986b4dc3036e1983" },
+  "luasnip": { "branch": "master", "commit": "be7be2ca7f55bb881a7ffc16b2efa5af034ab06b" },
+  "markdown-preview.nvim": { "branch": "master", "commit": "a923f5fc5ba36a3b17e289dc35dc17f66d0548ee" },
+  "mason-lspconfig.nvim": { "branch": "main", "commit": "44509689b9bf3984d729cc264aacb31cb7f41668" },
+  "mason.nvim": { "branch": "main", "commit": "751b1fcbf3d3b783fcf8d48865264a9bcd8f9b10" },
+  "mojo.vim": { "branch": "main", "commit": "c5898c2e1137cd420524859f209b6831841397e4" },
+  "none-ls.nvim": { "branch": "main", "commit": "09a7c58e9283dda582d9805f6b182b5b9f137ec7" },
+  "null-ls.nvim": { "branch": "main", "commit": "0010ea927ab7c09ef0ce9bf28c2b573fc302f5a7" },
+  "nvim-autopairs": { "branch": "master", "commit": "4f41e5940bc0443fdbe5f995e2a596847215cd2a" },
+  "nvim-devdocs": { "branch": "master", "commit": "1ab982d3e069d191d9157b897c8b70cf48b7f77a" },
+  "nvim-lsp": { "branch": "main", "commit": "5af77f54de1b16c34b23cba810150689a3a90312" },
+  "nvim-lsp-signature-help": { "branch": "main", "commit": "3d8912ebeb56e5ae08ef0906e3a54de1c66b92f1" },
+  "nvim-lspconfig": { "branch": "master", "commit": "b3014f2209503944f2714cf27c95591433a0c7d8" },
+  "nvim-lua": { "branch": "main", "commit": "f12408bdb54c39c23e67cab726264c10db33ada8" },
+  "nvim-treesitter": { "branch": "master", "commit": "ef267f0c285928ea3a0d3362a260a0728fd4a146" },
+  "nvim-web-devicons": { "branch": "master", "commit": "6e355632387a085f15a66ad68cf681c1d7374a04" },
+  "nvim_lsp": { "branch": "main", "commit": "5af77f54de1b16c34b23cba810150689a3a90312" },
+  "nvim_lsp_document_symbol": { "branch": "main", "commit": "f0f53f704c08ea501f9d222b23491b0d354644b0" },
+  "oil.nvim": { "branch": "master", "commit": "e462a3446505185adf063566f5007771b69027a1" },
+  "path": { "branch": "main", "commit": "91ff86cd9c29299a64f968ebb45846c485725f23" },
+  "plenary.nvim": { "branch": "master", "commit": "8aad4396840be7fc42896e3011751b7609ca4119" },
+  "telescope-file-browser.nvim": { "branch": "master", "commit": "5ee5002373655fd684a4ad0d47a3de876ceacf9a" },
+  "telescope.nvim": { "branch": "master", "commit": "5a701e99906961218b55d7ad6c2a998f066c6fe0" },
+  "terminus": { "branch": "main", "commit": "51350e786d4bfcfc476abb015a3f90db3f81231f" },
+  "vim-fugitive": { "branch": "master", "commit": "dac8e5c2d85926df92672bf2afb4fc48656d96c7" },
+  "which-key.nvim": { "branch": "main", "commit": "4433e5ec9a507e5097571ed55c02ea9658fb268a" }
+}# File: ./lua/plugins/autopairs.lua
+return {
+  'windwp/nvim-autopairs',
+  event = "InsertEnter",
+  opts = {},
+  config = function()
+    require('nvim-autopairs').setup({
+      disable_filetype = { "TelescopePrompt" , "vim" },
+  })
+  end
+}
+# File: ./lua/plugins/cmp.lua
+return {
+  "hrsh7th/nvim-cmp",
+  name = "cmp",
+  priority = 1000,
+  config = function()
+    local cmp = require'cmp'
+    local lspkind = require('lspkind')
+    cmp.setup({
+      formatting = {
+        format = lspkind.cmp_format({
+          fields = {'menu', 'abbr', 'kind'},
+          mode = 'symbol',
+          ellipsis_char = '...',
+          show_labelDetails = true,
+    lspkind.init({
+    symbol_map = {
+      Text = "󰉿",
+      Method = "󰆧",
+      Function = "󰊕",
+      Constructor = "",
+      Field = "󰜢",
+      Variable = "󰀫",
+      Class = "󰠱",
+      Interface = "",
+      Module = "",
+      Property = "󰜢",
+      Unit = "󰑭",
+      Value = "󰎠",
+      Enum = "",
+      Keyword = "󰌋",
+      Snippet = "",
+      Color = "󰏘",
+      File = "󰈙",
+      Reference = "󰈇",
+      Folder = "󰉋",
+      EnumMember = "",
+      Constant = "󰏿",
+      Struct = "󰙅",
+      Event = "",
+      Operator = "󰆕",
+      TypeParameter = "",
+    },
+    })
+        })
+      }
+    })
+    cmp.setup({
+      snippet = {
+       -- REQUIRED - you must specify a snippet engine
+       expand = function(args)
+         require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+         -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
+         -- vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+       end,
+      },
+     window = {
+       completion = cmp.config.window.bordered(),
+       documentation = cmp.config.window.bordered(),
+     },
+     experimental = {
+       ghost_text = true,
+       native_menu = false,
+     },
+     mapping = cmp.mapping.preset.insert({
+       ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+       ['<C-f>'] = cmp.mapping.scroll_docs(4),
+       ['<C-Space>'] = cmp.mapping.complete(),
+       ['<C-e>'] = cmp.mapping.abort(),
+       ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+     }),
+     sources = cmp.config.sources({
+       { name = 'nvim_lsp', keyword_length = 2 },
+       { name = 'nvim_lsp_document_symbol', keyword_length = 2 },
+       { name = 'nvim-lsp-signature-help', keyword_length = 2 },
+       { name = 'luasnip', keyword_length = 2 },
+       { name = 'buffer', keyword_length = 2 },
+       --{ name = 'cmdline' },
+       { name = 'path', keyword_length = 2 },
+       { name = 'nvim-lua', keyword_length = 2 },
+       { name = 'lspkind', keyword_length = 2 },
+       { name = 'git', keyword_length = 2 },
+       { name = 'cmdline_history', keyword_length = 4 },
+      })
+    })
+    local capabilities = require('cmp_nvim_lsp').default_capabilities()
+    require('lspconfig')['lua_ls'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['cssmodules_ls'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['bashls'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['emmet_language_server'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['html'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['pylsp'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['tailwindcss'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['tsserver'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['gopls'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['htmx'].setup {
+      capabilities = capabilities
+    }
+    require('lspconfig')['clangd'].setup {
+      capabilities = capabilities
+    }
+  end
+}
+# File: ./lua/plugins/cmp-nvim-lsp.lua
+return {
+  "hrsh7th/cmp-nvim-lsp",
+  name = "nvim-lsp",
+  priority = 1000,
+}
+# File: ./lua/plugins/cmp-sources.lua
+return {
+  {
+  "hrsh7th/cmp-buffer",
+  name = "buffer",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-cmdline",
+  name = "cmdline",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-path",
+  name = "path",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-nvim-lua",
+  name = "nvim-lua",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-nvim-lsp",
+  name = "nvim_lsp",
+  priority = 1000,
+  },
+  {
+  "petertriho/cmp-git",
+  name = "git",
+  priority = 1000,
+  },
+  {
+  "Dynge/gitmoji.nvim",
+  name = "gitmoji",
+  priority = 1000,
+  },
+  {
+  "dmitmel/cmp-cmdline-history",
+  name = "cmdline_history",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-nvim-lsp-document-symbol",
+  name = "nvim_lsp_document_symbol",
+  priority = 1000,
+  },
+  {
+  "hrsh7th/cmp-nvim-lsp-signature-help",
+  name = "nvim-lsp-signature-help",
+  priority = 1000,
+  },
+  {
+  "onsails/lspkind.nvim",
+  name = "lspkind",
+  priority = 1000,
+  },
+  {
+  "L3MON4D3/LuaSnip",
+  name = "luasnip",
+  priority = 1000,
+  },
+  }
+# File: ./lua/plugins/float-term.lua
+return {
+  'voldikss/vim-floaterm',
+  name= "floaterm",
+  priority = 1000,
+  setup = function ()
+    -- Set global configurations (optional)
+    vim.g.floaterm_width = 0.9
+    vim.g.floaterm_height = 0.9
+    vim.g.floaterm_wintype = 'float'
+    vim.g.floaterm_position = 'center'
+
+end,
+    -- Lazy loading: Automatically start floaterm when these commands are used
+    --cmd = {'FloatermNew', 'FloatermToggle', 'FloatermPrev', 'FloatermNext'}
+ }
+
+# File: ./lua/plugins/gitsigns.lua
+return {
+  'lewis6991/gitsigns.nvim',
+  name = 'gitsigns',
+  priority = 1000,
+}
+# File: ./lua/plugins/gruvbox.lua
+return  {
+  "ellisonleao/gruvbox.nvim",
+  name = "gruvbox.nvim",
+  priority = 1000,
+  config = true,
+  }
+
+# File: ./lua/plugins/harpoon.lua
+return {
+  'theprimeagen/harpoon',
+  name = "harpoon",
+  priority = 1000,
+  config = function()
+    require('harpoon').setup()
+    local mark = require('harpoon.mark').add_mark
+    local ui = require('harpoon.ui')
+
+    -- toggle menus
+    vim.keymap.set('n', '<leader>ui', function() ui.toggle_quick_menu() end, {silent = true})
+    vim.keymap.set('n', '<leader>m', function() mark() end, {silent = true})
+
+    -- Harpoon next and previous
+    vim.keymap.set('n', '<leader>jn', function() require('harpoon.ui').next_buffer() end, {silent = true})
+    vim.keymap.set('n', '<leader>jp', function() require('harpoon.ui').prev_buffer() end, {silent = true})
+
+    -- Harpoon add and remove
+    vim.keymap.set('n', '<leader>ha', function() require('harpoon.ui').add_file() end, {silent = true})
+    vim.keymap.set('n', '<leader>hr', function() require('harpoon.ui').remove_file() end, {silent = true})
+
+    -- Harpoon commands to terminal
+    vim.keymap.set('n', '<leader>hc', function() require('harpoon.term').sendCommand(1, "ls -La") end, {silent = true})
+
+    -- Harpoon tmux commands
+  end,
+}
+# File: ./lua/plugins/lazy-lock.json
+{
+  "gruvbox.nvim": { "branch": "main", "commit": "f0e029a3989691eb38cfa9272b75251c62a00821" },
+  "lazy.nvim": { "branch": "main", "commit": "96584866b9c5e998cbae300594d0ccfd0c464627" },
+  "mason-lspconfig.nvim": { "branch": "main", "commit": "56e435e09f8729af2d41973e81a0db440f8fe9c9" },
+  "none-ls.nvim": { "branch": "main", "commit": "e7382de51b4cf629e56f1fa18192e716e5ba8145" },
+  "nvim-lspconfig": { "branch": "master", "commit": "9bedcfed749755e43fc8bed46f85ce2044fe3b77" }
+}# File: ./lua/plugins/lualine.lua
+return {
+  'nvim-lualine/lualine.nvim',
+  dependencies = { 'nvim-tree/nvim-web-devicons' },
+  priority = 1000,
+  config = function()
+
+-- Eviline config for lualine
+-- Author: shadmansaleh
+-- Credit: glepnir
+local lualine = require('lualine')
+
+-- Color table for highlights
+-- stylua: ignore
+local colors = {
+  bg       = '#202328',
+  fg       = '#bbc2cf',
+  yellow   = '#ECBE7B',
+  cyan     = '#008080',
+  darkblue = '#081633',
+  green    = '#98be65',
+  orange   = '#FF8800',
+  violet   = '#a9a1e1',
+  magenta  = '#c678dd',
+  blue     = '#51afef',
+  red      = '#ec5f67',
+}
+
+local conditions = {
+  buffer_not_empty = function()
+    return vim.fn.empty(vim.fn.expand('%:t')) ~= 1
+  end,
+  hide_in_width = function()
+    return vim.fn.winwidth(0) > 80
+  end,
+  check_git_workspace = function()
+    local filepath = vim.fn.expand('%:p:h')
+    local gitdir = vim.fn.finddir('.git', filepath .. ';')
+    return gitdir and #gitdir > 0 and #gitdir < #filepath
+  end,
+}
+
+-- Config
+local config = {
+  options = {
+    -- Disable sections and component separators
+    component_separators = '',
+    section_separators = '',
+    theme = {
+      -- We are going to use lualine_c an lualine_x as left and
+      -- right section. Both are highlighted by c theme .  So we
+      -- are just setting default looks o statusline
+      normal = { c = { fg = colors.fg, bg = colors.bg } },
+      inactive = { c = { fg = colors.fg, bg = colors.bg } },
+    },
+  },
+  sections = {
+    -- these are to remove the defaults
+    lualine_a = {},
+    lualine_b = {},
+    lualine_y = {},
+    lualine_z = {},
+    -- These will be filled later
+    lualine_c = {},
+    lualine_x = {},
+  },
+  inactive_sections = {
+    -- these are to remove the defaults
+    lualine_a = {},
+    lualine_b = {},
+    lualine_y = {},
+    lualine_z = {},
+    lualine_c = {},
+    lualine_x = {},
+  },
+}
+
+-- Inserts a component in lualine_c at left section
+local function ins_left(component)
+  table.insert(config.sections.lualine_c, component)
+end
+
+-- Inserts a component in lualine_x at right section
+local function ins_right(component)
+  table.insert(config.sections.lualine_x, component)
+end
+
+ins_left {
+  function()
+    return '▊'
+  end,
+  color = { fg = colors.blue }, -- Sets highlighting of component
+  padding = { left = 0, right = 1 }, -- We don't need space before this
+}
+
+ins_left {
+  -- mode component
+  function()
+    return ''
+  end,
+  color = function()
+    -- auto change color according to neovims mode
+    local mode_color = {
+      n = colors.red,
+      i = colors.green,
+      v = colors.blue,
+      [''] = colors.blue,
+      V = colors.blue,
+      c = colors.magenta,
+      no = colors.red,
+      s = colors.orange,
+      S = colors.orange,
+      [''] = colors.orange,
+      ic = colors.yellow,
+      R = colors.violet,
+      Rv = colors.violet,
+      cv = colors.red,
+      ce = colors.red,
+      r = colors.cyan,
+      rm = colors.cyan,
+      ['r?'] = colors.cyan,
+      ['!'] = colors.red,
+      t = colors.red,
+    }
+    return { fg = mode_color[vim.fn.mode()] }
+  end,
+  padding = { right = 1 },
+}
+
+ins_left {
+  -- filesize component
+  'filesize',
+  cond = conditions.buffer_not_empty,
+}
+
+ins_left {
+  'filename',
+  cond = conditions.buffer_not_empty,
+  color = { fg = colors.magenta, gui = 'bold' },
+}
+
+ins_left { 'location' }
+
+ins_left { 'progress', color = { fg = colors.fg, gui = 'bold' } }
+
+ins_left {
+  'diagnostics',
+  sources = { 'nvim_diagnostic' },
+  symbols = { error = ' ', warn = ' ', info = ' ' },
+  diagnostics_color = {
+    color_error = { fg = colors.red },
+    color_warn = { fg = colors.yellow },
+    color_info = { fg = colors.cyan },
+  },
+}
+
+-- Insert mid section. You can make any number of sections in neovim :)
+-- for lualine it's any number greater then 2
+ins_left {
+  function()
+    return '%='
+  end,
+}
+
+ins_left {
+  -- Lsp server name .
+  function()
+    local msg = 'No Active Lsp'
+    local buf_ft = vim.api.nvim_buf_get_option(0, 'filetype')
+    local clients = vim.lsp.get_active_clients()
+    if next(clients) == nil then
+      return msg
+    end
+    for _, client in ipairs(clients) do
+      local filetypes = client.config.filetypes
+      if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
+        return client.name
+      end
+    end
+    return msg
+  end,
+  icon = ' LSP:',
+  color = { fg = '#ffffff', gui = 'bold' },
+}
+
+-- Add components to right sections
+ins_right {
+  'o:encoding', -- option component same as &encoding in viml
+  fmt = string.upper, -- I'm not sure why it's upper case either ;)
+  cond = conditions.hide_in_width,
+  color = { fg = colors.green, gui = 'bold' },
+}
+
+ins_right {
+  'fileformat',
+  fmt = string.upper,
+  icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
+  color = { fg = colors.green, gui = 'bold' },
+}
+
+ins_right {
+  'branch',
+  icon = '',
+  color = { fg = colors.violet, gui = 'bold' },
+}
+
+ins_right {
+  'diff',
+  -- Is it me or the symbol for modified us really weird
+  symbols = { added = ' ', modified = '󰝤 ', removed = ' ' },
+  diff_color = {
+    added = { fg = colors.green },
+    modified = { fg = colors.orange },
+    removed = { fg = colors.red },
+  },
+  cond = conditions.hide_in_width,
+}
+
+ins_right {
+  function()
+    return '▊'
+  end,
+  color = { fg = colors.blue },
+  padding = { left = 1 },
+}
+
+-- Now don't forget to initialize lualine
+lualine.setup(config)
+
+  end
+}
+# File: ./lua/plugins/markdown-preview.lua
+return {
+  "iamcco/markdown-preview.nvim",
+  cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+  build = "cd app && yarn install",
+  init = function()
+    vim.g.mkdp_filetypes = { "markdown" }
+  end,
+  ft = { "markdown" },
+}
+# File: ./lua/plugins/masonlsp.lua
+return {
+  "williamboman/mason-lspconfig.nvim",
+  dependencies = { "neovim/nvim-lspconfig", "nvimtools/none-ls.nvim" },
+  name = "mason-lspconfig.nvim",
+  priority = 1000,
+  config = function()
+    require("mason-lspconfig").setup {
+  ensure_installed = { 'lua_ls', 'cssmodules_ls', 'emmet_language_server', 'html', 'pylsp', 'tailwindcss', 'tsserver', 'gopls', 'htmx', 'clangd' }
+    }
+end
+}
+# File: ./lua/plugins/mason.lua
+return {
+  "williamboman/mason.nvim",
+  name = "mason.nvim",
+  priority = 1000,
+  config = function()
+    require("mason").setup({
+    ui = {
+        icons = {
+            package_installed = "✓",
+            package_pending = "➜",
+            package_uninstalled = "✗"
+        }
+    }
+})
+  end
+}
+# File: ./lua/plugins/mojo.lua
+return {
+  { "czheo/mojo.vim", ft = { "mojo" },
+    init = function()
+      vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
+        pattern = { "*.🔥" },
+        callback = function()
+          if vim.bo.filetype ~= "mojo" then
+            vim.bo.filetype = "mojo"
+          end
+        end,
+      })
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "mojo",
+        callback = function()
+          local modular = vim.env.MODULAR_HOME
+          local lsp_cmd = modular .. "/pkg/packages.modular.com_mojo/bin/mojo-lsp-server"
+          vim.bo.expandtab = true
+          vim.bo.shiftwidth = 4
+          vim.bo.softtabstop = 4
+          vim.lsp.start({ name = "mojo", cmd = { lsp_cmd }, })
+        end,
+      })
+    end,
+  },
+}
+# File: ./lua/plugins/none-ls.lua
+return {
+      "nvimtools/none-ls.nvim",
+    dependencies = { 'jose-elias-alvarez/null-ls.nvim' },
+    priority = 1000,
+    config = function()
+      local null_ls = require("null-ls")
+      local methods = null_ls.methods
+      local sources = null_ls.builtins
+
+
+      null_ls.setup({
+          sources = {
+              null_ls.builtins.formatting.stylua.with({
+                filetypes = {"lua"}
+                    }),
+              null_ls.builtins.code_actions.gitsigns,
+              null_ls.builtins.code_actions.refactoring,
+              sources.formatting.prettier.with({
+      filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" }, -- Filetypes
+      method = methods.FORMATTING, -- Trigger on LSP's format request
+    })
+          },
+      })
+    end
+}
+
+# File: ./lua/plugins/nvim-devdocs.lua
+return {
+  "luckasRanarison/nvim-devdocs",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope.nvim",
+    "nvim-treesitter/nvim-treesitter",
+  },
+  opts = {
+    wrap = true,
+  }
+}
+# File: ./lua/plugins/oil.lua
+return {
+  'stevearc/oil.nvim',
+  opts = {},
+  -- Optional dependencies
+  dependencies = { "nvim-tree/nvim-web-devicons" },
+  config = function ()
+    require("oil").setup({
+      default_file_explorer = true,
+    })
+  end
+}
+# File: ./lua/plugins/plenary.lua
+return {
+  'nvim-lua/plenary.nvim',
+  name = 'plenary.nvim',
+  priority = 1000,
+}
+# File: ./lua/plugins/telescope-file-browser.lua
+return {
+  "nvim-telescope/telescope-file-browser.nvim",
+  dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
+  priority = 1000,
+  config = function()
+  vim.api.nvim_set_keymap(
+  "n",
+  "<space>fb",
+  ":Telescope file_browser<CR>",
+  { noremap = true }
+)
+  end
+}
+# File: ./lua/plugins/telescope.lua
+return {
+  "nvim-telescope/telescope.nvim",
+  dependencies = { 'nvim-lua/plenary.nvim' },
+  name = "telescope.nvim",
+  priority = 1000,
+  config = function()
+    local builtin = require('telescope.builtin')
+    vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
+    vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
+    vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
+    vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+  end
+}
+
+# File: ./lua/plugins/terminus.lua
+return {
+  "wincent/terminus",
+  name = "terminus",
+  priority = 1000,
+  config = function()
+    -- Configure the cursor shapes before plugin initialization
+    vim.g.TerminusCursorShape = 1 -- Enable cursor shape changes
+    vim.g.TerminusInsertCursorShape = 1 -- Set cursor to 'bar' shape in insert mode
+    vim.g.TerminusNormalCursorShape = 0 -- Set cursor to 'block' shape in normal mode
+  end,
+}
+# File: ./lua/plugins/treesitter.lua
+return {
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+      local config = require("nvim-treesitter.configs")
+      config.setup({
+        ensure_installed = {"lua", "javascript"},
+        highlight = { enable = true },
+        indent = { enable = true },
+      })
+    end
+  }
+}
+# File: ./lua/plugins/vim-fugitive.lua
+return {
+  'tpope/vim-fugitive',
+  name = 'vim-fugitive',
+  priority = 1000,
+}
+# File: ./lua/plugins/which-key.lua
+return {
+  "folke/which-key.nvim",
+  event = "VeryLazy",
+  init = function()
+    vim.o.timeout = true
+    vim.o.timeoutlen = 300
+  end,
+  config = function()
+    local which_key = require('which-key')
+    local map_opts = { noremap = true, silent = true }
+    which_key.setup {}
+
+    -- DevDocs Keybindings directly
+    vim.api.nvim_set_keymap('n', '<leader>fz', ':DevdocsOpenCurrentFloat<CR>', map_opts)
+
+    -- Oil.nvim Keybindings directly
+    vim.api.nvim_set_keymap('n', '<leader>of', ':lua require("oil").open_float()<CR>', map_opts)
+    vim.api.nvim_set_keymap('n', '<leader>ot', ':lua require("oil").toggle_float()<CR>', map_opts)
+    vim.api.nvim_set_keymap('n', '<leader>oc', ':lua require("oil").close()<CR>', map_opts)
+
+    -- Floaterm Keybindings directly
+    vim.api.nvim_set_keymap('n', '<leader>fn', ':FloatermNew<CR>', map_opts)
+    vim.api.nvim_set_keymap('n', '<leader>fp', ':FloatermPrev<CR>', map_opts)
+    vim.api.nvim_set_keymap('n', '<leader>ft', ':FloatermToggle<CR>', map_opts)
+    vim.api.nvim_set_keymap('n', '<leader>fx', ':FloatermKill<CR>', map_opts)
+
+    -- which-key registration
+    which_key.register({
+      f = {
+        name = "File & Floaterm",
+        fz = "Devdocs Open Current Float",
+        fn = "New Floaterm",
+        fp = "Previous Floaterm",
+        ft = "Toggle Floaterm",
+        fx = "Close Floaterm",
+      },
+      o = {
+        name = "Oil",
+        of = "Open Oil Float",
+        ot = "Toggle Oil Float",
+        oc = "Close Oil Window",
+        od = "Delete with Oil",  -- Ensure the function exists or remove this line if it does not
+      }
+    }, { prefix = "<leader>" })
+  end
+}
+# File: ./lua/settings/init.lua
+vim.cmd("set expandtab")
+vim.cmd("set shiftwidth=2")
+vim.cmd("set tabstop=2")
+vim.cmd("set softtabstop=2")
+vim.cmd([[colorscheme gruvbox]])
+--vim.o.background = "dark" -- or "light" for light mode
+vim.o.number = true -- Enable line numbers
+vim.api.nvim_set_hl(0, 'Normal', { ctermbg = 'none' })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "none" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { bg = "none" })
+vim.api.nvim_set_hl(0, "String", { fg = "#b8bb26" })
+vim.api.nvim_set_hl(0, "Comment", { fg = "Grey70", bg = "none" })
+# File: ./lua/settings/lspconfig.lua
+-- Setup language servers.
+local lspconfig = require('lspconfig')
+lspconfig.pyright.setup {}
+lspconfig.tsserver.setup {
+  settings = {
+    -- See https://github.com/typescript-language-server/typescript-language-server/tree/master/src/config
+    typescript = {
+      format = {
+        enable = true,
+      },
+    },
+  },
+}
+lspconfig.lua_ls.setup {
+  on_attach = function(client, bufnr)
+    require('completion').on_attach(client, bufnr)
+    config.on_attach(client, bufnr)
+    client.server_capabilities.documentFormatProvider = true
+    client.server_capabilities.documentRangeFormatProvider = true
+  end,
+  settings = {
+  Lua = {
+  format = {
+    enable = true,
+    defaultConfig = {
+      indent_style = "space",
+      indent_size = "2",
+    }
+  },
+},
+},
+lspconfig.cssmodules_ls.setup {},
+lspconfig.bashls.setup {},
+lspconfig.emmet_language_server.setup {},
+lspconfig.html.setup {},
+lspconfig.pylsp.setup {},
+lspconfig.tailwinds.setup {},
+lspconfig.gopls.setup {},
+lspconfig.htmx.setup {},
+lspconfig.clang.setup {},
+lspconfig.rust_analyzer.setup {
+  -- Server-specific settings. See `:help lspconfig-setup`
+  settings = {
+    ['rust-analyzer'] = {},
+  },
+},
+
+
+
+-- Global mappings.
+-- See `:help vim.diagnostic.*` for documentation on any of the below functions
+vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
+vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
+vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
+vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
+
+-- Use LspAttach autocommand to only map the following keys
+-- after the language server attaches to the current buffer
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
+  callback = function(ev)
+    -- Enable completion triggered by <c-x><c-o>
+    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
+
+    -- Buffer local mappings.
+    -- See `:help vim.lsp.*` for documentation on any of the below functions
+    local opts = { buffer = ev.buf }
+    vim.keymap.set('n', '<space>fmt', '<cmd>lua vim.lsp.buf.formatting()<cr>'),
+    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+    vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
+    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
+    vim.keymap.set('n', '<space>wl', function()
+      print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, opts)
+    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
+    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
+    vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
+    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+        vim.keymap.set('n', '<space>fmt', function()
+      vim.lsp.buf.format { async = true }
+    end, opts)
+  end,
+})
+}
+# File: ./master.txt
+# File: ./multi_clip_wayland.sh
+#!/usr/bin/bash
+
+# Check dependencies
+if ! command -v wl-copy >/dev/null; then
+    echo "wl-clipboard not found. Please install it and try again."
+    exit 1
+fi
+
+# Usage guidance
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 [-i ignore_list] directory1 [directory2 ...]"
+    exit 1
+fi
+
+# Process the -i flag for an ignore list (optional)
+ignore_list=""
+if [ "$1" == "-i" ]; then
+    ignore_list="$2"
+    shift 2 # Shift arguments to drop -i and the ignore list file
+fi
+
+# Recursive function to process files
+process_files() {
+    local current_dir=$1
+
+    for file in "$current_dir"/*; do
+        should_ignore=false
+
+        # Check against ignore list
+        if [ "$ignore_list" != "" ]; then
+            while IFS= read -r pattern; do
+                if [[ "$file" =~ $pattern ]]; then
+                    should_ignore=true
+                    break 
+                fi
+            done < "$ignore_list"
+        fi
+
+        if ! $should_ignore; then
+            if [ -f "$file" ]; then
+                # Add file name as a comment at the top
+                combined_contents+="# File: $file" 
+                combined_contents+=$'\n'
+
+                combined_contents+=$(cat "$file")
+                combined_contents+=$'\n'
+            elif [ -d "$file" ]; then
+                process_files "$file" # Recurse into subdirectories
+            else 
+                echo "Warning: File not found: $file"
+            fi
+        fi
+    done
+}
+
+# Start processing
+combined_contents=""
+for directory in "$@"; do  # Iterate over provided directories
+    process_files "$directory" 
+done
+
+# Copy to clipboard (modified for Wayland)
+# debug
+echo "DEBUG: combined_contents: $combined_contents" 
+echo -n "$combined_contents" | wl-copy
+
+echo "Copied the contents of the provided files to clipboard."
+
+# File: ./multi_clip_xclip.sh
+#!/usr/bin/bash
+
+# Check dependencies (with auto-install)
+if ! command -v xclip >/dev/null; then
+  echo "xclip not found. Attempting to install..."
+  sudo apt-get install xclip || { echo "Installation failed. Please install xclip manually."; exit 1; }
+fi
+
+# Usage guidance
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 [-i ignore_list] directory1 [directory2 ...]"
+  exit 1
+fi
+
+# Process the -i flag for an ignore list (optional)
+ignore_list=""
+if [ "$1" == "-i" ]; then
+  ignore_list="$2"
+  shift 2 # Shift arguments to drop -i and the ignore list file
+fi
+
+# Recursive function with refinements
+process_files() {
+  local current_dir=$1
+
+  for file in "$current_dir"/*; do
+    should_ignore=false
+
+    # More precise ignore list check
+    if [ "$ignore_list" != "" ] && grep -qFf "$ignore_list" <<< "$file"; then 
+      should_ignore=true
+    fi
+
+    if ! $should_ignore; then
+     if [ -f "$file" ]; then
+       # Print file path for debug
+       echo "Processing file: $file"
+
+       # Improved comment with full file path
+       printf "# File: %s\n" "$file" >> "$master_file" 
+
+       # Debug: Print file content
+       cat "$file"
+
+       # Send file contents to clipboard
+       xclip -selection clipboard < "$file"
+
+       # Additionally, append to master.txt
+       cat "$file" >> "$master_file" 
+
+     elif [ -d "$file" ]; then
+       process_files "$file"
+     else 
+       echo "Warning: File not found: $file"
+     fi
+   fi
+ done
+}
+
+# Start processing
+master_file="master.txt"
+
+for directory in "$@"; do
+  process_files "$directory" 
+done
+
+# Copy from master.txt to clipboard
+xclip -selection clipboard < "$master_file"
+echo "Copied the contents of master.txt to clipboard."
+# File: ./testing.lua

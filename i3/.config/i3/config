@@ -15,6 +15,9 @@ set $mod Mod4
 # is used in the bar {} block below.
 font pango:JetBrains Mono Nerd Font 8
 
+# Load Polybar
+exec --no-startup-id polybar bit --config=/home/bit/.config/polybar/config.ini --log=error 
+
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
 #font pango:DejaVu Sans Mono 8
@@ -34,6 +37,27 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 # and nm-applet is a desktop environment-independent system tray GUI for it.
 exec --no-startup-id nm-applet
 
+# Start Compositor Compton
+exec --no-startup-id compton
+
+# Wallpaper
+exec --no-startup-id feh --bg-scale ~/Pictures/florest-stair2.jpg
+
+# Theme
+## APPEARANCE
+
+# Hide Title Bar
+for_window [class="^.*"] border pixel 2
+
+# Color Settings
+# class                 border  bground text    indicator child_border
+client.focused          #A7C080 #A7C080 #2D353B #A7C080   #A7C080
+client.focused_inactive #3D484D #2D353B #859289 #3D484D   #3D484D
+client.unfocused        #3D484D #2D353B #859289 #3D484D   #3D484D
+client.urgent           #E67E80 #E67E80 #2D353B #E67E80   #E67E80
+client.placeholder      #2D353B #2D353B #859289 #2D353B   #2D353B
+client.background       #2D353B
+
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +10% && $refresh_i3status
@@ -46,7 +70,7 @@ floating_modifier $mod
 
 # move tiling windows via drag & drop by left-clicking into the title bar,
 # or left-clicking anywhere into the window while holding the floating modifier.
-tiling_drag modifier titlebar
+#tiling_drag modifier titlebar
 
 # start a terminal
 bindsym $mod+Return exec alacritty
@@ -185,10 +209,10 @@ bindsym $mod+r mode "resize"
 
 # Start i3bar to display a workspace bar (plus the system information i3status
 # finds out, if available)
-bar {
-        status_command SCRIPT_DIR=~/.config/i3blocks/scripts i3blocks -c ~/.config/i3blocks/config
-	font pango: JetBrains Mono Nerd Font 12
-	position top
-	tray_padding 4
-	separator_symbol ""
-}
+#bar {
+#        status_command SCRIPT_DIR=~/.config/i3blocks/scripts i3blocks -c ~/.config/i3blocks/config
+#	font pango: JetBrains Mono Nerd Font 12
+#	position top
+#	tray_padding 4
+#	separator_symbol "|"
+#}

@@ -86,12 +86,31 @@ alias askollama='ask --model=orca2'
 
 #------- Vim Mode Cursor Styling ---
 
-MODE_CURSOR_VIINS="#00ff00 blinking bar"
-MODE_CURSOR_REPLACE="$MODE_CURSOR_VIINS #ff0000"
-MODE_CURSOR_VICMD="green block"
-MODE_CURSOR_SEARCH="#ff00ff steady underline"
-MODE_CURSOR_VISUAL="$MODE_CURSOR_VICMD steady bar"
-MODE_CURSOR_VLINE="$MODE_CURSOR_VISUAL #00ffff"
+# Load zsh-vi-mode
+source $ZSH_CUSTOM/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+
+# Enable cursor style feature
+ZVM_CURSOR_STYLE_ENABLED=true
+
+# Set cursor styles for different modes
+ZVM_NORMAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
+ZVM_VISUAL_MODE_CURSOR=$ZVM_CURSOR_UNDERLINE
+ZVM_VISUAL_LINE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_UNDERLINE
+ZVM_REPLACE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_BLOCK
+
+# Optionally, customize colors and blinking
+zvm_config() {
+  # Use the 'zvm_cursor_style' function to set custom cursor styles
+  local ncur=$(zvm_cursor_style $ZVM_NORMAL_MODE_CURSOR)
+  local icur=$(zvm_cursor_style $ZVM_INSERT_MODE_CURSOR)
+
+  ZVM_INSERT_MODE_CURSOR=$icur'\e]12;red\a'
+  ZVM_NORMAL_MODE_CURSOR=$ncur'\e]12;#008800\a'
+}
+
+# Call the configuration function
+zvm_config
 
 #------SiteMap Script -----
 
