@@ -61,6 +61,14 @@ export PATH="/home/bit/.modular/pkg/packages.modular.com_mojo/bin:$PATH"
 export MODULAR_HOME="/home/bit/.modular"
 #export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
 
+# Manage History
+HISTFILE=~/.zsh_history
+
+HISTSIZE=10000
+SAVEHIST=10000
+
+setopt SHARE_HISTORY
+
 #------- Aliases ---------
 
 alias multi_clip='~/dotfiles/scripts/multi_clip_xclip.sh'
@@ -111,6 +119,18 @@ zvm_config() {
 
 # Call the configuration function
 zvm_config
+
+# zoxide
+
+# Load and initialize compinit
+autoload -Uz compinit
+compinit
+
+# Initialize zoxide
+eval "$(zoxide init --cmd cd zsh)"
+
+# Optionally, clear and reinitialize completion cache if needed
+# rm ~/.zcompdump*; COMPLETION_WAITING_DOTS
 
 #------SiteMap Script -----
 
@@ -194,3 +214,4 @@ nc -l -n -vv -p $1 -k
 crtshdirsearch(){ #gets all domains from crtsh, runs httprobe and then dir bruteforcers
 curl -s https://crt.sh/?q\=%.$1\&output\=json | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u | httprobe -c 50 | grep https | xargs -n1 -I{} python3 ~/tools/dirsearch/dirsearch.py -u {} -e $2 -t 50 -b 
 }
+eval "$(zellij setup --generate-auto-start zsh)"
