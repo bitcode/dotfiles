@@ -100,38 +100,99 @@ vim.api.nvim_set_keymap('n', '<leader>hc', ':lua require("harpoon.term").sendCom
     }
     which_key.register(telescope_mappings, { prefix = "<leader>" })
 
--- which-key registration
-which_key.register({
+-- LSP Keybindings
+local lsp_mappings = {
+  e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open diagnostics" },
+  d = {
+    name = "Diagnostics",
+    p = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Previous Diagnostic" },
+    n = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next Diagnostic" },
+  },
+  q = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostic Loclist" },
   f = {
-    name = "File & Floaterm",
-    fz = "Devdocs Open Current Float",
-    fn = "New Floaterm",
-    fp = "Previous Floaterm",
-    ft = "Toggle Floaterm",
-    fx = "Close Floaterm",
-    fc = "Compile & Run",
-    ff = "Find Files",  -- Telescope
-    fg = "Live Grep",  -- Telescope
-    fb = "Buffers",  -- Telescope
-    fh = "Help Tags",  -- Telescope
+    name = "Format",
+    f = { "<cmd>lua vim.lsp.buf.formatting()<CR>", "Format Document" },
+    s = { "<cmd>lua vim.lsp.buf.formatting_sync()<CR>", "Format Sync" },
   },
-  o = {
-    name = "Oil",
-    of = "Open Oil Float",
-    ot = "Toggle Oil Float",
-    oc = "Close Oil Window",
-    od = "Delete with Oil",  -- Ensure the function exists or remove this line if it does not
+  g = {
+    name = "Go",
+    d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to Definition" },
+    D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Go to Declaration" },
+    i = { "<cmd>lua vim.lsp.buf.implementation()<CR>", "Go to Implementation" },
+    r = { "<cmd>lua vim.lsp.buf.references()<CR>", "Go to References" },
   },
-  h = {
-    name = "Harpoon",
-    ui = "Toggle Quick Menu",
-    m = "Add Mark",
-    jn = "Next Buffer",
-    jp = "Previous Buffer",
-    ha = "Add File",
-    hr = "Remove File",
-    hc = "Send Command"
+  r = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
+  a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+  w = {
+    name = "Workspace",
+    a = { "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", "Add Folder" },
+    r = { "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", "Remove Folder" },
+    l = { "<cmd>lua vim.lsp.buf.list_workspace_folders()<CR>", "List Folders" },
+  }
+}
+
+    -- Keybindings for File & Floaterm
+    which_key.register({
+      z = "Devdocs Open Current Float",
+      n = "New Floaterm",
+      p = "Previous Floaterm",
+      t = "Toggle Floaterm",
+      x = "Close Floaterm",
+      c = "Compile & Run",
+      f = "Find Files",  -- Telescope
+      g = "Live Grep",  -- Telescope
+      b = "Buffers",  -- Telescope
+      h = "Help Tags",  -- Telescope
+    }, { prefix = "<leader>f" })
+
+    -- Keybindings for Oil
+    which_key.register({
+      f = "Open Oil Float",
+      t = "Toggle Oil Float",
+      c = "Close Oil Window",
+      d = "Delete with Oil",  -- Ensure the function exists or remove this line if it does not
+    }, { prefix = "<leader>o" })
+
+    -- Keybindings for Harpoon
+    which_key.register({
+      ui = "Toggle Quick Menu",
+      m = "Add Mark",
+      jn = "Next Buffer",
+      jp = "Previous Buffer",
+      ha = "Add File",
+      hr = "Remove File",
+      hc = "Send Command"
+    }, { prefix = "<leader>h" })
+
+    -- LSP Keybindings
+    which_key.register({
+      e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open diagnostics" },
+      d = {
+        name = "Diagnostics",
+        p = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Previous Diagnostic" },
+        n = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next Diagnostic" },
+      },
+      q = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostic Loclist" },
+      f = {
+        name = "Format",
+        f = { "<cmd>lua vim.lsp.buf.formatting()<CR>", "Format Document" },
+        s = { "<cmd>lua vim.lsp.buf.formatting_sync()<CR>", "Format Sync" },
+      },
+      g = {
+        name = "Go",
+        d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to Definition" },
+        D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Go to Declaration" },
+        i = { "<cmd>lua vim.lsp.buf.implementation()<CR>", "Go to Implementation" },
+        r = { "<cmd>lua vim.lsp.buf.references()<CR>", "Go to References" },
+      },
+      r = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
+      a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+      w = {
+        name = "Workspace",
+        a = { "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", "Add Folder" },
+        r = { "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", "Remove Folder" },
+        l = { "<cmd>lua vim.lsp.buf.list_workspace_folders()<CR>", "List Folders" },
       }
-    }, { prefix = "<leader>" })
+    }, { prefix = "<leader>l" })
   end
 }

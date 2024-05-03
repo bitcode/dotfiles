@@ -7,5 +7,12 @@ return {
   },
   opts = {
     wrap = true,
+    float_win = {
+      relative = "editor",
+      -- Dynamically calculate height and width based on available space
+      height = 50,
+      width = 100,
+      border = "rounded",
+    },
   }
 }

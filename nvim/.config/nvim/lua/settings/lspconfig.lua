@@ -1,9 +1,10 @@
 -- Setup language servers.
 local lspconfig = require('lspconfig')
+
+-- Server configurations
 lspconfig.pyright.setup {}
 lspconfig.tsserver.setup {
   settings = {
-    -- See https://github.com/typescript-language-server/typescript-language-server/tree/master/src/config
     typescript = {
       format = {
         enable = true,
@@ -19,69 +20,89 @@ lspconfig.lua_ls.setup {
     client.server_capabilities.documentRangeFormatProvider = true
   end,
   settings = {
-  Lua = {
-  format = {
-    enable = true,
-    defaultConfig = {
-      indent_style = "space",
-      indent_size = "2",
+    Lua = {
+      format = {
+        enable = true,
+        defaultConfig = {
+          indent_style = "space",
+          indent_size = "2",
+        }
+      },
+    },
+  },
+}
+-- Additional language server setups...
+lspconfig.cssmodules_ls.setup {}
+lspconfig.bashls.setup {}
+lspconfig.dockerls.setup {}
+lspconfig.emmet_language_server.setup {}
+lspconfig.html.setup {}
+lspconfig.pylsp.setup {}
+lspconfig.asm_lsp.setup{
+  cmd = { "asm-lsp" },
+  filetypes = { "asm", "s", "S" },
+  root_dir = lspconfig.util.root_pattern(".git", ".asm-lsp.toml"),
+  settings = {
+    version = "0.1",
+    assemblers = {
+      gas = true,
+      go = false
+    },
+    instruction_sets = {
+      x86 = false,
+      x86_64 = true
     }
   },
-},
-},
-lspconfig.cssmodules_ls.setup {},
-lspconfig.bashls.setup {},
-lspconfig.emmet_language_server.setup {},
-lspconfig.html.setup {},
-lspconfig.pylsp.setup {},
-lspconfig.tailwinds.setup {},
-lspconfig.gopls.setup {},
-lspconfig.htmx.setup {},
-lspconfig.clang.setup {},
+  on_attach = function(client, bufnr)
+    require('completion').on_attach(client, bufnr)
+    local function buf_set_keymap(...) vim.api.nvim_buf_set_keymap(bufnr, ...) end
+    local opts = { noremap=true, silent=true }
+    -- Key mappings for LSP functions
+    buf_set_keymap('n', 'gd', '<Cmd>lua vim.lsp.buf.definition()<CR>', opts)
+    buf_set_keymap('n', 'K', '<Cmd>lua vim.lsp.buf.hover()<CR>', opts)
+    buf_set_keymap('i', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+    buf_set_keymap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+    buf_set_keymap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+  end,
+  flags = {
+    debounce_text_changes = 150,
+  }
+}
+lspconfig.tailwinds.setup {}
+lspconfig.gopls.setup {}
+lspconfig.htmx.setup {}
+lspconfig.clangd.setup {
+  cmd = {
+    "clangd",
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=iwyu",
+    "--completion-style=detailed",
+    "--function-arg-placeholders",
+    "-j4",
+    "--fallback-style=llvm",
+    "--all-scopes-completion",
+    "--suggest-missing-includes",
+    "--log=info"
+  },
+  root_dir = lspconfig.util.root_pattern("compile_commands.json", ".git", "Makefile"),
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
+  on_attach = function(client, bufnr)
+    require('completion').on_attach(client, bufnr)
+    local function buf_set_keymap(...) vim.api.nvim_buf_set_keymap(bufnr, ...) end
+    local opts = { noremap=true, silent=true }
+    buf_set_keymap('n', 'gd', '<Cmd>lua vim.lsp.buf.definition()<CR>', opts)
+    buf_set_keymap('n', 'K', '<Cmd>lua vim.lsp.buf.hover()<CR>', opts)
+    buf_set_keymap('i', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+    buf_set_keymap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+    buf_set_keymap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+  end,
+  flags = {
+    debounce_text_changes = 150,
+  }
+}
 lspconfig.rust_analyzer.setup {
-  -- Server-specific settings. See `:help lspconfig-setup`
   settings = {
     ['rust-analyzer'] = {},
   },
-},
-
-
-
--- Global mappings.
--- See `:help vim.diagnostic.*` for documentation on any of the below functions
-vim.keymap.set('n', '<space>e', vim.diagnostic.open_float)
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev)
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next)
-vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist)
-
--- Use LspAttach autocommand to only map the following keys
--- after the language server attaches to the current buffer
-vim.api.nvim_create_autocmd('LspAttach', {
-  group = vim.api.nvim_create_augroup('UserLspConfig', {}),
-  callback = function(ev)
-    -- Enable completion triggered by <c-x><c-o>
-    vim.bo[ev.buf].omnifunc = 'v:lua.vim.lsp.omnifunc'
-
-    -- Buffer local mappings.
-    -- See `:help vim.lsp.*` for documentation on any of the below functions
-    local opts = { buffer = ev.buf }
-    vim.keymap.set('n', '<space>fmt', '<cmd>lua vim.lsp.buf.formatting()<cr>'),
-    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-    vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
-    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, opts)
-    vim.keymap.set('n', '<space>wl', function()
-      print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, opts)
-    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, opts)
-    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, opts)
-    vim.keymap.set({ 'n', 'v' }, '<space>ca', vim.lsp.buf.code_action, opts)
-    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-        vim.keymap.set('n', '<space>fmt', function()
-      vim.lsp.buf.format { async = true }
-    end, opts)
-  end,
-})
 }

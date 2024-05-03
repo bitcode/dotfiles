@@ -1,1 +1,3 @@
-#export XDG_CONFIG_HOME=$HOME/.config
+if [[ $- == *i* ]]; then
+  source ~/.zshrc
+fi

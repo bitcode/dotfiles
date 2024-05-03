@@ -1,3 +1,0 @@
-multi_clip_wayland.sh
-multi_clip_xclip.sh
-lazy-lock.json

@@ -86,6 +86,9 @@ bindsym $mod+d exec --no-startup-id rofi -show combi -run-command "i3-msg exec '
 # .desktop file. It is a wrapper around dmenu, so you need that installed.
 # bindcode $mod+40 exec --no-startup-id i3-dmenu-desktop
 
+# flameshot keybind
+bindsym Print exec --no-startup-id flameshot gui
+
 # change focus
 bindsym $mod+j focus left
 bindsym $mod+k focus down

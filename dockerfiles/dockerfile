@@ -1,0 +1,71 @@
+# Use the latest Ubuntu image
+FROM ubuntu:latest
+
+# Set noninteractive installation to avoid user interaction during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies for building Neovim, Stow, and other utilities
+RUN apt-get update && apt-get install -y \
+    git \
+    ninja-build \
+    gettext \
+    libtool \
+    libtool-bin \
+    autoconf \
+    automake \
+    cmake \
+    g++ \
+    pkg-config \
+    unzip \
+    curl \
+    doxygen \
+    stow \
+    build-essential \
+    cmake \
+    sqlite3 \
+    libsqlite3-dev \
+    mysql-client \
+    libmysqlclient-dev \
+    software-properties-common \
+    lua5.3 \
+    luarocks \
+    liblua5.3-dev
+
+# Install Node.js (Latest LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
+
+# Install Rust (rustc and cargo)
+RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Ensure that cargo, rustc are available in the PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Clone the Neovim repository
+RUN git clone https://github.com/neovim/neovim.git /neovim
+
+# Build Neovim from source
+WORKDIR /neovim
+RUN make CMAKE_BUILD_TYPE=Release
+RUN make install
+
+# Install Lua packages using LuaRocks
+RUN luarocks install busted && \
+    luarocks install luacheck
+
+# Create the necessary directories for stowing
+RUN mkdir -p $HOME/.config/nvim
+
+# Clone the Neovim configuration repository
+RUN git clone https://github.com/bitcode/clean-lazy-nvim-config.git /tmp/nvim-config
+
+# Move the Neovim configuration to the correct location
+RUN mv /tmp/nvim-config/nvim/.config/nvim/* /root/.config/nvim/ && \
+    rm -rf /tmp/nvim-config
+
+# Set up environment for Neovim
+ENV XDG_CONFIG_HOME=/root/.config
+ENV XDG_DATA_HOME=/root/.local/share
+
+# Set the default command to launch Neovim
+CMD ["nvim"]
