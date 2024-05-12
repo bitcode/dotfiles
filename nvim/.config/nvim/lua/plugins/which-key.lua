@@ -10,6 +10,17 @@ return {
     local map_opts = { noremap = true, silent = true }
     which_key.setup {}
 
+ -- GitGutter keybindings
+    local gitgutter_mappings = {
+      ["n"] = { "<cmd>GitGutterNextHunk<CR>", "Next Hunk" },
+      ["p"] = { "<cmd>GitGutterPrevHunk<CR>", "Previous Hunk" },
+      ["s"] = { "<cmd>GitGutterStageHunk<CR>", "Stage Hunk" },
+      ["u"] = { "<cmd>GitGutterUndoHunk<CR>", "Undo Hunk" },
+      ["P"] = { "<cmd>GitGutterPreviewHunk<CR>", "Preview Hunk" }
+    }
+    which_key.register(gitgutter_mappings, { prefix = "<leader>g" })
+
+
     -- convert window management prefix from <C-w> to <C-p>
 vim.api.nvim_set_keymap('n', '<C-p>w', '<C-w>w', map_opts)
 vim.api.nvim_set_keymap('n', '<C-p>h', '<C-w>h', map_opts)

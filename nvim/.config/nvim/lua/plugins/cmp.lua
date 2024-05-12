@@ -83,6 +83,15 @@ return {
       })
     })
     local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      capabilities.hoverProvider = true
+      capabilities.definitionProvider = true
+      capabilities.referencesProvider = true
+      capabilities.documentHighlightProvider = true
+      capabilities.documentSymbolProvider = true
+      capabilities.workspaceSymbolProvider = true
+      capabilities.codeActionProvider = true
+      capabilities.renameProvider = true
+      capabilities.signatureHelpProvider = true
     require('lspconfig')['lua_ls'].setup {
       capabilities = capabilities
     }

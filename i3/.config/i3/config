@@ -43,6 +43,16 @@ exec --no-startup-id compton
 # Wallpaper
 exec --no-startup-id feh --bg-scale ~/Pictures/florest-stair2.jpg
 
+# Open a floating calculator window
+bindsym $mod+Shift+p exec --no-startup-id gnome-calculator --class="floating_calculator" 
+# Make calculator windows with the "floating_calculator" class float
+for_window [class="floating_calculator"] floating enable, resize set 800 600, move position center
+
+# Open a floating calculator window
+bindsym $mod+Shift+a exec --no-startup-id alacritty --class="floating_alacritty" 
+# Make calculator windows with the "floating_calculator" class float
+for_window [class="floating_alacritty"] floating enable, resize set 800 600, move position center
+
 # Theme
 ## APPEARANCE
 

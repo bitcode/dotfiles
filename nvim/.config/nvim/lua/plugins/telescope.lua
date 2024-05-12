@@ -25,6 +25,7 @@ return {
         },
       },
     }
+    -- require('telescope').load_extension('manscope')
     -- Keep your existing builtin picker calls here
     -- For example: 
     -- builtin.find_files()

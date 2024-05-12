@@ -12,7 +12,7 @@ return {
       enable = true,
       separator = ' › ',
       show_file = true,
-      color_mode = true
+      color_mode == true
   },
   diagnostic = {
       show_code_action = true,
