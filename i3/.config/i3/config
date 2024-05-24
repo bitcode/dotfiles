@@ -41,7 +41,8 @@ exec --no-startup-id nm-applet
 exec --no-startup-id compton
 
 # Wallpaper
-exec --no-startup-id feh --bg-scale ~/Pictures/florest-stair2.jpg
+# exec --no-startup-id feh --bg-scale ~/Pictures/florest-stair2.jpg
+exec --no-startup-id ~/dotfiles/scripts/randomwallpapers.sh
 
 # Open a floating calculator window
 bindsym $mod+Shift+p exec --no-startup-id gnome-calculator --class="floating_calculator" 
@@ -53,8 +54,14 @@ bindsym $mod+Shift+a exec --no-startup-id alacritty --class="floating_alacritty"
 # Make calculator windows with the "floating_calculator" class float
 for_window [class="floating_alacritty"] floating enable, resize set 800 600, move position center
 
-# Theme
-## APPEARANCE
+# Bind a key to manually start the screensaver
+bindsym $mod+Shift+s exec ~/dotfiles/scripts/start_cmatrix_screensaver.sh
+
+# Automatically start the screensaver after inactivity using xautolock
+exec --no-startup-id xautolock -time 10 -locker "$HOME/dotfiles/scripts/start_cmatrix_screensaver.sh" -notify 30 -notifier "notify-send 'Screen will lock in 30 seconds'"
+
+# picom
+exec --no-startup-id picom --experimental-backends --daemon --config ~/.config/picom.conf
 
 # Hide Title Bar
 for_window [class="^.*"] border pixel 2

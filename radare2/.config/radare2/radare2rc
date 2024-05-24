@@ -1,0 +1,50 @@
+## Color and Output
+e scr.color=true
+e scr.utf8=true
+e scr.utf8.curvy=true
+e scr.nkey=fun
+e dbg.bep=entry
+e cfg.fortunes=false
+e cfg.datefmt="%Y-%m-%d %H:%M:%S"
+
+# Analysis Settings
+# e anal.depth = 20
+# e anal.calls = true
+# e bin.relocs.apply = true
+# e bin.cache = true
+e anal.hasnext=true
+e anal.jmp.after=true
+e anal.jmp.indir=true
+e anal.datarefs=true
+
+# Disassembly Settings
+# e asm.syntax = intel
+# e asm.bytes = true
+# e asm.cmt.right = true
+# e asm.lines.width = 32
+e asm.arch=x86
+e asm.bits=64
+e asm.syntax=intel
+e asm.bytes=true
+e asm.o set=true
+e asm.lines.call=true
+
+# Debugging Settings
+# e dbg.bep = entry
+# e dbg.profile="/path/to/rarun2/profile" ; Set rarun2 profile
+#
+# File Format and Binary Analysis
+# e bin.hashlimit = 100M
+# e bin.str.filter = true
+#
+# Interface Enhancements
+# e scr.prompt = 'r2>'
+#
+# Original Settings
+# e rop.len = 10
+# e asm.xrefs = false
+e asm.comments = false
+
+# Bindings
+# r2pm -i lang-python           ; Install Python language support
+# r2pm -i r2dec                 ; Install decompiler plugin

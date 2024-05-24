@@ -32,6 +32,7 @@ export WASMTIME_HOME="$HOME/.wasmtime"
 export PATH="$WASMTIME_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="/home/bit/.pyenv/versions/3.12.2/lib/:$LD_LIBRARY_PATH"
 export MANPATH="/home/bit/.local/share/man:/home/bit/.pyenv/man:/usr/share/man:/home/bit/.config/nvm/versions/node/v20.12.2/share/man:/usr/local/share/man:/home/bit/man/man-intrinsics"
+export NVIM_LOG_LEVEL=debug
 source "$NVM_DIR/nvm.sh"
 source "$NVM_DIR/bash_completion"
 source ~/dotfiles/scripts/gdmux.sh
