@@ -21,15 +21,17 @@ RUN apt-get update && apt-get install -y \
     doxygen \
     stow \
     build-essential \
-    cmake \
-    sqlite3 \
-    libsqlite3-dev \
-    mysql-client \
-    libmysqlclient-dev \
     software-properties-common \
-    lua5.3 \
-    luarocks \
-    liblua5.3-dev
+    wget \
+    man-db \
+    manpages \
+    manpages-dev \
+    manpages-posix \
+    manpages-posix-dev \
+    libreadline-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libsqlite3-dev
 
 # Install Node.js (Latest LTS version)
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
@@ -41,17 +43,45 @@ RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
 # Ensure that cargo, rustc are available in the PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Install Lua 5.3 from source
+RUN wget http://www.lua.org/ftp/lua-5.3.6.tar.gz \
+    && tar zxf lua-5.3.6.tar.gz \
+    && cd lua-5.3.6 \
+    && make linux \
+    && make install \
+    && cd .. \
+    && rm -rf lua-5.3.6 lua-5.3.6.tar.gz
+
+# Install LuaRocks (specific version 3.11.0)
+ENV LUAROCKS_VERSION=3.11.0
+RUN wget https://luarocks.github.io/luarocks/releases/luarocks-$LUAROCKS_VERSION.tar.gz \
+    && tar zxpf luarocks-$LUAROCKS_VERSION.tar.gz \
+    && cd luarocks-$LUAROCKS_VERSION \
+    && ./configure --with-lua=/usr/local \
+    && make build \
+    && make install \
+    && cd .. \
+    && rm -rf luarocks-$LUAROCKS_VERSION.tar.gz luarocks-$LUAROCKS_VERSION
+
+# Install LuaRocks packages
+RUN luarocks install luafilesystem \
+    && luarocks install busted \
+    && luarocks install luacheck
+
+# Set LuaRocks paths for Lua 5.3
+ENV LUA_PATH="/root/.luarocks/share/lua/5.3/?.lua;/root/.luarocks/share/lua/5.3/?/init.lua;/usr/local/share/lua/5.3/?.lua;/usr/local/share/lua/5.3/?/init.lua"
+ENV LUA_CPATH="/root/.luarocks/lib/lua/5.3/?.so;/usr/local/lib/lua/5.3/?.so"
+
+# Install the Neovim npm package globally
+RUN npm install -g neovim
+
 # Clone the Neovim repository
 RUN git clone https://github.com/neovim/neovim.git /neovim
 
-# Build Neovim from source
+# Build Neovim from source with Lua 5.3
 WORKDIR /neovim
-RUN make CMAKE_BUILD_TYPE=Release
-RUN make install
-
-# Install Lua packages using LuaRocks
-RUN luarocks install busted && \
-    luarocks install luacheck
+RUN make CMAKE_BUILD_TYPE=Release \
+    && make install
 
 # Create the necessary directories for stowing
 RUN mkdir -p $HOME/.config/nvim
@@ -62,6 +92,33 @@ RUN git clone https://github.com/bitcode/clean-lazy-nvim-config.git /tmp/nvim-co
 # Move the Neovim configuration to the correct location
 RUN mv /tmp/nvim-config/nvim/.config/nvim/* /root/.config/nvim/ && \
     rm -rf /tmp/nvim-config
+
+# Clone the repository containing the manscope plugin
+RUN git clone https://github.com/bitcode/dotfiles.git /tmp/dotfiles
+
+# Copy the manscope plugin to the Neovim plugins directory
+RUN mkdir -p /root/.config/nvim/lua/plugins/ && \
+    cp /tmp/dotfiles/nvim/.config/nvim/lua/plugins/manscope.lua /root/.config/nvim/lua/plugins/ && \
+    rm -rf /tmp/dotfiles
+
+# Download, build, and install SQLite from source
+RUN wget https://www.sqlite.org/2024/sqlite-autoconf-3460000.tar.gz \
+    && tar zxvf sqlite-autoconf-3460000.tar.gz \
+    && cd sqlite-autoconf-3460000 \
+    && ./configure --prefix=/usr/local \
+    && make \
+    && make install \
+    && cd .. \
+    && rm -rf sqlite-autoconf-3460000 sqlite-autoconf-3460000.tar.gz
+
+# Download, build, and install lsqlite3
+RUN wget http://lua.sqlite.org/index.cgi/zip/lsqlite3_v096.zip?uuid=v0.9.6 -O lsqlite3_v096.zip --no-check-certificate \
+    && unzip lsqlite3_v096.zip \
+    && cd lsqlite3_v096 \
+    && gcc -o lsqlite3.so -shared -fPIC -I/usr/local/include -L/usr/local/lib -llua -lsqlite3 lsqlite3.c \
+    && mv lsqlite3.so /usr/local/lib/lua/5.3/ \
+    && cd .. \
+    && rm -rf lsqlite3_v096 lsqlite3_v096.zip
 
 # Set up environment for Neovim
 ENV XDG_CONFIG_HOME=/root/.config

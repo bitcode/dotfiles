@@ -90,3 +90,17 @@ Sun May 19 09:19:24 AM EDT 2024 - Typed cmatrix command.
 Sun May 19 09:19:24 AM EDT 2024 - Sent Return key to execute cmatrix command.
 Sun May 19 09:19:24 AM EDT 2024 - Current workspace after sending command: 8
 Sun May 19 09:19:24 AM EDT 2024 - Script finished.
+Mon May 27 07:50:29 AM EDT 2024 - Script started.
+Mon May 27 07:50:29 AM EDT 2024 - Switched to workspace 8.
+Mon May 27 07:50:29 AM EDT 2024 - Current workspace after switching: 8
+Mon May 27 07:50:29 AM EDT 2024 - Launched alacritty.
+Mon May 27 07:50:32 AM EDT 2024 - Waited 3 seconds for alacritty to load.
+Mon May 27 07:50:32 AM EDT 2024 - Current workspace after waiting: 8
+Mon May 27 07:50:33 AM EDT 2024 - Found alacritty window ID: 85983237
+Mon May 27 07:50:33 AM EDT 2024 - Activated alacritty window ID: 85983237
+Mon May 27 07:50:33 AM EDT 2024 - Current workspace after activating alacritty: 8
+Mon May 27 07:50:33 AM EDT 2024 - Set alacritty to fullscreen.
+Mon May 27 07:50:34 AM EDT 2024 - Typed cmatrix command.
+Mon May 27 07:50:34 AM EDT 2024 - Sent Return key to execute cmatrix command.
+Mon May 27 07:50:34 AM EDT 2024 - Current workspace after sending command: 8
+Mon May 27 07:50:34 AM EDT 2024 - Script finished.
