@@ -11,7 +11,7 @@ export PATH="$PATH:/usr/local/bin/geckodriver"
 export PATH="$PATH:/usr/local/bin/alacritty"
 export PATH="$HOME/.pyenv/bin:$PATH"
 eval "$(pyenv init --path)"
-eval "$(pyenv virtualenv-init -)"
+#eval "$(pyenv virtualenv-init -)"
 export PYTHONPATH="/usr/bin/python3"
 export VISUAL="nvim"
 export EDITOR="nvim"
@@ -33,8 +33,8 @@ export PATH="$WASMTIME_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="/home/bit/.pyenv/versions/3.12.2/lib/:$LD_LIBRARY_PATH"
 export MANPATH="/home/bit/.local/share/man:/home/bit/.pyenv/man:/usr/share/man:/home/bit/.config/nvm/versions/node/v20.12.2/share/man:/usr/local/share/man:/home/bit/man/man-intrinsics"
 export NVIM_LOG_LEVEL=debug
-source "$NVM_DIR/nvm.sh"
-source "$NVM_DIR/bash_completion"
+source "$HOME/.nvm/nvm.sh"
+source "$HOME/.nvm/bash_completion"
 source ~/dotfiles/scripts/gdmux.sh
 
 # Plugin Configuration
