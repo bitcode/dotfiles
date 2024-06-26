@@ -29,7 +29,7 @@ For example, C/C++ declarations are mapped as follows:
 
 The asterisk indicates an address variable. For example, `int *` means the address of an integer. Other high-level languages typically have similar mappings.
 
-\pagebreak
+<div style="page-break-after: always"></div>
 
 # CPU Registers
 
@@ -84,6 +84,125 @@ The flag register, rFlags, is used for status and CPU control information. The r
 | AH            | 8           | Higher 8 bits of AX                 |
 | AL            | 8           | Lower 8 bits of AX                  |
 
-\pagebreak
+<div style="page-break-after: always"></div>
 
+# Assembly Language Cheat Sheet: Data Declarations
 
+## Directives for Data Declarations
+
+### Byte (8 bits)
+- **Directive:** `db`
+- **Description:** Define byte
+- **Example:** `myByte db 0x12`
+
+### Word (16 bits)
+- **Directive:** `dw`
+- **Description:** Define word
+- **Example:** `myWord dw 0x1234`
+
+### Double Word (32 bits)
+- **Directive:** `dd`
+- **Description:** Define double word
+- **Example:** `myDword dd 0x12345678`
+
+### Quad Word (64 bits)
+- **Directive:** `dq`
+- **Description:** Define quad word
+- **Example:** `myQword dq 0x123456789ABCDEF0`
+
+### Ten Bytes (80 bits)
+- **Directive:** `dt`
+- **Description:** Define ten bytes
+- **Example:** `myTenBytes dt 0x123456789ABCDEF01234`
+
+<div style="page-break-after: always"></div>
+
+## Reserves Uninitialized Space
+
+### Reserve Byte
+- **Directive:** `resb`
+- **Description:** Reserve byte(s)
+- **Example:** `myBytes resb 4` (Reserves 4 bytes)
+
+### Reserve Word
+- **Directive:** `resw`
+- **Description:** Reserve word(s)
+- **Example:** `myWords resw 2` (Reserves 2 words, or 4 bytes)
+
+### Reserve Double Word
+- **Directive:** `resd`
+- **Description:** Reserve double word(s)
+- **Example:** `myDwords resd 1` (Reserves 1 double word, or 4 bytes)
+
+### Reserve Quad Word
+- **Directive:** `resq`
+- **Description:** Reserve quad word(s)
+- **Example:** `myQwords resq 1` (Reserves 1 quad word, or 8 bytes)
+
+### Reserve Ten Bytes
+- **Directive:** `rest`
+- **Description:** Reserve ten bytes
+- **Example:** `myTenBytes rest 1` (Reserves 10 bytes)
+
+## Data Types and Terminology
+
+### Data Types
+- **Byte (8 bits)**: Smallest addressable unit of memory.
+  - **Directive:** `db`
+  - **Size:** 1 byte
+- **Word (16 bits)**: Two bytes.
+  - **Directive:** `dw`
+  - **Size:** 2 bytes
+- **Double Word (32 bits)**: Four bytes.
+  - **Directive:** `dd`
+  - **Size:** 4 bytes
+- **Quad Word (64 bits)**: Eight bytes.
+  - **Directive:** `dq`
+  - **Size:** 8 bytes
+- **Ten Bytes (80 bits)**: Ten bytes.
+  - **Directive:** `dt`
+  - **Size:** 10 bytes
+
+### Initializing Data
+- **Syntax:** `[variable name] [directive] [initial value]`
+- **Example:** 
+  ```assembly
+  byteVar db 0x00
+  wordVar dw 0x0000
+  doubleWordVar dd 0x00000000
+  quadWordVar dq 0x0000000000000000
+  tenBytesVar dt 0x00000000000000000000
+  
+### Uninitialized Data
+- **Syntax:** `[variable name] [reserve directive] [number of units]`
+- **Example:** 
+    ```assembly
+    bytesVar resb 4
+    wordsVar resw 2
+    dwordsVar resd 1
+    qwordsVar resq 1
+    tenBytesVar rest 1
+    ```
+
+### Example Data Section
+
+```assembly
+section .data
+    ; Initialized data
+    byteVar db 0x12                 ; 1 byte
+    wordVar dw 0x1234               ; 2 bytes
+    doubleWordVar dd 0x12345678     ; 4 bytes
+    quadWordVar dq 0x123456789ABCDEF0 ; 8 bytes
+    tenBytesVar dt 0x123456789ABCDEF01234 ; 10 bytes
+
+    ; Uninitialized data
+    bytesVar resb 4                 ; Reserves  4 bytes
+    wordsVar resw 2                 ; Reserves 2 words (4 bytes)
+    dwordsVar resd 1                ; Reserves 1 double word (4 bytes)
+    qwordsVar resq 1                ; Reserves 1 quad word (8 bytes)
+    tenBytesVar rest 1              ; Reserves 10 bytes
+    
+### Notes
+- **Hexadecimal Notation:** Prefixed with `0x` (e.g., `0x00` for zero in hex).
+- **Binary Notation:** Prefixed with `0b` (e.g., `0b00000000` for zero in binary).
+- **Decimal Notation:** No prefix, used directly (e.g., `0` for zero in decimal).    
