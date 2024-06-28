@@ -6,23 +6,6 @@
 # Inserts a blank line between shell prompts
 add_newline = false
 
-# Prompt Configuration
-[prompt]
-add_newline = false
-order = [
-    "username",
-    "hostname",
-    "directory",
-    "git_branch",
-    "git_status",
-    "package",
-    "nodejs",
-    "python",
-    "line_break",
-    "jobs",
-    "character"
-]
-
 # Username module configuration
 [username]
 style_user = "bold yellow"
