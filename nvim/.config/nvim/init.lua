@@ -40,8 +40,8 @@ require("settings")
 require('lualine').setup()
 
 -- Set NVIM_LOG_LEVEL to 'debug'
-vim.fn.setenv("NVIM_LOG_LEVEL", "debug")
+--vim.fn.setenv("NVIM_LOG_LEVEL", "debug")
 
 -- Set verbose to 15 for maximum verbosity and output to ~/.local/share/nvim/log
-vim.cmd('set verbose=15')
-vim.cmd('set verbosefile=~/.local/share/nvim/log')
+--vim.cmd('set verbose=15')
+--vim.cmd('set verbosefile=~/.local/share/nvim/log')

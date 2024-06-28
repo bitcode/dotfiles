@@ -1,3 +1,3 @@
-if [[ $- == *i* ]]; then
-  source ~/.zshrc
-fi
+#if [[ $- == *i* ]]; then
+#  source ~/.zshrc
+#fi

@@ -1,0 +1,83 @@
+# ~/.config/starship.toml
+
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Inserts a blank line between shell prompts
+add_newline = false
+
+# Prompt Configuration
+[prompt]
+add_newline = false
+order = [
+    "username",
+    "hostname",
+    "directory",
+    "git_branch",
+    "git_status",
+    "package",
+    "nodejs",
+    "python",
+    "line_break",
+    "jobs",
+    "character"
+]
+
+# Username module configuration
+[username]
+style_user = "bold yellow"
+disabled = false
+
+# Hostname module configuration
+[hostname]
+ssh_only = true
+style = "bold dimmed blue"
+disabled = false
+
+# Directory module configuration
+[directory]
+truncation_length = 3
+truncate_to_repo = false
+style = "bold cyan"
+disabled = false
+
+# Git branch module configuration
+[git_branch]
+symbol = " "
+style = "bold purple"
+disabled = false
+
+# Git status module configuration
+[git_status]
+style = "bold red"
+disabled = false
+
+# Package module configuration
+[package]
+disabled = true
+
+# NodeJS module configuration
+[nodejs]
+symbol = "⬢ "
+style = "bold green"
+disabled = false
+
+# Python module configuration
+[python]
+symbol = "🐍 "
+style = "bold blue"
+disabled = false
+
+# Jobs module configuration
+[jobs]
+threshold = 1
+symbol = "⚙️ "
+style = "bold red"
+disabled = false
+
+# Character module configuration
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[✗](bold red)"
+vicmd_symbol = "[❮](bold purple)"
+disabled = false
