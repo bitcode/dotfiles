@@ -29,10 +29,9 @@ bold_italic = { family = "JetBrains Mono Nerd Font", style = "bold_italic" }
 #}
 
 # Shell configuration
-[shell] 
-  program = "zsh"
-  args = ["-l"]
-
+[shell]
+program = "zsh"
+args = ["-c", "tmux new-session -A -s $(uuidgen | tr -d '-')"]
 
 # Key bindings
 #[key_bindings]
