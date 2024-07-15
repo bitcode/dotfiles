@@ -36,8 +36,10 @@ ZVM_VISUAL_LINE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_UNDERLINE
 ZVM_REPLACE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_BLOCK
 
 # Aliases
+alias cp_staged_diff='git diff --cached | xclip -selection clipboard'
 alias multi_clip='~/dotfiles/scripts/multi_clip_xclip.sh'
 alias gitcheck='~/dotfiles/scripts/gitcheck.sh'
+alias new_repo='~/dotfiles/scripts/create_and_push_repo.sh'
 alias tls='tmux ls'
 alias rc='rustc'
 alias dc='cd ..'

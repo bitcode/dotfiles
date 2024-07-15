@@ -7,6 +7,14 @@ return {
     local builtin = require('telescope.builtin')
     require('telescope').setup {
       defaults = {
+        file_ignore_patterns = {
+      "node_modules/.*",
+      "^node_modules/",
+      "vendor/.*",
+      "%.git/.*",
+      "venv/"
+      -- Add other patterns as needed
+    },
         layout_strategy = "flex", -- Automatically switch between horizontal and vertical layouts
         layout_config = {
           height = function(_, max_lines)
