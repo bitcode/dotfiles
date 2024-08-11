@@ -28,12 +28,9 @@ setup_luarocks()
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- Setup plugins and settings with lazy.nvim and enable debug mode
 require("lazy").setup("plugins", {
-    debug = {
-        enable = false,
-        log_level = "debug",
-    },
+    debug = false,  -- ensure this is disabled
+    log_level = "warn",  -- log only warnings and errors
 })
 
 require("settings")
