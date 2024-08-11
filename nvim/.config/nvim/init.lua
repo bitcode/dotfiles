@@ -31,7 +31,7 @@ vim.g.maplocalleader = ' '
 -- Setup plugins and settings with lazy.nvim and enable debug mode
 require("lazy").setup("plugins", {
     debug = {
-        enable = true,
+        enable = false,
         log_level = "debug",
     },
 })

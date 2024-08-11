@@ -16,6 +16,7 @@ vim.cmd [[
   highlight DiagnosticHint guifg=#50FA7B ctermfg=84
 ]]
 --vim.o.background = "dark" -- or "light" for light mode
+vim.api.nvim_set_keymap('n', '<leader>x', '<cmd>lclose<CR>', { noremap = true, silent = true })
 vim.o.number = true -- Enable line numbers
 vim.api.nvim_set_hl(0, 'Normal', { ctermbg = 'none' })
 vim.api.nvim_set_hl(0, "CursorLine", { bg = "none" })
@@ -28,3 +29,16 @@ vim.api.nvim_set_hl(0, 'FloatBorder', {bg='#3B4252', fg='#5E81AC'})
 vim.api.nvim_set_hl(0, 'NormalFloat', {bg='#3B4252'})
 vim.api.nvim_set_hl(0, 'TelescopeNormal', {bg='#3B4252'})
 vim.api.nvim_set_hl(0, 'TelescopeBorder', {bg='#3B4252'})
+-- Define a function to set keymaps easily
+local function map(mode, lhs, rhs, opts)
+  local options = { noremap = true, silent = true }
+  if opts then
+    options = vim.tbl_extend('force', options, opts)
+  end
+  vim.api.nvim_set_keymap(mode, lhs, rhs, options)
+end
+-- Keybindings to move between splits
+map('n', '<C-h>', '<C-w>h')
+map('n', '<C-j>', '<C-w>j')
+map('n', '<C-k>', '<C-w>k')
+map('n', '<C-l>', '<C-w>l')

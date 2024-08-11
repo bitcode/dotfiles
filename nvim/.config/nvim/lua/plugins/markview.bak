@@ -1,0 +1,24 @@
+return {
+  "OXY2DEV/markview.nvim",
+  lazy = false,  -- Recommended to not lazy-load
+  dependencies = {
+    "nvim-treesitter/nvim-treesitter",
+    "nvim-tree/nvim-web-devicons"
+  },
+  config = function()
+    -- Ensure necessary Tree-sitter parsers are installed
+    require('nvim-treesitter.configs').setup {
+        ensure_installed = { "markdown", "markdown_inline", "html" },
+        highlight = {
+            enable = true,
+        }
+    }
+
+    -- Load and configure markview with default settings
+    require("markview").setup()
+
+    -- Enable Markview for all attached buffers
+    vim.cmd("Markview enableAll")
+  end
+}
+

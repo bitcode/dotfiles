@@ -7,7 +7,7 @@ export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 export LC_CTYPE="en_US.UTF-8"
 export PATH="$HOME/.cargo/bin:$PATH"
-export PYTHONPATH="/usr/bin/python3"
+# export PYTHONPATH="/usr/bin/python3"
 export VISUAL="nvim"
 export EDITOR="nvim"
 export TERM="xterm-256color"
@@ -19,6 +19,13 @@ export FZF_DEFAULT_COMMAND="zoxide query --list"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="$FZF_DEFAULT_COMMAND"
 export MANPATH="/home/bit/.local/share/man:/usr/local/share/man:/home/bit/man/man-intrinsics"
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:/home/bit/go/bin
+export GO111MODULE=on
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
 
 # History Configuration
 HISTFILE="$HOME/.zsh_history"
@@ -52,10 +59,10 @@ alias la='ls -a'
 alias lla='ls -la'
 alias lt='ls --tree'
 alias lz='ls -alZ | more'
-alias py='python3'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
 alias lg='lazygit'
-alias python='/usr/bin/python3'
+alias python='pyenv exec python'
+alias python3='pyenv exec python3'
 
 # Initialize zoxide normally
 eval "$(zoxide init zsh)"

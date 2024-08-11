@@ -71,6 +71,13 @@ vim.api.nvim_set_keymap('n', '<leader>ha', ':lua require("harpoon.ui").add_file(
 vim.api.nvim_set_keymap('n', '<leader>hr', ':lua require("harpoon.ui").remove_file()<CR>', map_opts)
 vim.api.nvim_set_keymap('n', '<leader>hc', ':lua require("harpoon.term").sendCommand(1, "ls -La")<CR>', map_opts)
 
+-- Keybindings for inserting new lines without entering insert mode
+    local new_line_mappings = {
+      ["<CR>"] = { 'm`o<Esc>``', "New line below" },
+      ["<S-CR>"] = { 'm`O<Esc>``', "New line above" },
+    }
+    which_key.register(new_line_mappings, { prefix = "<Leader>" })
+
 
     -- Window management mappings changed from <C-w> to <C-p>
     -- Define the new window management key mappings with descriptions
@@ -172,7 +179,7 @@ local lsp_mappings = {
       jp = "Previous Buffer",
       ha = "Add File",
       hr = "Remove File",
-      hc = "Send Command"
+      hc = "Send Command",
     }, { prefix = "<leader>h" })
 
     -- LSP Keybindings
