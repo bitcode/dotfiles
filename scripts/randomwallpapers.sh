@@ -1,15 +1,13 @@
 #!/bin/bash
 
-# Load user profile to ensure environment variables are set
-if [ -f "$HOME/.profile" ]; then
-    source "$HOME/.profile"
-fi
+# Set the DISPLAY variable
+export DISPLAY=:1
 
 # Directory containing wallpapers
 WALLPAPER_DIR="$HOME/dotfiles/walls/"
 
-# Select a random file from Directory
+# Select a random file from the directory
 WALLPAPER=$(find "$WALLPAPER_DIR" -type f | shuf -n 1)
 
 # Set the wallpaper using feh and log output
-feh --bg-scale "$WALLPAPER" >> $HOME/wallpaper_change.log 2>&1
+feh --bg-scale "$WALLPAPER" >> "$HOME/wallpaper_change.log" 2>&1

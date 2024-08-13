@@ -44,6 +44,29 @@ return {
     }
     which_key.register(window_mappings, { prefix = "<C-p>" })
 
+        local lsp_mappings = {
+      l = {
+        name = "LSP",
+        d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to Definition" },
+        r = { "<cmd>lua vim.lsp.buf.references()<CR>", "References" },
+        i = { "<cmd>lua vim.lsp.buf.implementation()<CR>", "Go to Implementation" },
+        h = { "<cmd>lua vim.lsp.buf.hover()<CR>", "Hover" },
+        s = { "<cmd>lua vim.lsp.buf.signature_help()<CR>", "Signature Help" },
+        n = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
+        a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+        f = { "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", "Format" },
+        t = { "<cmd>lua vim.lsp.buf.type_definition()<CR>", "Type Definition" },
+
+        -- Diagnostics-related commands
+        e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show Diagnostics" },
+        q = { "<cmd>lua vim.diagnostic.setqflist()<CR>", "Diagnostics to Quickfix" },
+        l = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostics to LocList" },
+        j = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next Diagnostic" },
+        k = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Previous Diagnostic" },
+      }
+    }
+    which_key.register(lsp_mappings, { prefix = "<leader>" })
+
     -- Telescope keybindings
     local telescope_mappings = {
       ff = { "<cmd>Telescope find_files<cr>", "Find Files" },
