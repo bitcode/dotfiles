@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the DISPLAY variable
-export DISPLAY=:1
+export DISPLAY=:0
 
 # Directory containing wallpapers
 WALLPAPER_DIR="$HOME/dotfiles/walls/"
