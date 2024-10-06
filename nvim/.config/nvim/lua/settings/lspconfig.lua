@@ -21,7 +21,7 @@ end
 -- Server configurations
 lspconfig.pyright.setup({})
 
-lspconfig.tsserver.setup({
+lspconfig.ts_ls.setup({
 	capabilities = capabilities,
 	settings = {
 		typescript = {
@@ -150,7 +150,7 @@ lspconfig.gopls.setup({
 	on_attach = on_attach,
 })
 
-lspconfig.htmx.setup({
+lspconfig.htmx-lsp.setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
 })

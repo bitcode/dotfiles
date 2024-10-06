@@ -113,13 +113,13 @@ return {
     require('lspconfig')['tailwindcss'].setup {
       capabilities = capabilities
     }
-    require('lspconfig')['tsserver'].setup {
+    require('lspconfig')['ts_ls'].setup {
       capabilities = capabilities
     }
     require('lspconfig')['gopls'].setup {
       capabilities = capabilities
     }
-    require('lspconfig')['htmx'].setup {
+    require('lspconfig')['htmx-lsp'].setup {
       capabilities = capabilities
     }
     require('lspconfig')['clangd'].setup {

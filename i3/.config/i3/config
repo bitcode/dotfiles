@@ -26,6 +26,9 @@ exec --no-startup-id polybar bit --config=/home/bit/.config/polybar/config.ini -
 # https://wiki.archlinux.org/index.php/XDG_Autostart
 exec --no-startup-id dex --autostart --environment i3
 
+# 1080p resolution, edit monitor with xrandr
+exec_always --no-startup-id xrandr --output DP-2 --mode 1920x1080 --pos 0x0
+
 # The combination of xss-lock, nm-applet and pactl is a popular choice, so
 # they are included here as an example. Modify as you see fit.
 
