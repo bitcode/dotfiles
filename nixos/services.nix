@@ -4,7 +4,7 @@
   services = {
     xserver = {
       enable = true;
-      
+
       displayManager = {
         sddm.enable = true;
         sessionCommands = ''
@@ -12,9 +12,9 @@
           xrandr --dpi 120
         '';
       };
-      
+
       windowManager.i3.enable = true;
-      
+
       xkb = {
         layout = "us";
         options = "caps:swapescape";

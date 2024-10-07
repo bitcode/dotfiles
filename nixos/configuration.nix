@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, pkgs, unstablePkgs, ... }:
 
 {
   imports = [
@@ -27,21 +27,11 @@
   fonts = {
     fontconfig.enable = true;
     packages = with pkgs; [
-      (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+      (pkgs.nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
     ];
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  system.stateVersion = "24.05";
-
-  nixpkgs.config = {
-    allowUnfree = true;
-  };
-
-  nix.nixPath = [
-    "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
-    "nixos-config=/etc/nixos/configuration.nix"
-    "nixpkgs-unstable=/nix/var/nix/profiles/per-user/root/channels/nixpkgs"
-  ];
 }
+

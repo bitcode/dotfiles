@@ -1,21 +1,17 @@
-{ config, pkgs, ... }:
+{ config, pkgs, unstablePkgs, ... }:
 
-let
-  # Import unstable channel and pass Nixpkgs config
-  unstable = import <nixpkgs-unstable> { config = config.nixpkgs.config; };
-in
 {
   environment.systemPackages = with pkgs; [
     # Stable packages
     lsd
     zoxide
-    nixd
+    nix
     rustc
     nodejs_20
     vimPlugins.luasnip
 
-    # Unstable packages from the unstable channel
-    unstable.neovim
+    # Unstable packages from unstablePkgs
+    unstablePkgs.neovim
 
     # More stable packages
     alacritty
