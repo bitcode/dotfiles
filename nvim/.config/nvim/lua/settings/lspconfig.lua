@@ -19,6 +19,31 @@ local function on_attach(client, bufnr)
 end
 
 -- Server configurations
+-- nixd configuration
+lspconfig.nixd.setup({
+   cmd = { "nixd" },
+   capabilities = capabilities,
+   on_attach = on_attach,
+   settings = {
+      nixd = {
+         nixpkgs = {
+            expr = "import <nixpkgs> { }",
+         },
+         formatting = {
+            command = { "nixfmt" },
+         },
+         options = {
+            nixos = {
+               expr = '(builtins.getFlake ("git+file://" + toString ./.)).nixosConfigurations.k-on.options',
+            },
+            home_manager = {
+               expr = '(builtins.getFlake ("git+file://" + toString ./.)).homeConfigurations."ruixi@k-on".options',
+            },
+         },
+      },
+   },
+})
+
 lspconfig.pyright.setup({})
 
 lspconfig.ts_ls.setup({
@@ -150,7 +175,7 @@ lspconfig.gopls.setup({
 	on_attach = on_attach,
 })
 
-lspconfig.htmx-lsp.setup({
+lspconfig.htmx.setup({
 	capabilities = capabilities,
 	on_attach = on_attach,
 })

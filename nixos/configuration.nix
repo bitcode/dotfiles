@@ -37,25 +37,11 @@
 
   nixpkgs.config = {
     allowUnfree = true;
-    packageOverrides = pkgs: {
-      nixos-unstable = import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz";
-      }) {};
-    };
   };
 
-  # Ensure the LuaRocks script is included in the configuration
-  environment.etc."install-luarocks-packages.sh".source = ./install-luarocks-packages.sh;
-
-  systemd.services.install-luarocks-packages = {
-    description = "Install LuaRocks packages";
-    after = [ "network.target" ]; # Ensure network is available
-    wantedBy = [ "multi-user.target" ];
-
-    serviceConfig = {
-      ExecStart = "${pkgs.bash}/bin/bash /etc/install-luarocks-packages.sh";
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-  };
+  nix.nixPath = [
+    "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
+    "nixos-config=/etc/nixos/configuration.nix"
+    "nixpkgs-unstable=/nix/var/nix/profiles/per-user/root/channels/nixpkgs"
+  ];
 }

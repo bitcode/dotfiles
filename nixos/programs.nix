@@ -1,10 +1,23 @@
 { config, pkgs, ... }:
 
+let
+  # Import unstable channel and pass Nixpkgs config
+  unstable = import <nixpkgs-unstable> { config = config.nixpkgs.config; };
+in
 {
   environment.systemPackages = with pkgs; [
+    # Stable packages
+    lsd
+    zoxide
+    nixd
     rustc
     nodejs_20
     vimPlugins.luasnip
+
+    # Unstable packages from the unstable channel
+    unstable.neovim
+
+    # More stable packages
     alacritty
     lua5_1
     lua51Packages.luarocks
@@ -14,6 +27,7 @@
     ripgrep
     bzip2
     clang
+    ranger
     clang-tools
     cmake
     feh
@@ -29,7 +43,6 @@
     libffi
     llvm
     nasm
-    neovim
     nerdfonts
     nodejs
     openssh
@@ -37,10 +50,16 @@
     picom
     pkg-config
     python3
-    ranger
+    python311Packages.pip
     readline
     rofi
     rustup
+    fzf
+    zsh-autosuggestions
+    zsh-history-substring-search
+    zsh-syntax-highlighting
+    zsh-fzf-history-search
+    zsh-vi-mode
     sesh
     sqlite
     stow
@@ -52,7 +71,6 @@
     xz
     zlib
     zsh
-    synergy
   ];
 
   # Set Lua 5.1 as the default Lua interpreter

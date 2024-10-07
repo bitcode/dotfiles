@@ -54,9 +54,4 @@ return {
   name = "lspkind",
   priority = 1000,
   },
-  {
-  "L3MON4D3/LuaSnip",
-  name = "luasnip",
-  priority = 1000,
-  },
-  }
+}
