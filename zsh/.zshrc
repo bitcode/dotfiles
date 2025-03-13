@@ -22,10 +22,10 @@ export MANPATH="/home/bit/.local/share/man:/usr/local/share/man:/home/bit/man/ma
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:/home/bit/go/bin
 export GO111MODULE=on
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
+# export PYENV_ROOT="$HOME/.pyenv"
+# [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init -)"
+# eval "$(pyenv virtualenv-init -)"
 
 # History Configuration
 HISTFILE="$HOME/.zsh_history"
@@ -41,6 +41,11 @@ ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
 ZVM_VISUAL_MODE_CURSOR=$ZVM_CURSOR_UNDERLINE
 ZVM_VISUAL_LINE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_UNDERLINE
 ZVM_REPLACE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_BLOCK
+
+# Synergy Environment Variables
+export SYNERGY_LOGGER="/home/bit/.local/state/Synergy/synergy.log"
+export SYNERGY_FORCE_CORE_LOG_LEVEL="INFO"
+export SYNERGY_FORCE_SERVICE_LOG_LEVEL="INFO"
 
 # Aliases
 alias cp_staged_diff='git diff --cached | xclip -selection clipboard'
@@ -86,11 +91,11 @@ bindkey '^J' autosuggest-accept
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Zsh Plugins
-source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source ~/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-source ~/.zsh/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh
-source ~/.zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh
+source ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 # Theme
 eval "$(starship init zsh)"

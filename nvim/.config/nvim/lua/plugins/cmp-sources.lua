@@ -54,4 +54,11 @@ return {
   name = "lspkind",
   priority = 1000,
   },
+  {
+    "zbirenbaum/copilot-cmp",
+    after = { "copilot.lua" },
+    config = function ()
+      require("copilot_cmp").setup()
+    end
+  }
 }
