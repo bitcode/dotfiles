@@ -1,0 +1,320 @@
+---
+# macOS platform-specific setup tasks extracted from macsible.yaml
+- name: Display software inventory
+  debug:
+    msg: |
+      === macOS Development Environment Software Inventory ===
+      Homebrew Packages: {{ homebrew_packages | join(', ') }}
+      Homebrew Casks: {{ homebrew_casks | join(', ') }}
+      Mac App Store: {{ mac_app_store_apps | map(attribute='name') | join(', ') }}
+      Manual Installations: {{ manual_installations | map(attribute='name') | join(', ') }}
+      NPM Global Packages: {{ npm_global_packages | join(', ') }}
+      =========================================================
+
+# === SYSTEM PREREQUISITES ===
+- name: Check if Xcode Command Line Tools are installed
+  stat:
+    path: /Library/Developer/CommandLineTools/usr/bin/git
+  register: xcode_tools_installed
+
+- name: Install Xcode Command Line Tools
+  shell: xcode-select --install
+  when: not xcode_tools_installed.stat.exists
+  register: xcode_install_result
+  failed_when:
+    - xcode_install_result.rc != 0
+    - "'already installed' not in xcode_install_result.stderr"
+
+- name: Check if Homebrew is installed
+  stat:
+    path: /opt/homebrew/bin/brew
+  register: homebrew_installed
+
+- name: Install Homebrew
+  shell: |
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  when: not homebrew_installed.stat.exists
+  environment:
+    NONINTERACTIVE: 1
+
+- name: Check if Rosetta 2 is needed (Apple Silicon)
+  shell: uname -m
+  register: cpu_arch
+  changed_when: false
+
+- name: Check if Rosetta 2 is installed
+  stat:
+    path: /Library/Apple/usr/share/rosetta
+  register: rosetta_installed
+  when: cpu_arch.stdout == "arm64"
+
+- name: Install Rosetta 2 for Apple Silicon
+  shell: softwareupdate --install-rosetta --agree-to-license
+  when:
+    - cpu_arch.stdout == "arm64"
+    - not rosetta_installed.stat.exists
+
+# === HOMEBREW PACKAGES ===
+- name: Check which Homebrew packages are already installed
+  shell: brew list {{ item }} 2>/dev/null
+  register: homebrew_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ homebrew_packages }}"
+
+- name: Display Homebrew package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ homebrew_package_check.results }}"
+
+- name: Install missing Homebrew packages
+  community.general.homebrew:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ homebrew_package_check.results }}"
+
+# === HOMEBREW CASKS ===
+- name: Check which Homebrew casks are already installed
+  shell: brew list --cask {{ item }} 2>/dev/null
+  register: homebrew_cask_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ homebrew_casks }}"
+
+- name: Display Homebrew cask status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ homebrew_cask_check.results }}"
+
+- name: Install missing Homebrew casks
+  community.general.homebrew_cask:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ homebrew_cask_check.results }}"
+
+# === MANUAL INSTALLATIONS ===
+- name: Check if Rust is installed
+  shell: rustc --version
+  register: rust_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Rust
+  shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  when: rust_check.rc != 0
+  environment:
+    CARGO_HOME: "{{ ansible_env.HOME }}/.cargo"
+    RUSTUP_HOME: "{{ ansible_env.HOME }}/.rustup"
+
+# === NODE VERSION MANAGER (NVM) INSTALLATION ===
+- name: Check if Node Version Manager (nvm) is installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+  register: nvm_installed
+
+- name: Install Node Version Manager (nvm)
+  shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  when: not nvm_installed.stat.exists
+
+- name: Check if nvm configuration exists in .zshrc
+  shell: grep -q "NVM_DIR" "{{ ansible_env.HOME }}/.zshrc" 2>/dev/null
+  register: nvm_config_exists
+  failed_when: false
+  changed_when: false
+
+- name: Create .zshrc if it doesn't exist
+  file:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    state: touch
+    mode: '0644'
+  when: nvm_config_exists.rc != 0
+
+- name: Add nvm configuration to .zshrc
+  blockinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - NVM Configuration"
+    block: |
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    create: yes
+  when: nvm_config_exists.rc != 0
+
+- name: Source .zshrc to load nvm in current session
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm --version
+  register: nvm_version_check
+  failed_when: false
+  changed_when: false
+  when: nvm_installed.stat.exists or not nvm_installed.stat.exists
+
+- name: Display nvm installation status
+  debug:
+    msg: "Node Version Manager: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'MISSING' }} {{ '(v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else '' }}"
+
+# === NODE.JS AND NPM GLOBAL PACKAGES ===
+- name: Install latest LTS Node.js via nvm
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm install --lts
+    nvm use --lts
+    nvm alias default lts/*
+  when: nvm_version_check.rc == 0
+  register: node_install_result
+  changed_when: "'already installed' not in node_install_result.stdout"
+
+- name: Check which npm global packages are already installed
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    npm list -g --depth=0 {{ item }} 2>/dev/null
+  register: npm_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_global_packages }}"
+  when: nvm_version_check.rc == 0
+
+- name: Display npm package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ npm_package_check.results }}"
+  when: nvm_version_check.rc == 0 and npm_package_check.results is defined
+
+- name: Install missing npm global packages
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    npm install -g {{ item.item }}
+  when:
+    - nvm_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ npm_package_check.results }}"
+
+- name: Verify npm global packages installation
+  shell: |
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    npm list -g --depth=0
+  register: npm_global_list
+  failed_when: false
+  changed_when: false
+  when: nvm_version_check.rc == 0
+
+- name: Display installed npm global packages
+  debug:
+    msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+  when: nvm_version_check.rc == 0 and npm_global_list.stdout is defined
+
+# === GO INSTALLATION ===
+- name: Check if Go is installed with correct version
+  shell: go version 2>/dev/null | grep "go1.21"
+  register: go_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Detect CPU architecture for Go download
+  shell: uname -m
+  register: cpu_arch_go
+  changed_when: false
+  when: go_version_check.rc != 0
+
+- name: Set Go download URL based on architecture
+  set_fact:
+    go_download_url: "https://go.dev/dl/go1.21.5.darwin-{{ 'arm64' if cpu_arch_go.stdout == 'arm64' else 'amd64' }}.pkg"
+  when: go_version_check.rc != 0
+
+- name: Download Go installer
+  get_url:
+    url: "{{ go_download_url }}"
+    dest: "{{ ansible_env.HOME }}/Downloads/go.pkg"
+    mode: '0644'
+  when: go_version_check.rc != 0
+
+- name: Install Go
+  shell: sudo installer -pkg "{{ ansible_env.HOME }}/Downloads/go.pkg" -target /
+  when: go_version_check.rc != 0
+  become: yes
+
+- name: Clean up Go installer
+  file:
+    path: "{{ ansible_env.HOME }}/Downloads/go.pkg"
+    state: absent
+  when: go_version_check.rc != 0
+
+# === ZELLIJ INSTALLATION ===
+- name: Check if Zellij is installed
+  shell: zellij --version
+  register: zellij_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Zellij
+  shell: bash <(curl -L https://zellij.dev/launch)
+  when: zellij_check.rc != 0
+
+# === MAC APP STORE APPLICATIONS ===
+- name: Check Mac App Store applications
+  stat:
+    path: "{{ item.path }}"
+  register: mac_app_store_check
+  loop: "{{ mac_app_store_apps }}"
+
+- name: Display Mac App Store app status
+  debug:
+    msg: "{{ item.item.name }}: {{ 'INSTALLED' if item.stat.exists else 'MISSING (install manually via App Store)' }}"
+  loop: "{{ mac_app_store_check.results }}"
+
+# === SYSTEM CONFIGURATION ===
+- name: Check current Finder settings
+  shell: |
+    defaults read com.apple.finder AppleShowAllFiles 2>/dev/null || echo "false"
+    defaults read com.apple.Finder AppleShowFilenameExtensions 2>/dev/null || echo "false"
+  register: finder_settings
+  changed_when: false
+
+- name: Configure Finder settings
+  shell: |
+    defaults write com.apple.finder AppleShowAllFiles TRUE
+    defaults write com.apple.Finder AppleShowFilenameExtensions -bool true
+    killall Finder
+  when: "'TRUE' not in finder_settings.stdout or 'true' not in finder_settings.stdout"
+
+# === FINAL SOFTWARE INVENTORY REPORT ===
+- name: Generate comprehensive software inventory report
+  debug:
+    msg: |
+
+      ╔══════════════════════════════════════════════════════════════════════════════════════╗
+      ║                           macOS DEVELOPMENT ENVIRONMENT REPORT                      ║
+      ╠══════════════════════════════════════════════════════════════════════════════════════╣
+      ║ SYSTEM PREREQUISITES:                                                               ║
+      ║   • Xcode Command Line Tools: {{ 'INSTALLED' if xcode_tools_installed.stat.exists else 'MISSING' }}                                    ║
+      ║   • Homebrew: {{ 'INSTALLED' if homebrew_installed.stat.exists else 'MISSING' }}                                                      ║
+      ║   • Rosetta 2: {{ 'INSTALLED' if rosetta_installed is defined and rosetta_installed.stat.exists else 'N/A (Intel Mac)' if cpu_arch.stdout != 'arm64' else 'MISSING' }}                                                   ║
+      ║                                                                                      ║
+      ║ PACKAGE MANAGERS:                                                                    ║
+      ║   • Homebrew Packages: {{ homebrew_packages | length }} managed                                           ║
+      ║   • Homebrew Casks: {{ homebrew_casks | length }} managed                                              ║
+      ║                                                                                      ║
+      ║ DEVELOPMENT TOOLS:                                                                   ║
+      ║   • Rust: {{ 'INSTALLED' if rust_check is defined and rust_check.rc == 0 else 'MISSING' }}                                                        ║
+      ║   • Node Version Manager: {{ 'INSTALLED' if nvm_version_check is defined and nvm_version_check.rc == 0 else 'MISSING' }}                                ║
+      ║   • Node.js (LTS): {{ 'INSTALLED' if node_install_result is defined and node_install_result.rc is defined and node_install_result.rc == 0 else 'MISSING' }}                                      ║
+      ║   • NPM Global Packages: {{ npm_global_packages | length }} managed                                     ║
+      ║   • Go: {{ 'INSTALLED (v1.21+)' if go_version_check is defined and go_version_check.rc == 0 else 'MISSING' }}                                           ║
+      ║   • Zellij: {{ 'INSTALLED' if zellij_check is defined and zellij_check.rc == 0 else 'MISSING' }}                                                    ║
+      ║                                                                                      ║
+      ║ CONFIGURATION:                                                                       ║
+      ║   • Finder: Show hidden files and extensions                                        ║
+      ║                                                                                      ║
+      ║ NEXT STEPS:                                                                          ║
+      ║   • Run this playbook again to install any missing software                         ║
+      ║   • Install Mac App Store apps manually if needed                                   ║
+      ║   • Configure individual applications as needed                                      ║
+      ╚══════════════════════════════════════════════════════════════════════════════════════╝

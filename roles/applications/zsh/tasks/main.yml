@@ -1,0 +1,59 @@
+---
+# ZSH installation and configuration role
+- name: Install ZSH on macOS
+  homebrew:
+    name: zsh
+    state: present
+  when: ansible_os_family == "Darwin"
+
+- name: Install ZSH on Arch Linux
+  pacman:
+    name: zsh
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install ZSH on Ubuntu/Debian
+  apt:
+    name: zsh
+    state: present
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Check if ZSH config directory exists
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/zsh"
+  register: zsh_config_source
+
+- name: Deploy ZSH configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/zsh/"
+    dest: "{{ ansible_user_dir }}/"
+    mode: '0644'
+    backup: yes
+  notify: reload zsh
+  when: zsh_config_source.stat.exists
+
+- name: Set ZSH as default shell
+  user:
+    name: "{{ ansible_user }}"
+    shell: /bin/zsh
+  become: yes
+  when: ansible_os_family != "Darwin"
+
+- name: Set ZSH as default shell on macOS
+  shell: chsh -s /bin/zsh
+  when: ansible_os_family == "Darwin"
+  register: chsh_result
+  failed_when: false
+  changed_when: chsh_result.rc == 0
+
+- name: Verify ZSH installation
+  command: zsh --version
+  register: zsh_version
+  failed_when: false
+  changed_when: false
+
+- name: Display ZSH installation status
+  debug:
+    msg: "ZSH {{ 'installed successfully' if zsh_version.rc == 0 else 'installation failed' }}"

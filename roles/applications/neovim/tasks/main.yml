@@ -1,0 +1,51 @@
+---
+# Neovim installation and configuration role
+- name: Install Neovim on macOS
+  homebrew:
+    name: neovim
+    state: present
+  when: ansible_os_family == "Darwin"
+
+- name: Install Neovim on Arch Linux
+  pacman:
+    name: neovim
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Neovim on Ubuntu/Debian
+  apt:
+    name: neovim
+    state: present
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create Neovim config directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/nvim"
+    state: directory
+    mode: '0755'
+
+- name: Check if Neovim config exists
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/nvim/.config/nvim"
+  register: nvim_config_source
+
+- name: Deploy Neovim configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/nvim/.config/nvim/"
+    dest: "{{ ansible_user_dir }}/.config/nvim/"
+    mode: '0644'
+    backup: yes
+  notify: restart neovim
+  when: nvim_config_source.stat.exists
+
+- name: Ensure Neovim is executable
+  command: nvim --version
+  register: nvim_version
+  failed_when: false
+  changed_when: false
+
+- name: Display Neovim installation status
+  debug:
+    msg: "Neovim {{ 'installed successfully' if nvim_version.rc == 0 else 'installation failed' }}"

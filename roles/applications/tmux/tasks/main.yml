@@ -1,0 +1,53 @@
+---
+# Tmux installation and configuration role
+- name: Install Tmux on macOS
+  homebrew:
+    name: tmux
+    state: present
+  when: ansible_os_family == "Darwin"
+
+- name: Install Tmux on Arch Linux
+  pacman:
+    name: tmux
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Tmux on Ubuntu/Debian
+  apt:
+    name: tmux
+    state: present
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Deploy Tmux configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/tmux/"
+    dest: "{{ ansible_user_dir }}/"
+    mode: '0644'
+    backup: yes
+  notify: reload tmux
+
+- name: Deploy Tmux scripts
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/tmux/scripts/"
+    dest: "{{ ansible_user_dir }}/.local/bin/"
+    mode: '0755'
+    backup: yes
+  when: ansible_stat_result.stat.exists is defined
+
+- name: Ensure .local/bin directory exists
+  file:
+    path: "{{ ansible_user_dir }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Verify Tmux installation
+  command: tmux -V
+  register: tmux_version
+  failed_when: false
+  changed_when: false
+
+- name: Display Tmux installation status
+  debug:
+    msg: "Tmux {{ 'installed successfully' if tmux_version.rc == 0 else 'installation failed' }}"

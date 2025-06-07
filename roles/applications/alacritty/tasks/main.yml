@@ -1,0 +1,45 @@
+---
+# Alacritty installation and configuration role
+- name: Install Alacritty on macOS
+  homebrew_cask:
+    name: alacritty
+    state: present
+  when: ansible_os_family == "Darwin"
+
+- name: Install Alacritty on Arch Linux
+  pacman:
+    name: alacritty
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Alacritty on Ubuntu/Debian
+  apt:
+    name: alacritty
+    state: present
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create Alacritty config directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/alacritty"
+    state: directory
+    mode: '0755'
+
+- name: Deploy Alacritty configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/alacritty/.config/alacritty/"
+    dest: "{{ ansible_user_dir }}/.config/alacritty/"
+    mode: '0644'
+    backup: yes
+  notify: restart alacritty
+
+- name: Verify Alacritty installation
+  command: alacritty --version
+  register: alacritty_version
+  failed_when: false
+  changed_when: false
+
+- name: Display Alacritty installation status
+  debug:
+    msg: "Alacritty {{ 'installed successfully' if alacritty_version.rc == 0 else 'installation failed' }}"

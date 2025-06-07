@@ -1,0 +1,10 @@
+---
+# Neovim role variables
+neovim_package_name:
+  Darwin: neovim
+  Archlinux: neovim
+  Debian: neovim
+  Ubuntu: neovim
+
+neovim_config_dir: "{{ ansible_user_dir }}/.config/nvim"
+neovim_backup_dir: "{{ ansible_user_dir }}/.config/nvim.backup"

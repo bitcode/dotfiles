@@ -1,0 +1,44 @@
+---
+# Starship installation and configuration role
+- name: Install Starship on macOS
+  homebrew:
+    name: starship
+    state: present
+  when: ansible_os_family == "Darwin"
+
+- name: Install Starship on Arch Linux
+  pacman:
+    name: starship
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Starship on Ubuntu/Debian via script
+  shell: curl -sS https://starship.rs/install.sh | sh -s -- -y
+  when: ansible_os_family == "Debian"
+  register: starship_install
+  changed_when: "'Starship installed' in starship_install.stdout"
+
+- name: Create Starship config directory
+  file:
+    path: "{{ ansible_user_dir }}/.config"
+    state: directory
+    mode: '0755'
+
+- name: Deploy Starship configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/starship/.config/"
+    dest: "{{ ansible_user_dir }}/.config/"
+    mode: '0644'
+    backup: yes
+  notify: reload starship
+
+- name: Verify Starship installation
+  command: starship --version
+  register: starship_version
+  failed_when: false
+  changed_when: false
+
+- name: Display Starship installation status
+  debug:
+    msg: "Starship {{ 'installed successfully' if starship_version.rc == 0 else 'installation failed' }}"

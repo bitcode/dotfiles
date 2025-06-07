@@ -22,17 +22,49 @@
           👤  Profile: {{ current_profile }}
           ⏰  Timestamp: {{ ansible_date_time.iso8601 }}
 
-  tasks:
-    - name: Phase 1 - Directory structure created
+  roles:
+    # Platform-specific setup (must run first)
+    - role: platform_specific/macos
+      when: ansible_os_family == "Darwin"
+      tags: ['platform', 'macos']
+
+    # Application configuration
+    - role: applications/neovim
+      tags: ['applications', 'neovim']
+
+    - role: applications/zsh
+      tags: ['applications', 'zsh']
+
+    - role: applications/tmux
+      tags: ['applications', 'tmux']
+
+    - role: applications/alacritty
+      tags: ['applications', 'alacritty']
+
+    - role: applications/starship
+      tags: ['applications', 'starship']
+
+  post_tasks:
+    - name: Phase 2 - Configuration migration completed
       debug:
         msg: |
-          ✅ Phase 1 completed successfully!
-          Directory structure is now dotsible-compatible.
-          
-          Created directories:
-          - roles/ (applications, platform_specific, profiles)
-          - group_vars/ and inventories/
-          - templates/ and files/dotfiles/
-          - tests/ and docs/
-          
-          Next: Execute Phase 2 (Configuration Migration)
+          ✅ Phase 2 completed successfully!
+
+          Migrated configurations:
+          - Application configs moved to files/dotfiles/
+          - Created functional application roles
+          - Extracted macOS platform logic from macsible.yaml
+          - Updated main playbook with role-based system
+
+          Applications configured:
+          - Neovim (cross-platform)
+          - ZSH (cross-platform)
+          - Tmux (cross-platform)
+          - Alacritty (cross-platform)
+          - Starship (cross-platform)
+
+          Platform support:
+          - macOS: Full support with idempotent package management
+          - Linux: Basic support (Arch, Ubuntu/Debian)
+
+          Ready for Phase 3: Advanced Integration

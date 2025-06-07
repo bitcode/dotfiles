@@ -1,0 +1,55 @@
+---
+# macOS-specific variables extracted from macsible.yaml
+# Software inventory - tracks all managed software
+homebrew_packages:
+  - powershell
+  - starship
+  - tmux
+  - stow
+  - ranger
+  - sesh
+  - git
+  - docker
+  - kubectl
+  - python@3.11
+
+homebrew_casks:
+  - visual-studio-code
+  - iterm2
+  - docker
+
+mac_app_store_apps:
+  - name: "Xcode"
+    path: "/Applications/Xcode.app"
+  - name: "Keynote"
+    path: "/Applications/Keynote.app"
+
+manual_installations:
+  - name: "Rust"
+    check_command: "rustc --version"
+    install_creates: "~/.cargo/bin/rustc"
+  - name: "Node Version Manager (nvm)"
+    check_path: "~/.nvm/nvm.sh"
+  - name: "Go"
+    check_command: "go version"
+    version_pattern: "go1.21"
+  - name: "Zellij"
+    check_command: "zellij --version"
+    install_creates: "/usr/local/bin/zellij"
+
+npm_global_packages:
+  - "@angular/cli"
+  - "create-react-app"
+  - "typescript"
+  - "ts-node"
+  - "nodemon"
+  - "pm2"
+  - "yarn"
+  - "pnpm"
+  - "eslint"
+  - "prettier"
+  - "http-server"
+  - "live-server"
+  - "@modelcontextprotocol/server-brave-search"
+  - "@modelcontextprotocol/server-puppeteer"
+  - "firecrawl-mcp"

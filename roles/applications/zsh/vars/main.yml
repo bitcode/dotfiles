@@ -1,0 +1,12 @@
+---
+# ZSH role variables
+zsh_package_name:
+  Darwin: zsh
+  Archlinux: zsh
+  Debian: zsh
+  Ubuntu: zsh
+
+zsh_config_files:
+  - .zshrc
+  - .zprofile
+  - .zshenv

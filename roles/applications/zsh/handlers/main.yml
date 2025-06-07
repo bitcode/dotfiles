@@ -1,0 +1,5 @@
+---
+# ZSH handlers
+- name: reload zsh
+  debug:
+    msg: "ZSH configuration updated. Please restart your shell or run 'exec $SHELL'"

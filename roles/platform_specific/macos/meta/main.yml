@@ -1,0 +1,10 @@
+---
+dependencies: []
+galaxy_info:
+  author: mdrozrosario
+  description: macOS platform-specific development environment setup
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: MacOSX
+      versions: [10.15, 11.0, 12.0, 13.0, 14.0, 15.0]

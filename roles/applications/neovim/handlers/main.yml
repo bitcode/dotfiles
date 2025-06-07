@@ -1,0 +1,5 @@
+---
+# Neovim handlers
+- name: restart neovim
+  debug:
+    msg: "Neovim configuration updated. Restart any running nvim instances."
