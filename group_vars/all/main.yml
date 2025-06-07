@@ -1,0 +1,24 @@
+---
+# Main configuration for all hosts
+dotfiles_enabled: true
+dotfiles_repository: "{{ ansible_env.PWD }}"
+dotfiles_local_path: "{{ ansible_env.PWD }}"
+dotfiles_backup_existing: true
+
+# Profile definitions
+profiles:
+  minimal:
+    applications: [git, vim]
+    features: [basic_shell]
+  developer:
+    applications: [git, zsh, tmux, neovim, alacritty, starship]
+    features: [development_tools, shell_enhancements]
+  nixos:
+    applications: [git, zsh, tmux, neovim]
+    features: [nix_integration, declarative_config]
+
+# Default user configuration
+default_user:
+  name: "{{ ansible_user | default(ansible_user_id) }}"
+  shell: "/bin/zsh"
+  create_home: true
