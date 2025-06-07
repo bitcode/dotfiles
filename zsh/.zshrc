@@ -22,6 +22,7 @@ export MANPATH="/home/bit/.local/share/man:/usr/local/share/man:/home/bit/man/ma
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:/home/bit/go/bin
 export GO111MODULE=on
+export PATH=$PATH:/Users/$USER/Library/Python/3.9/bin
 # export PYENV_ROOT="$HOME/.pyenv"
 # [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 # eval "$(pyenv init -)"
@@ -88,7 +89,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
 bindkey '^J' autosuggest-accept
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+#[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Zsh Plugins
 source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh

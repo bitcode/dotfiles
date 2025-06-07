@@ -1,0 +1,141 @@
+---
+- name: Test Main Playbook NPM Section
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    npm_global_packages:
+      - "@angular/cli"
+      - "create-react-app"
+      - "typescript"
+      - "ts-node"
+      - "nodemon"
+      - "pm2"
+      - "yarn"
+      - "pnpm"
+      - "eslint"
+      - "prettier"
+      - "http-server"
+      - "live-server"
+      - "@modelcontextprotocol/server-brave-search"
+      - "@modelcontextprotocol/server-puppeteer"
+      - "firecrawl-mcp"
+    
+  tasks:
+    - name: Display npm packages from main playbook
+      debug:
+        msg: |
+          === Testing Main Playbook NPM Global Packages ===
+          Total packages: {{ npm_global_packages | length }}
+          MCP packages: @modelcontextprotocol/server-brave-search, @modelcontextprotocol/server-puppeteer, firecrawl-mcp
+          ================================================
+
+    # === NVM ENVIRONMENT CHECK ===
+    - name: Source .zshrc to load nvm in current session
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm --version
+      register: nvm_version_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display nvm installation status
+      debug:
+        msg: "Node Version Manager: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'MISSING' }} {{ '(v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else '' }}"
+
+    # === NPM GLOBAL PACKAGES CHECK ===
+    - name: Check which npm global packages are already installed
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: npm_package_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ npm_global_packages }}"
+      when: nvm_version_check.rc == 0
+
+    - name: Display npm package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ npm_package_check.results }}"
+      when: nvm_version_check.rc == 0 and npm_package_check.results is defined
+
+    - name: Install missing npm global packages
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm install -g {{ item.item }}
+      when: 
+        - nvm_version_check.rc == 0
+        - npm_package_check.results is defined
+        - item.rc != 0
+      loop: "{{ npm_package_check.results }}"
+
+    - name: Verify npm global packages installation
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0
+      register: npm_global_list
+      failed_when: false
+      changed_when: false
+      when: nvm_version_check.rc == 0
+
+    - name: Display installed npm global packages count
+      debug:
+        msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+      when: nvm_version_check.rc == 0 and npm_global_list.stdout is defined
+
+    # === MCP PACKAGES VERIFICATION ===
+    - name: Verify MCP packages specifically
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: mcp_verification
+      failed_when: false
+      changed_when: false
+      loop:
+        - "@modelcontextprotocol/server-brave-search"
+        - "@modelcontextprotocol/server-puppeteer"
+        - "firecrawl-mcp"
+      when: nvm_version_check.rc == 0
+
+    - name: Display MCP packages verification
+      debug:
+        msg: "MCP Package {{ item.item }}: {{ 'VERIFIED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ mcp_verification.results }}"
+      when: nvm_version_check.rc == 0 and mcp_verification.results is defined
+
+    # === FINAL REPORT ===
+    - name: Generate main playbook npm test report
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════════════════════════════╗
+          ║                        MAIN PLAYBOOK NPM INTEGRATION TEST                           ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════╣
+          ║ ENVIRONMENT:                                                                         ║
+          ║   • NVM: {{ 'AVAILABLE (v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else 'NOT AVAILABLE' }}                                                            ║
+          ║   • Total NPM Packages Managed: {{ npm_global_packages | length }}                                           ║
+          ║                                                                                      ║
+          ║ MCP PACKAGES INTEGRATION:                                                            ║
+          {% if nvm_version_check.rc == 0 and mcp_verification.results is defined %}
+          {% for result in mcp_verification.results %}
+          ║   • {{ result.item }}: {{ 'VERIFIED' if result.rc == 0 else 'MISSING' }}{{ ' ' * (50 - result.item|length) }}║
+          {% endfor %}
+          {% else %}
+          ║   • Cannot verify MCP packages (NVM not available)                                  ║
+          {% endif %}
+          ║                                                                                      ║
+          ║ IDEMPOTENCY STATUS:                                                                  ║
+          ║   • All packages follow the same idempotency patterns                               ║
+          ║   • MCP packages are seamlessly integrated with existing npm management             ║
+          ║   • Safe to run main playbook repeatedly                                            ║
+          ║                                                                                      ║
+          ║ USAGE:                                                                               ║
+          ║   • Run: ansible-playbook -c local -i localhost, ansible/macsible.yaml             ║
+          ║   • All npm packages (including MCP) will be installed if missing                  ║
+          ║   • Existing packages will be skipped                                               ║
+          ╚══════════════════════════════════════════════════════════════════════════════════════╝

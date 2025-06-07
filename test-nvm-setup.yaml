@@ -1,0 +1,124 @@
+---
+- name: Test NVM Setup and Configuration
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    npm_test_packages:
+      - "typescript"
+      - "nodemon"
+      - "http-server"
+    
+  tasks:
+    - name: Display NVM test information
+      debug:
+        msg: |
+          === Testing NVM Setup and Configuration ===
+          Test NPM Packages: {{ npm_test_packages | join(', ') }}
+          ============================================
+
+    # === NVM INSTALLATION CHECK ===
+    - name: Check if Node Version Manager (nvm) is installed
+      stat:
+        path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+      register: nvm_installed
+
+    - name: Display nvm installation status
+      debug:
+        msg: "NVM Installation: {{ 'FOUND' if nvm_installed.stat.exists else 'NOT FOUND' }}"
+
+    # === SHELL CONFIGURATION CHECK ===
+    - name: Check if nvm configuration exists in .zshrc
+      shell: grep -q "NVM_DIR" "{{ ansible_env.HOME }}/.zshrc" 2>/dev/null
+      register: nvm_config_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Display shell configuration status
+      debug:
+        msg: "NVM Shell Config: {{ 'CONFIGURED' if nvm_config_exists.rc == 0 else 'MISSING' }}"
+
+    # === NVM FUNCTIONALITY TEST ===
+    - name: Test nvm functionality
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm --version
+      register: nvm_version_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display nvm version
+      debug:
+        msg: "NVM Version: {{ nvm_version_test.stdout if nvm_version_test.rc == 0 else 'NOT ACCESSIBLE' }}"
+
+    # === NODE.JS CHECK ===
+    - name: Check Node.js installation via nvm
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        node --version
+      register: node_version_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display Node.js status
+      debug:
+        msg: "Node.js: {{ 'INSTALLED (' + node_version_test.stdout + ')' if node_version_test.rc == 0 else 'NOT INSTALLED' }}"
+
+    # === NPM GLOBAL PACKAGES CHECK ===
+    - name: Check npm global packages
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: npm_test_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ npm_test_packages }}"
+      when: node_version_test.rc == 0
+
+    - name: Display npm package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ npm_test_check.results }}"
+      when: node_version_test.rc == 0 and npm_test_check.results is defined
+
+    # === COMPREHENSIVE REPORT ===
+    - name: Generate NVM test report
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════════════════════════════╗
+          ║                              NVM SETUP TEST REPORT                                  ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════╣
+          ║ NVM INSTALLATION:                                                                    ║
+          ║   • NVM Files: {{ 'FOUND' if nvm_installed.stat.exists else 'NOT FOUND' }}                                                          ║
+          ║   • Shell Config: {{ 'CONFIGURED' if nvm_config_exists.rc == 0 else 'MISSING' }}                                                   ║
+          ║   • NVM Version: {{ nvm_version_test.stdout if nvm_version_test.rc == 0 else 'NOT ACCESSIBLE' }}                                                    ║
+          ║                                                                                      ║
+          ║ NODE.JS ENVIRONMENT:                                                                 ║
+          ║   • Node.js: {{ 'INSTALLED (' + node_version_test.stdout + ')' if node_version_test.rc == 0 else 'NOT INSTALLED' }}                                                      ║
+          ║   • NPM Available: {{ 'YES' if node_version_test.rc == 0 else 'NO' }}                                                        ║
+          ║                                                                                      ║
+          ║ TEST PACKAGES STATUS:                                                                ║
+          {% if node_version_test.rc == 0 and npm_test_check.results is defined %}
+          {% for result in npm_test_check.results %}
+          ║   • {{ result.item }}: {{ 'INSTALLED' if result.rc == 0 else 'MISSING' }}{{ ' ' * (15 - result.item|length) }}                                                    ║
+          {% endfor %}
+          {% else %}
+          ║   • Cannot check packages (Node.js not available)                                   ║
+          {% endif %}
+          ║                                                                                      ║
+          ║ RECOMMENDATIONS:                                                                     ║
+          {% if not nvm_installed.stat.exists %}
+          ║   • Install NVM using the main playbook                                             ║
+          {% elif nvm_config_exists.rc != 0 %}
+          ║   • Configure shell integration in .zshrc                                           ║
+          {% elif nvm_version_test.rc != 0 %}
+          ║   • Source .zshrc or restart terminal                                               ║
+          {% elif node_version_test.rc != 0 %}
+          ║   • Install Node.js LTS: nvm install --lts                                          ║
+          {% else %}
+          ║   • NVM setup is complete and functional!                                           ║
+          {% endif %}
+          ╚══════════════════════════════════════════════════════════════════════════════════════╝

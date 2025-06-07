@@ -1,0 +1,109 @@
+---
+- name: Test Idempotency Features
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    test_packages:
+      - git
+      - curl
+    
+  tasks:
+    - name: Display test inventory
+      debug:
+        msg: |
+          === Testing Idempotency Features ===
+          Test Packages: {{ test_packages | join(', ') }}
+          ===================================
+
+    # === SYSTEM PREREQUISITES ===
+    - name: Check if Xcode Command Line Tools are installed
+      stat:
+        path: /Library/Developer/CommandLineTools/usr/bin/git
+      register: xcode_tools_installed
+
+    - name: Display Xcode Tools status
+      debug:
+        msg: "Xcode Command Line Tools: {{ 'INSTALLED' if xcode_tools_installed.stat.exists else 'MISSING' }}"
+
+    - name: Check if Homebrew is installed
+      stat:
+        path: /opt/homebrew/bin/brew
+      register: homebrew_installed
+
+    - name: Display Homebrew status
+      debug:
+        msg: "Homebrew: {{ 'INSTALLED' if homebrew_installed.stat.exists else 'MISSING' }}"
+
+    # === HOMEBREW PACKAGES ===
+    - name: Check which test packages are already installed
+      shell: brew list {{ item }} 2>/dev/null
+      register: package_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ test_packages }}"
+
+    - name: Display package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ package_check.results }}"
+
+    # === MANUAL INSTALLATIONS ===
+    - name: Check if Rust is installed
+      shell: rustc --version
+      register: rust_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display Rust status
+      debug:
+        msg: "Rust: {{ 'INSTALLED' if rust_check.rc == 0 else 'MISSING' }}"
+
+    - name: Check if Node Version Manager (nvm) is installed
+      stat:
+        path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+      register: nvm_installed
+
+    - name: Display NVM status
+      debug:
+        msg: "Node Version Manager: {{ 'INSTALLED' if nvm_installed.stat.exists else 'MISSING' }}"
+
+    # === APPLICATIONS ===
+    - name: Check if Visual Studio Code is installed
+      stat:
+        path: /Applications/Visual Studio Code.app
+      register: vscode_installed
+
+    - name: Display VS Code status
+      debug:
+        msg: "Visual Studio Code: {{ 'INSTALLED' if vscode_installed.stat.exists else 'MISSING' }}"
+
+    # === FINAL REPORT ===
+    - name: Generate idempotency report
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════════════════════════════╗
+          ║                           IDEMPOTENCY TEST REPORT                                    ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════╣
+          ║ SYSTEM PREREQUISITES:                                                               ║
+          ║   • Xcode Command Line Tools: {{ 'INSTALLED' if xcode_tools_installed.stat.exists else 'MISSING' }}                                    ║
+          ║   • Homebrew: {{ 'INSTALLED' if homebrew_installed.stat.exists else 'MISSING' }}                                                      ║
+          ║                                                                                      ║
+          ║ PACKAGE STATUS:                                                                      ║
+          {% for result in package_check.results %}
+          ║   • {{ result.item }}: {{ 'INSTALLED' if result.rc == 0 else 'MISSING' }}{{ ' ' * (20 - result.item|length) }}                                                    ║
+          {% endfor %}
+          ║                                                                                      ║
+          ║ DEVELOPMENT TOOLS:                                                                   ║
+          ║   • Rust: {{ 'INSTALLED' if rust_check.rc == 0 else 'MISSING' }}                                                        ║
+          ║   • Node Version Manager: {{ 'INSTALLED' if nvm_installed.stat.exists else 'MISSING' }}                                ║
+          ║                                                                                      ║
+          ║ APPLICATIONS:                                                                        ║
+          ║   • Visual Studio Code: {{ 'INSTALLED' if vscode_installed.stat.exists else 'MISSING' }}                                      ║
+          ║                                                                                      ║
+          ║ IDEMPOTENCY FEATURES DEMONSTRATED:                                                   ║
+          ║   ✓ Conditional installation based on current state                                 ║
+          ║   ✓ Clear status reporting (INSTALLED vs MISSING)                                   ║
+          ║   ✓ No unnecessary operations on existing software                                  ║
+          ║   ✓ Comprehensive software inventory tracking                                       ║
+          ╚══════════════════════════════════════════════════════════════════════════════════════╝

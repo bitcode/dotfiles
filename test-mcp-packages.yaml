@@ -1,0 +1,133 @@
+---
+- name: Test Model Context Protocol (MCP) Packages Installation
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    mcp_packages:
+      - "@modelcontextprotocol/server-brave-search"
+      - "@modelcontextprotocol/server-puppeteer"
+      - "firecrawl-mcp"
+      - "typescript"  # Include for comparison
+    
+  tasks:
+    - name: Display MCP package test information
+      debug:
+        msg: |
+          === Testing Model Context Protocol (MCP) Packages ===
+          MCP Packages to test: {{ mcp_packages | join(', ') }}
+          =====================================================
+
+    # === NVM ENVIRONMENT CHECK ===
+    - name: Check if NVM is available
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm --version
+      register: nvm_available
+      failed_when: false
+      changed_when: false
+
+    - name: Display NVM status
+      debug:
+        msg: "NVM Status: {{ 'AVAILABLE (v' + nvm_available.stdout + ')' if nvm_available.rc == 0 else 'NOT AVAILABLE' }}"
+
+    - name: Check Node.js via NVM
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        node --version
+      register: node_available
+      failed_when: false
+      changed_when: false
+      when: nvm_available.rc == 0
+
+    - name: Display Node.js status
+      debug:
+        msg: "Node.js Status: {{ 'AVAILABLE (' + node_available.stdout + ')' if node_available.rc == 0 else 'NOT AVAILABLE' }}"
+      when: nvm_available.rc == 0
+
+    # === MCP PACKAGES CHECK ===
+    - name: Check which MCP packages are already installed
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: mcp_package_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ mcp_packages }}"
+      when: nvm_available.rc == 0 and node_available.rc == 0
+
+    - name: Display MCP package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ mcp_package_check.results }}"
+      when: nvm_available.rc == 0 and node_available.rc == 0 and mcp_package_check.results is defined
+
+    # === INSTALL MISSING MCP PACKAGES (for testing) ===
+    - name: Install missing MCP packages
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm install -g {{ item.item }}
+      when: 
+        - nvm_available.rc == 0
+        - node_available.rc == 0
+        - mcp_package_check.results is defined
+        - item.rc != 0
+      loop: "{{ mcp_package_check.results }}"
+      register: mcp_install_results
+
+    # === VERIFY INSTALLATION ===
+    - name: Re-check MCP packages after installation
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: mcp_verify_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ mcp_packages }}"
+      when: nvm_available.rc == 0 and node_available.rc == 0
+
+    - name: Display final MCP package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'FAILED' }}"
+      loop: "{{ mcp_verify_check.results }}"
+      when: nvm_available.rc == 0 and node_available.rc == 0 and mcp_verify_check.results is defined
+
+    # === COMPREHENSIVE REPORT ===
+    - name: Generate MCP packages test report
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════════════════════════════╗
+          ║                        MODEL CONTEXT PROTOCOL (MCP) TEST REPORT                     ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════╣
+          ║ ENVIRONMENT STATUS:                                                                  ║
+          ║   • NVM: {{ 'AVAILABLE (v' + nvm_available.stdout + ')' if nvm_available.rc == 0 else 'NOT AVAILABLE' }}                                                            ║
+          {% if nvm_available.rc == 0 and node_available.rc == 0 %}
+          ║   • Node.js: {{ 'AVAILABLE (' + node_available.stdout + ')' if node_available.rc == 0 else 'NOT AVAILABLE' }}                                                        ║
+          ║                                                                                      ║
+          ║ MCP PACKAGES STATUS:                                                                 ║
+          {% if mcp_verify_check.results is defined %}
+          {% for result in mcp_verify_check.results %}
+          ║   • {{ result.item }}: {{ 'INSTALLED' if result.rc == 0 else 'FAILED' }}{{ ' ' * (50 - result.item|length) }}║
+          {% endfor %}
+          {% else %}
+          ║   • Package check not performed                                                      ║
+          {% endif %}
+          ║                                                                                      ║
+          ║ IDEMPOTENCY TEST:                                                                    ║
+          ║   • Run this playbook again to verify packages are skipped when already installed  ║
+          {% else %}
+          ║   • Node.js environment not available - cannot test MCP packages                    ║
+          ║   • Please run the main playbook first to set up NVM and Node.js                   ║
+          {% endif %}
+          ║                                                                                      ║
+          ║ USAGE NOTES:                                                                         ║
+          ║   • These packages provide MCP servers for AI assistants                           ║
+          ║   • @modelcontextprotocol/server-brave-search: Web search capabilities             ║
+          ║   • @modelcontextprotocol/server-puppeteer: Browser automation                     ║
+          ║   • firecrawl-mcp: Web scraping and crawling                                       ║
+          ╚══════════════════════════════════════════════════════════════════════════════════════╝

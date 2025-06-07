@@ -1,0 +1,136 @@
+---
+- name: Install and Configure NVM Only
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    npm_global_packages:
+      - "typescript"
+      - "nodemon"
+      - "http-server"
+      - "prettier"
+    
+  tasks:
+    - name: Display NVM installation start
+      debug:
+        msg: |
+          === Installing and Configuring Node Version Manager (NVM) ===
+          NPM Global Packages to install: {{ npm_global_packages | join(', ') }}
+          =============================================================
+
+    # === NODE VERSION MANAGER (NVM) INSTALLATION ===
+    - name: Check if Node Version Manager (nvm) is installed
+      stat:
+        path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+      register: nvm_installed
+
+    - name: Install Node Version Manager (nvm)
+      shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+      when: not nvm_installed.stat.exists
+
+    - name: Check if nvm configuration exists in .zshrc
+      shell: grep -q "NVM_DIR" "{{ ansible_env.HOME }}/.zshrc" 2>/dev/null
+      register: nvm_config_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Create .zshrc if it doesn't exist
+      file:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        state: touch
+        mode: '0644'
+      when: nvm_config_exists.rc != 0
+
+    - name: Add nvm configuration to .zshrc
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - NVM Configuration"
+        block: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+        create: yes
+      when: nvm_config_exists.rc != 0
+
+    - name: Source .zshrc to load nvm in current session
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm --version
+      register: nvm_version_check
+      failed_when: false
+      changed_when: false
+      when: nvm_installed.stat.exists or not nvm_installed.stat.exists
+
+    - name: Display nvm installation status
+      debug:
+        msg: "Node Version Manager: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'MISSING' }} {{ '(v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else '' }}"
+
+    # === NODE.JS AND NPM GLOBAL PACKAGES ===
+    - name: Install latest LTS Node.js via nvm
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install --lts
+        nvm use --lts
+        nvm alias default lts/*
+      when: nvm_version_check.rc == 0
+      register: node_install_result
+      changed_when: "'already installed' not in node_install_result.stdout"
+
+    - name: Check which npm global packages are already installed
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0 {{ item }} 2>/dev/null
+      register: npm_package_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ npm_global_packages }}"
+      when: nvm_version_check.rc == 0
+
+    - name: Display npm package status
+      debug:
+        msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ npm_package_check.results }}"
+      when: nvm_version_check.rc == 0 and npm_package_check.results is defined
+
+    - name: Install missing npm global packages
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm install -g {{ item.item }}
+      when: 
+        - nvm_version_check.rc == 0
+        - npm_package_check.results is defined
+        - item.rc != 0
+      loop: "{{ npm_package_check.results }}"
+
+    - name: Verify npm global packages installation
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        npm list -g --depth=0
+      register: npm_global_list
+      failed_when: false
+      changed_when: false
+      when: nvm_version_check.rc == 0
+
+    - name: Display final NVM setup report
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════════════════════════════╗
+          ║                           NVM INSTALLATION COMPLETE                                 ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════╣
+          ║ INSTALLATION STATUS:                                                                 ║
+          ║   • NVM: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'FAILED' }}                                                                ║
+          ║   • Shell Integration: {{ 'CONFIGURED' if nvm_config_exists.rc == 0 else 'ADDED' }}                                                ║
+          ║   • Node.js LTS: {{ 'INSTALLED' if node_install_result is defined and node_install_result.rc == 0 else 'FAILED' }}                                                        ║
+          ║   • NPM Global Packages: {{ npm_global_packages | length }} managed                                     ║
+          ║                                                                                      ║
+          ║ NEXT STEPS:                                                                          ║
+          ║   • Restart your terminal or run: source ~/.zshrc                                   ║
+          ║   • Verify installation: nvm --version                                              ║
+          ║   • Check Node.js: node --version                                                   ║
+          ║   • List global packages: npm list -g --depth=0                                     ║
+          ╚══════════════════════════════════════════════════════════════════════════════════════╝
