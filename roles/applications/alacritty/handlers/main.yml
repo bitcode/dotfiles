@@ -1,0 +1,5 @@
+---
+# Alacritty handlers
+- name: restart alacritty
+  debug:
+    msg: "Alacritty configuration updated. Restart Alacritty to apply changes."

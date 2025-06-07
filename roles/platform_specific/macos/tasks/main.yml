@@ -286,35 +286,16 @@
   when: "'TRUE' not in finder_settings.stdout or 'true' not in finder_settings.stdout"
 
 # === FINAL SOFTWARE INVENTORY REPORT ===
-- name: Generate comprehensive software inventory report
+- name: macOS platform setup completed
   debug:
     msg: |
+      ✅ macOS platform setup completed successfully!
 
-      ╔══════════════════════════════════════════════════════════════════════════════════════╗
-      ║                           macOS DEVELOPMENT ENVIRONMENT REPORT                      ║
-      ╠══════════════════════════════════════════════════════════════════════════════════════╣
-      ║ SYSTEM PREREQUISITES:                                                               ║
-      ║   • Xcode Command Line Tools: {{ 'INSTALLED' if xcode_tools_installed.stat.exists else 'MISSING' }}                                    ║
-      ║   • Homebrew: {{ 'INSTALLED' if homebrew_installed.stat.exists else 'MISSING' }}                                                      ║
-      ║   • Rosetta 2: {{ 'INSTALLED' if rosetta_installed is defined and rosetta_installed.stat.exists else 'N/A (Intel Mac)' if cpu_arch.stdout != 'arm64' else 'MISSING' }}                                                   ║
-      ║                                                                                      ║
-      ║ PACKAGE MANAGERS:                                                                    ║
-      ║   • Homebrew Packages: {{ homebrew_packages | length }} managed                                           ║
-      ║   • Homebrew Casks: {{ homebrew_casks | length }} managed                                              ║
-      ║                                                                                      ║
-      ║ DEVELOPMENT TOOLS:                                                                   ║
-      ║   • Rust: {{ 'INSTALLED' if rust_check is defined and rust_check.rc == 0 else 'MISSING' }}                                                        ║
-      ║   • Node Version Manager: {{ 'INSTALLED' if nvm_version_check is defined and nvm_version_check.rc == 0 else 'MISSING' }}                                ║
-      ║   • Node.js (LTS): {{ 'INSTALLED' if node_install_result is defined and node_install_result.rc is defined and node_install_result.rc == 0 else 'MISSING' }}                                      ║
-      ║   • NPM Global Packages: {{ npm_global_packages | length }} managed                                     ║
-      ║   • Go: {{ 'INSTALLED (v1.21+)' if go_version_check is defined and go_version_check.rc == 0 else 'MISSING' }}                                           ║
-      ║   • Zellij: {{ 'INSTALLED' if zellij_check is defined and zellij_check.rc == 0 else 'MISSING' }}                                                    ║
-      ║                                                                                      ║
-      ║ CONFIGURATION:                                                                       ║
-      ║   • Finder: Show hidden files and extensions                                        ║
-      ║                                                                                      ║
-      ║ NEXT STEPS:                                                                          ║
-      ║   • Run this playbook again to install any missing software                         ║
-      ║   • Install Mac App Store apps manually if needed                                   ║
-      ║   • Configure individual applications as needed                                      ║
-      ╚══════════════════════════════════════════════════════════════════════════════════════╝
+      Software inventory managed:
+      • Homebrew packages: {{ homebrew_packages | length }}
+      • Homebrew casks: {{ homebrew_casks | length }}
+      • NPM global packages: {{ npm_global_packages | length }}
+      • Mac App Store apps: {{ mac_app_store_apps | length }}
+      • Manual installations: {{ manual_installations | length }}
+
+      All idempotent checks preserved from original macsible.yaml

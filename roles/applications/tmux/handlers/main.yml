@@ -1,0 +1,5 @@
+---
+# Tmux handlers
+- name: reload tmux
+  debug:
+    msg: "Tmux configuration updated. Restart tmux sessions to apply changes."

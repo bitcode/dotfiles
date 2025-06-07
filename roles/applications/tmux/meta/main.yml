@@ -1,0 +1,14 @@
+---
+dependencies: []
+galaxy_info:
+  author: mdrozrosario
+  description: Tmux terminal multiplexer configuration management
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions: [18.04, 20.04, 22.04]
+    - name: MacOSX
+      versions: [10.15, 11.0, 12.0, 13.0, 14.0, 15.0]
+    - name: ArchLinux
+      versions: [any]

@@ -1,0 +1,5 @@
+---
+# Starship handlers
+- name: reload starship
+  debug:
+    msg: "Starship configuration updated. Restart your shell to apply changes."

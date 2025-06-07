@@ -1,0 +1,9 @@
+---
+# Alacritty role variables
+alacritty_package_name:
+  Darwin: alacritty
+  Archlinux: alacritty
+  Debian: alacritty
+  Ubuntu: alacritty
+
+alacritty_config_dir: "{{ ansible_user_dir }}/.config/alacritty"

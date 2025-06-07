@@ -1,0 +1,9 @@
+---
+# Tmux role variables
+tmux_package_name:
+  Darwin: tmux
+  Archlinux: tmux
+  Debian: tmux
+  Ubuntu: tmux
+
+tmux_config_dir: "{{ ansible_user_dir }}"

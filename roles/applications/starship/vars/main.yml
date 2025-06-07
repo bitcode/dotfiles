@@ -1,0 +1,9 @@
+---
+# Starship role variables
+starship_package_name:
+  Darwin: starship
+  Archlinux: starship
+  Debian: starship
+  Ubuntu: starship
+
+starship_config_dir: "{{ ansible_user_dir }}/.config"
