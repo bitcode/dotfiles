@@ -1,0 +1,141 @@
+---
+# Ubuntu/Debian Python Installation Tasks
+# Installs Python 3.13.4 via deadsnakes PPA
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Install software-properties-common
+  apt:
+    name: software-properties-common
+    state: present
+  become: yes
+
+- name: Add deadsnakes PPA for latest Python versions
+  apt_repository:
+    repo: ppa:deadsnakes/ppa
+    state: present
+    update_cache: yes
+  become: yes
+  register: ppa_added
+  retries: 3
+  delay: 10
+  until: ppa_added is succeeded
+
+- name: Check available Python 3.13 packages
+  shell: apt-cache search python3.13
+  register: python313_packages
+  changed_when: false
+
+- name: Install Python 3.13 and related packages
+  apt:
+    name:
+      - python3.13
+      - python3.13-dev
+      - python3.13-venv
+      - python3.13-distutils
+    state: present
+  become: yes
+  register: python_install
+  retries: 3
+  delay: 10
+  until: python_install is succeeded
+
+- name: Download get-pip.py for Python 3.13
+  get_url:
+    url: https://bootstrap.pypa.io/get-pip.py
+    dest: /tmp/get-pip.py
+    mode: '0644'
+  register: get_pip_download
+  retries: 3
+  delay: 5
+  until: get_pip_download is succeeded
+
+- name: Install pip for Python 3.13
+  shell: python3.13 /tmp/get-pip.py --user
+  register: pip_install
+  retries: 3
+  delay: 5
+  until: pip_install is succeeded
+
+- name: Update alternatives for python3
+  alternatives:
+    name: python3
+    path: /usr/bin/python3.13
+    link: /usr/bin/python3
+    priority: 100
+  become: yes
+
+- name: Create symlink for pip3
+  file:
+    src: "{{ ansible_user_dir }}/.local/bin/pip3.13"
+    dest: "{{ ansible_user_dir }}/.local/bin/pip3"
+    state: link
+    force: yes
+  failed_when: false
+
+- name: Add Python 3.13 to PATH
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    create: yes
+    state: present
+
+- name: Add Python 3.13 to PATH (zsh)
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    create: yes
+    state: present
+
+- name: Upgrade pip
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    python3.13 -m pip install --user --upgrade pip
+  register: pip_upgrade
+  retries: 3
+  delay: 5
+  until: pip_upgrade is succeeded
+
+- name: Install essential Python packages
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    python3.13 -m pip install --user {{ item }}
+  loop:
+    - setuptools
+    - wheel
+    - pipx
+  register: essential_packages
+  retries: 2
+  delay: 5
+  until: essential_packages is succeeded
+
+- name: Configure pipx
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx ensurepath --force
+  register: pipx_config
+  failed_when: false
+  changed_when: false
+
+- name: Verify Python installation
+  shell: python3.13 --version
+  register: python_verify
+  changed_when: false
+
+- name: Clean up temporary files
+  file:
+    path: /tmp/get-pip.py
+    state: absent
+
+- name: Display installation results
+  debug:
+    msg: |
+      🐧 Ubuntu/Debian Python Installation Complete:
+      • Python version: {{ python_verify.stdout | default('Unknown') }}
+      • pip upgrade: {{ 'SUCCESS' if pip_upgrade.rc == 0 else 'FAILED' }}
+      • Essential packages: {{ 'INSTALLED' if essential_packages is succeeded else 'FAILED' }}
+      • pipx configuration: {{ 'SUCCESS' if pipx_config.rc == 0 else 'FAILED' }}

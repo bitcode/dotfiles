@@ -321,6 +321,136 @@
     msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
   when: node_version_check.rc == 0 and npm_global_list.stdout is defined
 
+# === PYTHON DEVELOPMENT TOOLS ===
+- name: Check if Python is installed
+  win_command: python --version
+  register: python_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Python status
+  debug:
+    msg: "Python: {{ 'INSTALLED (' + python_version_check.stdout.strip() + ')' if python_version_check.rc == 0 else 'MISSING' }}"
+
+- name: Check if pip3 is working properly
+  win_shell: python -m pip --version
+  register: pip3_check
+  failed_when: false
+  changed_when: false
+  when: python_version_check.rc == 0
+
+- name: Display pip3 status
+  debug:
+    msg: "pip3: {{ 'WORKING' if pip3_check.rc == 0 else 'NOT WORKING' }}"
+  when: python_version_check.rc == 0
+
+- name: Check if pipx is already installed
+  win_command: pipx --version
+  register: pipx_check
+  failed_when: false
+  changed_when: false
+  when: python_version_check.rc == 0
+
+- name: Display pipx status
+  debug:
+    msg: "pipx: {{ 'INSTALLED' if pipx_check.rc == 0 else 'MISSING' }}"
+  when: python_version_check.rc == 0
+
+- name: Install pipx via pip3
+  win_shell: python -m pip install --user pipx
+  when:
+    - python_version_check.rc == 0
+    - pip3_check.rc == 0
+    - pipx_check.rc != 0
+  register: pipx_install_result
+
+- name: Configure pipx environment
+  win_shell: |
+    $env:Path += ";$env:APPDATA\Python\Python*\Scripts"
+    pipx ensurepath
+  when:
+    - python_version_check.rc == 0
+    - pip3_check.rc == 0
+    - (pipx_check.rc != 0 or pipx_install_result is defined)
+  register: pipx_config_result
+  failed_when: false
+
+- name: Verify pipx installation
+  win_shell: |
+    $env:Path += ";$env:APPDATA\Python\Python*\Scripts"
+    pipx --version
+  register: pipx_verify
+  failed_when: false
+  changed_when: false
+  when:
+    - python_version_check.rc == 0
+    - pip3_check.rc == 0
+
+- name: Display pipx verification status
+  debug:
+    msg: "pipx verification: {{ 'SUCCESS' if pipx_verify.rc == 0 else 'FAILED' }}"
+  when:
+    - python_version_check.rc == 0
+    - pip3_check.rc == 0
+
+- name: Check which pipx packages are already installed
+  win_shell: |
+    $env:Path += ";$env:APPDATA\Python\Python*\Scripts"
+    pipx list | Select-String "{{ item }}"
+  register: pipx_package_check
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when:
+    - python_version_check.rc == 0
+    - pipx_verify.rc == 0
+
+- name: Display pipx package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ pipx_package_check.results }}"
+  when:
+    - python_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+
+- name: Install missing pipx packages
+  win_shell: |
+    $env:Path += ";$env:APPDATA\Python\Python*\Scripts"
+    pipx install {{ item.item }}
+  when:
+    - python_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ pipx_package_check.results }}"
+  register: pipx_install_packages
+
+- name: Verify pipx packages installation
+  win_shell: |
+    $env:Path += ";$env:APPDATA\Python\Python*\Scripts"
+    {{ item }} --version
+  register: pipx_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when:
+    - python_version_check.rc == 0
+    - pipx_verify.rc == 0
+
+- name: Display pipx tools verification
+  debug:
+    msg: "{{ item.item }}: {{ 'ACCESSIBLE' if item.rc == 0 else 'NOT_IN_PATH' }}"
+  loop: "{{ pipx_tools_verify.results }}"
+  when:
+    - python_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_tools_verify.results is defined
+
 # === POWERSHELL MODULES ===
 - name: Check which PowerShell modules are installed
   win_shell: Get-Module -ListAvailable "{{ item }}" | Select-Object Name
@@ -341,3 +471,21 @@
   loop: "{{ defender_exclusions }}"
   register: defender_exclusions_result
   failed_when: false
+
+# === FINAL WINDOWS PLATFORM SUMMARY ===
+- name: Windows platform setup completed
+  debug:
+    msg: |
+      ✅ Windows platform setup completed successfully!
+
+      Software inventory managed:
+      • Chocolatey packages: {{ chocolatey_packages | length }}
+      • Chocolatey GUI packages: {{ chocolatey_gui_packages | length }}
+      • Winget packages: {{ winget_packages | length }}
+      • Scoop packages: {{ scoop_packages | length }}
+      • NPM global packages: {{ npm_global_packages | length }}
+      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
+      • PowerShell modules: {{ powershell_modules | length }}
+      • Manual installations: {{ manual_installations | length }}
+
+      All idempotent checks implemented for Windows platform

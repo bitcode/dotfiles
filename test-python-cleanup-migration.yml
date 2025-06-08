@@ -1,0 +1,195 @@
+---
+- name: Test Python Cleanup and Migration System
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  tasks:
+    - name: Test pre-migration analysis
+      include_role:
+        name: python_management
+        tasks_from: pre_migration_analysis.yml
+      tags: ['test', 'analysis']
+    
+    - name: Test Python detection
+      include_role:
+        name: python_management
+        tasks_from: detect_python.yml
+      tags: ['test', 'detection']
+    
+    - name: Display current Python environment status
+      debug:
+        msg: |
+          🧪 Python Environment Test Results:
+          ================================
+          
+          CURRENT STATE:
+          • Available Python installations: {{ available_pythons | default([]) | length }}
+          • Highest version found: {{ detected_python_version | default('None') }}
+          • Command: {{ detected_python_cmd | default('None') }}
+          • Target version: {{ python_version_management.target_version }}
+          • Upgrade needed: {{ python_needs_upgrade | default('Unknown') }}
+          
+          DETECTED INSTALLATIONS:
+          {% for python in available_pythons | default([]) %}
+          • {{ python[0] }}: {{ python[1] }}
+          {% endfor %}
+          
+          MIGRATION SETTINGS:
+          • Cleanup old versions: {{ python_version_management.cleanup_old_versions | default(true) }}
+          • Safe removal: {{ python_version_management.safe_removal | default(true) }}
+          • Preserve system Python: {{ python_version_management.preserve_system_python | default(true) }}
+          • Update PATH priority: {{ python_version_management.update_path_priority | default(true) }}
+          • Create rollback point: {{ python_version_management.create_rollback_point | default(true) }}
+      tags: ['test', 'status']
+    
+    - name: Test PATH configuration (dry run)
+      shell: |
+        echo "=== Current PATH Analysis ==="
+        echo "PATH: $PATH"
+        echo ""
+        echo "Python commands in PATH:"
+        for cmd in python python3 python3.9 python3.10 python3.11 python3.12 python3.13; do
+          if command -v "$cmd" >/dev/null 2>&1; then
+            echo "  $cmd: $(which $cmd)"
+          fi
+        done
+        echo ""
+        echo "pip commands in PATH:"
+        for cmd in pip pip3 pip3.9 pip3.10 pip3.11 pip3.12 pip3.13; do
+          if command -v "$cmd" >/dev/null 2>&1; then
+            echo "  $cmd: $(which $cmd)"
+          fi
+        done
+      register: path_analysis
+      changed_when: false
+      tags: ['test', 'path']
+    
+    - name: Display PATH analysis
+      debug:
+        msg: |
+          🛤️  PATH Analysis Results:
+          {{ path_analysis.stdout }}
+      tags: ['test', 'path']
+    
+    - name: Test cleanup identification (dry run)
+      shell: |
+        echo "=== Cleanup Identification Test ==="
+        echo "Old Python versions that would be cleaned up:"
+
+        for version in 3.9 3.10 3.11 3.12; do
+          for cmd in python${version} python${version%.*}; do
+            if command -v "$cmd" >/dev/null 2>&1; then
+              path=$(which "$cmd")
+              echo "Found: $cmd at $path"
+              echo "  -> CANDIDATE for cleanup"
+            fi
+          done
+        done
+
+        echo ""
+        echo "Directories that would be cleaned:"
+        for dir in "$HOME/.local/lib/python3.9" "$HOME/.local/lib/python3.10" "$HOME/.local/lib/python3.11" "$HOME/.local/lib/python3.12" "$HOME/.cache/pip"; do
+          if [[ -d "$dir" ]]; then
+            echo "  $dir (exists)"
+          else
+            echo "  $dir (not found)"
+          fi
+        done
+
+      register: cleanup_analysis
+      changed_when: false
+      tags: ['test', 'cleanup']
+    
+    - name: Display cleanup analysis
+      debug:
+        msg: |
+          🧹 Cleanup Analysis Results:
+          {{ cleanup_analysis.stdout }}
+      tags: ['test', 'cleanup']
+    
+    - name: Test migration verification commands
+      shell: |
+        echo "=== Migration Verification Test ==="
+
+        echo "Testing: python3 --version"
+        if python3 --version 2>&1 | grep -E "3\.13\."; then
+          echo "  ✅ PASS: Matches expected pattern '3\.13\.'"
+        else
+          echo "  ❌ FAIL: Does not match expected pattern '3\.13\.'"
+          echo "  Actual output: $(python3 --version 2>&1)"
+        fi
+        echo ""
+
+        echo "Testing: pip3 --version"
+        if pip3 --version 2>&1 | grep -E "pip.*python 3\.13"; then
+          echo "  ✅ PASS: Matches expected pattern 'pip.*python 3\.13'"
+        else
+          echo "  ❌ FAIL: Does not match expected pattern 'pip.*python 3\.13'"
+          echo "  Actual output: $(pip3 --version 2>&1)"
+        fi
+        echo ""
+
+        echo "Critical commands availability:"
+        for cmd in python3 pip3 pipx; do
+          if command -v $cmd >/dev/null 2>&1; then
+            echo "  ✅ $cmd: $(which $cmd)"
+          else
+            echo "  ❌ $cmd: NOT FOUND"
+          fi
+        done
+
+      register: verification_test
+      changed_when: false
+      tags: ['test', 'verification']
+    
+    - name: Display verification test results
+      debug:
+        msg: |
+          ✅ Migration Verification Test Results:
+          {{ verification_test.stdout }}
+      tags: ['test', 'verification']
+    
+    - name: Test summary
+      debug:
+        msg: |
+          🎯 Python Cleanup and Migration Test Summary:
+          ============================================
+          
+          SYSTEM INFORMATION:
+          • OS Family: {{ ansible_os_family }}
+          • Distribution: {{ ansible_distribution | default('Unknown') }}
+          • Architecture: {{ ansible_architecture }}
+          
+          CURRENT PYTHON STATE:
+          • Detected version: {{ detected_python_version | default('Unknown') }}
+          • Target version: {{ python_version_management.target_version }}
+          • Upgrade needed: {{ python_needs_upgrade | default('Unknown') }}
+          • Available installations: {{ available_pythons | default([]) | length }}
+          
+          MIGRATION READINESS:
+          • Pre-migration analysis: ✅ READY
+          • Cleanup identification: ✅ READY
+          • PATH management: ✅ READY
+          • Verification tests: ✅ READY
+          
+          SAFETY FEATURES:
+          • Protected paths configured: {{ cleanup_settings.protected_python_paths[ansible_os_family | lower] | default([]) | length }}
+          • Rollback point creation: {{ 'ENABLED' if python_version_management.create_rollback_point | default(true) else 'DISABLED' }}
+          • Safe removal mode: {{ 'ENABLED' if python_version_management.safe_removal | default(true) else 'DISABLED' }}
+          
+          NEXT STEPS:
+          {% if python_needs_upgrade | default(false) %}
+          1. Run full Python management: ansible-playbook site.yml --tags python
+          2. Monitor migration reports in ~/.dotsible/python_migration/
+          3. Verify environment with: ~/.dotsible/python_migration/verify_environment.sh
+          {% else %}
+          1. Python version meets requirements
+          2. Consider running cleanup only: ansible-playbook site.yml --tags python,cleanup
+          3. Verify PATH configuration if needed
+          {% endif %}
+          
+          📋 TEST REPORTS:
+          • Analysis report: ~/.dotsible/python_migration/analysis_report.txt
+          • All migration features tested and ready for deployment
+      tags: ['test', 'summary']

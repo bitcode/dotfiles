@@ -1,0 +1,69 @@
+---
+# Python Version Detection for Environment Detection
+# Lightweight Python detection for pre-flight checks
+
+- name: Check for Python installations (Unix-like)
+  shell: |
+    for cmd in python3 python python3.13 python3.12 python3.11 python3.10 python3.9 python3.8; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        version=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [[ -n "$version" ]]; then
+          echo "$cmd:$version"
+          break
+        fi
+      fi
+    done
+  register: python_check_unix
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family != "Windows"
+
+- name: Check for Python installations (Windows)
+  win_shell: |
+    $pythonCommands = @("python", "python3", "py")
+    foreach ($cmd in $pythonCommands) {
+      try {
+        $version = & $cmd --version 2>$null
+        if ($version -match "Python (\d+\.\d+\.\d+)") {
+          Write-Output "$cmd:$($matches[1])"
+          break
+        }
+      } catch {
+        continue
+      }
+    }
+  register: python_check_windows
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family == "Windows"
+
+- name: Parse Python detection results
+  set_fact:
+    detected_python_info: >-
+      {%- if ansible_os_family == "Windows" -%}
+        {{ python_check_windows.stdout.strip() if python_check_windows.stdout else "none:0.0.0" }}
+      {%- else -%}
+        {{ python_check_unix.stdout.strip() if python_check_unix.stdout else "none:0.0.0" }}
+      {%- endif -%}
+
+- name: Set Python version facts
+  set_fact:
+    detected_python_cmd: "{{ detected_python_info.split(':')[0] if ':' in detected_python_info else 'none' }}"
+    detected_python_version: "{{ detected_python_info.split(':')[1] if ':' in detected_python_info else '0.0.0' }}"
+
+- name: Check if Python upgrade is needed
+  set_fact:
+    python_needs_upgrade: >-
+      {{
+        detected_python_version is version(python_version_management.target_version, '<') or
+        detected_python_cmd == 'none'
+      }}
+
+- name: Display Python detection summary
+  debug:
+    msg: |
+      🐍 Python Detection Summary:
+      • Command: {{ detected_python_cmd }}
+      • Version: {{ detected_python_version }}
+      • Target: {{ python_version_management.target_version }}
+      • Upgrade needed: {{ 'YES' if python_needs_upgrade else 'NO' }}

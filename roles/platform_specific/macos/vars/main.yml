@@ -12,6 +12,7 @@ homebrew_packages:
   - docker
   - kubectl
   - python@3.11
+  - neovim
 
 homebrew_casks:
   - visual-studio-code

@@ -1,131 +1,348 @@
 ---
-# Neovim installation and configuration role
-- name: Install Neovim packages on macOS
-  homebrew:
-    name: "{{ neovim_packages.darwin }}"
-    state: present
-  when: ansible_os_family == "Darwin"
+# Neovim application role - cross-platform configuration management
+# NOTE: Neovim installation is handled by platform-specific roles
+# This role focuses on configuration deployment and verification
 
-- name: Install Neovim packages on Arch Linux
-  pacman:
-    name: "{{ neovim_packages.archlinux }}"
-    state: present
-  become: yes
-  when: ansible_distribution == "Archlinux"
+- name: Display Neovim configuration status
+  debug:
+    msg: |
+      === Neovim Configuration Management ===
+      Platform: {{ ansible_os_family }}
+      User: {{ ansible_user_id }}
+      ==========================================
 
-- name: Install Neovim packages on Ubuntu/Debian
-  apt:
-    name: "{{ neovim_packages.debian }}"
-    state: present
-    update_cache: yes
-  become: yes
-  when: ansible_os_family == "Debian"
+# === VERIFY NEOVIM INSTALLATION ===
+- name: Check if Neovim is installed (Unix-like)
+  command: nvim --version
+  register: neovim_version_check
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
 
-- name: Install Neovim packages on Windows
-  win_chocolatey:
-    name: "{{ neovim_packages.windows }}"
-    state: present
-  when: ansible_os_family == "Windows"
+- name: Check if Neovim is installed (Windows)
+  win_command: nvim --version
+  register: neovim_version_check_win
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family == 'Windows'
 
+- name: Display Neovim installation status (Unix-like)
+  debug:
+    msg: "Neovim: {{ 'INSTALLED' + (' (' + neovim_version_check.stdout_lines[0] + ')' if neovim_version_check.stdout_lines|length > 0 else '') if neovim_version_check.rc == 0 else 'NOT INSTALLED - Please run platform-specific role first' }}"
+  when: ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+
+- name: Display Neovim installation status (Windows)
+  debug:
+    msg: "Neovim: {{ 'INSTALLED' + (' (' + neovim_version_check_win.stdout_lines[0] + ')' if neovim_version_check_win.stdout_lines|length > 0 else '') if neovim_version_check_win.rc == 0 else 'NOT INSTALLED - Please run platform-specific role first' }}"
+  when: ansible_os_family == 'Windows'
+
+- name: Fail if Neovim is not installed (Unix-like)
+  fail:
+    msg: "Neovim is not installed. Please run the appropriate platform-specific role first (macos, archlinux, ubuntu, etc.)"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc != 0
+
+- name: Fail if Neovim is not installed (Windows)
+  fail:
+    msg: "Neovim is not installed. Please run the Windows platform-specific role first."
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc != 0
+
+# === CREATE CONFIGURATION DIRECTORIES ===
 - name: Create Neovim config directory (Unix-like)
   file:
     path: "{{ neovim_config_dir[ansible_os_family | lower] }}"
     state: directory
     mode: '0755'
-  when: ansible_os_family != "Windows"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
 
 - name: Create Neovim config directory (Windows)
   win_file:
     path: "{{ neovim_config_dir.windows }}"
     state: directory
-  when: ansible_os_family == "Windows"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
 
 - name: Create Neovim data directory (Unix-like)
   file:
     path: "{{ neovim_data_dir[ansible_os_family | lower] }}"
     state: directory
     mode: '0755'
-  when: ansible_os_family != "Windows"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
 
 - name: Create Neovim data directory (Windows)
   win_file:
     path: "{{ neovim_data_dir.windows }}"
     state: directory
-  when: ansible_os_family == "Windows"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
 
-- name: Check if Neovim config exists
+- name: Display configuration directories
+  debug:
+    msg: |
+      Configuration directory: {{ neovim_config_dir[ansible_os_family | lower] if ansible_os_family != 'Windows' else neovim_config_dir.windows }}
+      Data directory: {{ neovim_data_dir[ansible_os_family | lower] if ansible_os_family != 'Windows' else neovim_data_dir.windows }}
+
+# === DOTFILES INTEGRATION ===
+- name: "🔧 Neovim Configuration"
+  debug:
+    msg: "Configuring Neovim with dotfiles integration"
+  tags: ['neovim', 'config', 'banner']
+
+- name: Check if custom Neovim config exists in dotfiles
   stat:
     path: "{{ playbook_dir }}/files/dotfiles/nvim"
   register: nvim_config_source
+  tags: ['neovim', 'config', 'check']
 
-- name: Deploy Neovim configuration files (Unix-like)
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/nvim/"
-    dest: "{{ neovim_config_dir[ansible_os_family | lower] }}/"
-    mode: '0644'
-    backup: yes
+- name: "{{ '✅ FOUND' if nvim_config_source.stat.exists else '❌ MISSING' }}: Neovim dotfiles"
+  debug:
+    msg: "Neovim configuration {{ 'found' if nvim_config_source.stat.exists else 'not found' }} in dotfiles"
+  tags: ['neovim', 'config', 'status']
+
+- name: Create Neovim config directory
+  file:
+    path: "{{ neovim_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: ansible_os_family != 'Windows'
+  tags: ['neovim', 'config', 'directories']
+
+- name: Create Neovim config directory (Windows)
+  win_file:
+    path: "{{ neovim_config_dir.windows }}"
+    state: directory
+  when: ansible_os_family == 'Windows'
+  tags: ['neovim', 'config', 'directories']
+
+- name: Link Neovim configuration from dotfiles (Unix-like)
+  file:
+    src: "{{ playbook_dir }}/files/dotfiles/nvim"
+    dest: "{{ neovim_config_dir[ansible_os_family | lower] }}"
+    state: link
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    force: yes
   when:
-    - ansible_os_family != "Windows"
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
     - nvim_config_source.stat.exists
   notify: restart neovim
+  tags: ['neovim', 'config', 'symlink']
 
-- name: Deploy Neovim configuration files (Windows)
+- name: Copy Neovim configuration from dotfiles (Windows)
   win_copy:
     src: "{{ playbook_dir }}/files/dotfiles/nvim/"
     dest: "{{ neovim_config_dir.windows }}\\"
     backup: yes
   when:
-    - ansible_os_family == "Windows"
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
     - nvim_config_source.stat.exists
   notify: restart neovim
+  tags: ['neovim', 'config', 'copy']
 
-- name: Install Python packages for Neovim (Unix-like)
+- name: Create basic init.lua if no custom config exists (Unix-like)
+  template:
+    src: init.lua.j2
+    dest: "{{ neovim_config_dir[ansible_os_family | lower] }}/init.lua"
+    mode: '0644'
+    backup: yes
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+    - not nvim_config_source.stat.exists
+
+- name: Create basic init.lua if no custom config exists (Windows)
+  win_template:
+    src: init.lua.j2
+    dest: "{{ neovim_config_dir.windows }}\\init.lua"
+    backup: yes
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+    - not nvim_config_source.stat.exists
+
+# === PYTHON PACKAGES FOR NEOVIM ===
+- name: Check which Python packages for Neovim are already installed (Unix-like)
+  shell: python3 -m pip list --user | grep "{{ item }}" || echo "NOT_FOUND"
+  register: python_neovim_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ neovim_python_packages }}"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+
+- name: Display Python package status for Neovim (Unix-like)
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if 'NOT_FOUND' not in item.stdout else 'MISSING' }}"
+  loop: "{{ python_neovim_package_check.results }}"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+    - python_neovim_package_check.results is defined
+
+- name: Install missing Python packages for Neovim (Unix-like)
   pip:
-    name: "{{ neovim_python_packages }}"
+    name: "{{ item.item }}"
     state: present
     extra_args: --user
-  when: ansible_os_family != "Windows"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+    - python_neovim_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"
+  loop: "{{ python_neovim_package_check.results }}"
 
-- name: Install Python packages for Neovim (Windows)
-  win_shell: pip install {{ neovim_python_packages | join(' ') }}
-  when: ansible_os_family == "Windows"
+- name: Check which Python packages for Neovim are already installed (Windows)
+  win_shell: pip list | Select-String "{{ item }}"
+  register: python_neovim_package_check_win
+  failed_when: false
+  changed_when: false
+  loop: "{{ neovim_python_packages }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+
+- name: Display Python package status for Neovim (Windows)
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ python_neovim_package_check_win.results }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+    - python_neovim_package_check_win.results is defined
+
+- name: Install missing Python packages for Neovim (Windows)
+  win_shell: pip install {{ item.item }}
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+    - python_neovim_package_check_win.results is defined
+    - item.rc != 0
+  loop: "{{ python_neovim_package_check_win.results }}"
   register: pip_install_result
   failed_when: false
 
-- name: Install Node.js packages for Neovim (Unix-like)
+# === NODE.JS PACKAGES FOR NEOVIM ===
+- name: Check which Node.js packages for Neovim are already installed (Unix-like)
+  shell: npm list -g --depth=0 {{ item }} 2>/dev/null
+  register: node_neovim_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ neovim_node_packages }}"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+
+- name: Display Node.js package status for Neovim (Unix-like)
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ node_neovim_package_check.results }}"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+    - node_neovim_package_check.results is defined
+
+- name: Install missing Node.js packages for Neovim (Unix-like)
   npm:
-    name: "{{ item }}"
+    name: "{{ item.item }}"
     global: yes
     state: present
-  loop: "{{ neovim_node_packages }}"
-  when: ansible_os_family != "Windows"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
+    - node_neovim_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ node_neovim_package_check.results }}"
 
-- name: Install Node.js packages for Neovim (Windows)
-  win_shell: npm install -g {{ neovim_node_packages | join(' ') }}
-  when: ansible_os_family == "Windows"
+- name: Check which Node.js packages for Neovim are already installed (Windows)
+  win_shell: npm list -g --depth=0 | findstr /i "{{ item }}"
+  register: node_neovim_package_check_win
+  failed_when: false
+  changed_when: false
+  loop: "{{ neovim_node_packages }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+
+- name: Display Node.js package status for Neovim (Windows)
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ node_neovim_package_check_win.results }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+    - node_neovim_package_check_win.results is defined
+
+- name: Install missing Node.js packages for Neovim (Windows)
+  win_shell: npm install -g {{ item.item }}
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+    - node_neovim_package_check_win.results is defined
+    - item.rc != 0
+  loop: "{{ node_neovim_package_check_win.results }}"
   register: npm_install_result
   failed_when: false
 
-- name: Ensure Neovim is executable
-  command: nvim --version
-  register: nvim_version
+# === FINAL VERIFICATION AND SUMMARY ===
+- name: Test Neovim configuration (Unix-like)
+  command: nvim --headless -c "lua print('Config test successful')" -c "qall"
+  register: neovim_config_test
   failed_when: false
   changed_when: false
-  when: ansible_os_family != "Windows"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
 
-- name: Ensure Neovim is executable (Windows)
-  win_command: nvim --version
-  register: nvim_version_windows
+- name: Test Neovim configuration (Windows)
+  win_command: nvim --headless -c "lua print('Config test successful')" -c "qall"
+  register: neovim_config_test_win
   failed_when: false
   changed_when: false
-  when: ansible_os_family == "Windows"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
 
-- name: Display Neovim installation status (Unix-like)
+- name: Display configuration test results (Unix-like)
   debug:
-    msg: "Neovim {{ 'installed successfully' if nvim_version.rc == 0 else 'installation failed' }}"
-  when: ansible_os_family != "Windows"
+    msg: "Neovim configuration test: {{ 'PASSED' if neovim_config_test.rc == 0 else 'FAILED' }}"
+  when:
+    - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
+    - neovim_version_check.rc == 0
 
-- name: Display Neovim installation status (Windows)
+- name: Display configuration test results (Windows)
   debug:
-    msg: "Neovim {{ 'installed successfully' if nvim_version_windows.rc == 0 else 'installation failed' }}"
-  when: ansible_os_family == "Windows"
+    msg: "Neovim configuration test: {{ 'PASSED' if neovim_config_test_win.rc == 0 else 'FAILED' }}"
+  when:
+    - ansible_os_family == 'Windows'
+    - neovim_version_check_win.rc == 0
+
+- name: Neovim application role completed
+  debug:
+    msg: |
+      ✅ Neovim application configuration completed!
+
+      Configuration details:
+      • Platform: {{ ansible_os_family }}
+      • Config directory: {{ neovim_config_dir[ansible_os_family | lower] if ansible_os_family != 'Windows' else neovim_config_dir.windows }}
+      • Data directory: {{ neovim_data_dir[ansible_os_family | lower] if ansible_os_family != 'Windows' else neovim_data_dir.windows }}
+      • Python packages: {{ neovim_python_packages | length }} packages
+      • Node.js packages: {{ neovim_node_packages | length }} packages
+
+      Next steps:
+      • Customize configuration for your specific needs
+      • Consider adding plugin management (lazy.nvim)
+      • Add language-specific configurations

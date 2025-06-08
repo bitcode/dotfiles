@@ -1,0 +1,111 @@
+---
+# Post-Migration Verification Tasks (Simplified)
+# Verifies that Python migration was successful and all tools work correctly
+
+- name: Check Python version
+  command: python3 --version
+  register: python_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Check pip version
+  command: pip3 --version
+  register: pip_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Check pipx availability
+  command: pipx --version
+  register: pipx_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Test Python module imports
+  command: python3 -c "import sys, ssl, json, subprocess; print('All modules imported successfully')"
+  register: python_modules_check
+  failed_when: false
+  changed_when: false
+
+- name: Test pip functionality
+  command: pip3 list --user
+  register: pip_functionality_check
+  failed_when: false
+  changed_when: false
+
+- name: Test pipx packages
+  command: pipx list --short
+  register: pipx_packages_check
+  failed_when: false
+  changed_when: false
+
+- name: Attempt to install ansible-dev-tools via pipx
+  command: pipx install ansible-dev-tools
+  register: ansible_dev_tools_install
+  failed_when: false
+  changed_when: false
+
+- name: Verify ansible-dev-tools installation
+  command: pipx list --short
+  register: final_pipx_check
+  failed_when: false
+  changed_when: false
+
+- name: Set migration success status
+  set_fact:
+    python_migration_successful: >-
+      {{
+        python_version_check.rc == 0 and
+        pip_version_check.rc == 0 and
+        python_modules_check.rc == 0 and
+        ('3.13' in python_version_check.stdout)
+      }}
+
+- name: Create migration verification report
+  copy:
+    content: |
+      Python Migration Verification Report
+      ===================================
+      Generated: {{ ansible_date_time.iso8601 }}
+      
+      VERIFICATION RESULTS:
+      Python Version Check: {{ 'PASS' if python_version_check.rc == 0 else 'FAIL' }}
+      Python Version: {{ python_version_check.stdout | default('Unknown') }}
+      
+      pip Version Check: {{ 'PASS' if pip_version_check.rc == 0 else 'FAIL' }}
+      pip Version: {{ pip_version_check.stdout | default('Unknown') }}
+      
+      pipx Availability: {{ 'PASS' if pipx_version_check.rc == 0 else 'FAIL' }}
+      pipx Version: {{ pipx_version_check.stdout | default('Not available') }}
+      
+      Python Modules: {{ 'PASS' if python_modules_check.rc == 0 else 'FAIL' }}
+      Module Test Result: {{ python_modules_check.stdout | default('Failed') }}
+      
+      pip Functionality: {{ 'PASS' if pip_functionality_check.rc == 0 else 'FAIL' }}
+      
+      ansible-dev-tools Installation: {{ 'PASS' if ansible_dev_tools_install.rc == 0 else 'FAIL' }}
+      
+      OVERALL STATUS: {{ 'SUCCESS' if python_migration_successful else 'NEEDS ATTENTION' }}
+      
+      TARGET VERSION CHECK:
+      Expected: 3.13.x
+      Found: {{ python_version_check.stdout | default('Unknown') }}
+      Match: {{ 'YES' if '3.13' in python_version_check.stdout else 'NO' }}
+      
+    dest: "{{ ansible_user_dir }}/.dotsible/python_migration/verification_report.txt"
+    mode: '0644'
+
+- name: Display migration verification summary
+  debug:
+    msg: |
+      Python Migration Verification Complete:
+      
+      MIGRATION STATUS: {{ 'SUCCESS' if python_migration_successful else 'NEEDS ATTENTION' }}
+      
+      KEY RESULTS:
+      • Python version: {{ python_version_check.stdout | default('Unknown') }}
+      • pip available: {{ 'YES' if pip_version_check.rc == 0 else 'NO' }}
+      • pipx available: {{ 'YES' if pipx_version_check.rc == 0 else 'NO' }}
+      • Python modules: {{ 'WORKING' if python_modules_check.rc == 0 else 'ISSUES' }}
+      • ansible-dev-tools: {{ 'INSTALLED' if ansible_dev_tools_install.rc == 0 else 'FAILED' }}
+      
+      Report saved to: ~/.dotsible/python_migration/verification_report.txt

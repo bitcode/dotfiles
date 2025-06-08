@@ -306,6 +306,140 @@
     msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
   when: node_version_check.rc == 0 and npm_global_list.stdout is defined
 
+# === PYTHON DEVELOPMENT TOOLS ===
+- name: Check if Python 3 is installed
+  command: python3 --version
+  register: python3_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Python 3 status
+  debug:
+    msg: "Python 3: {{ 'INSTALLED (' + python3_version_check.stdout.strip() + ')' if python3_version_check.rc == 0 else 'MISSING' }}"
+
+- name: Check if pip3 is working properly
+  shell: python3 -m pip --version
+  register: pip3_check
+  failed_when: false
+  changed_when: false
+  when: python3_version_check.rc == 0
+
+- name: Display pip3 status
+  debug:
+    msg: "pip3: {{ 'WORKING' if pip3_check.rc == 0 else 'NOT WORKING' }}"
+  when: python3_version_check.rc == 0
+
+- name: Check if pipx is already installed
+  shell: pipx --version
+  register: pipx_check
+  failed_when: false
+  changed_when: false
+  when: python3_version_check.rc == 0
+
+- name: Display pipx status
+  debug:
+    msg: "pipx: {{ 'INSTALLED' if pipx_check.rc == 0 else 'MISSING' }}"
+  when: python3_version_check.rc == 0
+
+- name: Install pipx via pip3
+  pip:
+    name: pipx
+    state: present
+    extra_args: --user
+  become: no
+  when:
+    - python3_version_check.rc == 0
+    - pip3_check.rc == 0
+    - pipx_check.rc != 0
+  register: pipx_install_result
+
+- name: Configure pipx environment
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx ensurepath --force
+  when:
+    - python3_version_check.rc == 0
+    - pip3_check.rc == 0
+    - (pipx_check.rc != 0 or pipx_install_result is defined)
+  register: pipx_config_result
+  failed_when: false
+
+- name: Verify pipx installation
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx --version
+  register: pipx_verify
+  failed_when: false
+  changed_when: false
+  when:
+    - python3_version_check.rc == 0
+    - pip3_check.rc == 0
+
+- name: Display pipx verification status
+  debug:
+    msg: "pipx verification: {{ 'SUCCESS' if pipx_verify.rc == 0 else 'FAILED' }}"
+  when:
+    - python3_version_check.rc == 0
+    - pip3_check.rc == 0
+
+- name: Check which pipx packages are already installed
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx list | grep "{{ item }}" || echo "NOT_FOUND"
+  register: pipx_package_check
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when:
+    - python3_version_check.rc == 0
+    - pipx_verify.rc == 0
+
+- name: Display pipx package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if 'NOT_FOUND' not in item.stdout else 'MISSING' }}"
+  loop: "{{ pipx_package_check.results }}"
+  when:
+    - python3_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+
+- name: Install missing pipx packages
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx install {{ item.item }}
+  when:
+    - python3_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"
+  loop: "{{ pipx_package_check.results }}"
+  register: pipx_install_packages
+
+- name: Verify pipx packages installation
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    {{ item }} --version 2>/dev/null || echo "COMMAND_NOT_FOUND"
+  register: pipx_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when:
+    - python3_version_check.rc == 0
+    - pipx_verify.rc == 0
+
+- name: Display pipx tools verification
+  debug:
+    msg: "{{ item.item }}: {{ 'ACCESSIBLE' if 'COMMAND_NOT_FOUND' not in item.stdout else 'NOT_IN_PATH' }}"
+  loop: "{{ pipx_tools_verify.results }}"
+  when:
+    - python3_version_check.rc == 0
+    - pipx_verify.rc == 0
+    - pipx_tools_verify.results is defined
+
 # === PYTHON PACKAGES ===
 - name: Install Python packages
   pip:
@@ -368,3 +502,24 @@
     line: 'export {{ item.name }}="{{ item.value }}"'
     create: yes
   loop: "{{ ubuntu_environment_vars }}"
+
+# === FINAL UBUNTU PLATFORM SUMMARY ===
+- name: Ubuntu platform setup completed
+  debug:
+    msg: |
+      ✅ Ubuntu/Debian platform setup completed successfully!
+
+      Software inventory managed:
+      • APT packages: {{ apt_packages | length }}
+      • Snap packages: {{ snap_packages | length }}
+      • Development packages: {{ dev_packages | length }}
+      • Window manager packages: {{ wm_packages | length }}
+      • Font packages: {{ font_packages | length }}
+      • System packages: {{ system_packages | length }}
+      • NPM global packages: {{ npm_global_packages | length }}
+      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
+      • Python packages: {{ python_packages | length }}
+      • Cargo packages: {{ cargo_packages | length }}
+      • Flatpak packages: {{ flatpak_packages | length }}
+
+      All idempotent checks implemented for Ubuntu/Debian platform

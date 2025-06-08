@@ -1,0 +1,60 @@
+---
+- name: Test Python Version Management
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  tasks:
+    - name: Test Python detection
+      include_role:
+        name: python_management
+        tasks_from: detect_python.yml
+      tags: ['test', 'detection']
+    
+    - name: Display detection results
+      debug:
+        msg: |
+          🧪 Python Detection Test Results:
+          • Available Python installations: {{ available_pythons | default([]) | length }}
+          • Highest version found: {{ detected_python_version | default('None') }}
+          • Command: {{ detected_python_cmd | default('None') }}
+          • Target version: {{ python_version_management.target_version }}
+          • Upgrade needed: {{ python_needs_upgrade | default('Unknown') }}
+          • pip version: {{ detected_pip_version | default('Unknown') }}
+          • pipx available: {{ pipx_available | default(false) }}
+      tags: ['test', 'detection']
+    
+    - name: Test validation without installation
+      include_role:
+        name: python_management
+        tasks_from: validate_python.yml
+      tags: ['test', 'validation']
+      when: detected_python_cmd != 'none'
+    
+    - name: Display validation results
+      debug:
+        msg: |
+          ✅ Python Validation Test Results:
+          • Version check: {{ python_validation_results.version_check | default('SKIP') }}
+          • pip check: {{ python_validation_results.pip_check | default('SKIP') }}
+          • pipx check: {{ python_validation_results.pipx_check | default('SKIP') }}
+          • Modules check: {{ python_validation_results.modules_check | default('SKIP') }}
+      tags: ['test', 'validation']
+      when: python_validation_results is defined
+    
+    - name: Test summary
+      debug:
+        msg: |
+          🎯 Python Management Test Summary:
+          ================================
+          • Detection: {{ 'PASS' if detected_python_version is defined else 'FAIL' }}
+          • Version compatibility: {{ 'PASS' if detected_python_version is version(python_version_management.minimum_version, '>=') else 'FAIL' }}
+          • Target version achieved: {{ 'YES' if detected_python_version is version(python_version_management.target_version, '>=') else 'NO' }}
+          • pip functionality: {{ python_validation_results.pip_check | default('UNKNOWN') }}
+          
+          {% if python_needs_upgrade %}
+          ⚠️  Python upgrade recommended from {{ detected_python_version }} to {{ python_version_management.target_version }}
+          {% else %}
+          ✅ Python version meets target requirements
+          {% endif %}
+      tags: ['test', 'summary']

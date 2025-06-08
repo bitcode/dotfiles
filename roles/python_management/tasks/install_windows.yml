@@ -1,0 +1,117 @@
+---
+# Windows Python Installation Tasks
+# Installs Python 3.13.4 via Chocolatey/Scoop/winget
+
+- name: Check available package managers
+  win_shell: |
+    $managers = @()
+    if (Get-Command choco -ErrorAction SilentlyContinue) { $managers += "chocolatey" }
+    if (Get-Command scoop -ErrorAction SilentlyContinue) { $managers += "scoop" }
+    if (Get-Command winget -ErrorAction SilentlyContinue) { $managers += "winget" }
+    $managers -join ","
+  register: available_managers
+  changed_when: false
+
+- name: Set package manager preference
+  set_fact:
+    preferred_manager: >-
+      {%- if 'chocolatey' in available_managers.stdout -%}
+        chocolatey
+      {%- elif 'winget' in available_managers.stdout -%}
+        winget
+      {%- elif 'scoop' in available_managers.stdout -%}
+        scoop
+      {%- else -%}
+        none
+      {%- endif -%}
+
+- name: Fail if no package manager available
+  fail:
+    msg: |
+      No supported package manager found.
+      Please install Chocolatey, Scoop, or ensure winget is available.
+  when: preferred_manager == 'none'
+
+- name: Install Python via Chocolatey
+  win_chocolatey:
+    name: python3
+    state: present
+    version: "{{ python_version_management.target_version }}"
+  register: choco_install
+  when: preferred_manager == 'chocolatey'
+  retries: 3
+  delay: 10
+  until: choco_install is succeeded
+
+- name: Install Python via winget
+  win_shell: |
+    winget install Python.Python.3.13 --accept-package-agreements --accept-source-agreements --silent
+  register: winget_install
+  when: preferred_manager == 'winget'
+  retries: 3
+  delay: 10
+  until: winget_install.rc == 0
+
+- name: Install Python via Scoop
+  win_shell: |
+    scoop install python
+  register: scoop_install
+  when: preferred_manager == 'scoop'
+  retries: 3
+  delay: 10
+  until: scoop_install.rc == 0
+
+- name: Refresh environment variables
+  win_shell: |
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    refreshenv
+  changed_when: false
+
+- name: Verify Python installation
+  win_shell: python --version
+  register: python_verify
+  retries: 3
+  delay: 5
+  until: python_verify.rc == 0
+
+- name: Upgrade pip
+  win_shell: python -m pip install --upgrade pip
+  register: pip_upgrade
+  retries: 3
+  delay: 5
+  until: pip_upgrade.rc == 0
+
+- name: Install essential Python packages
+  win_shell: python -m pip install --user {{ item }}
+  loop:
+    - setuptools
+    - wheel
+    - pipx
+  register: essential_packages
+  retries: 2
+  delay: 5
+  until: essential_packages.rc == 0
+
+- name: Configure pipx
+  win_shell: |
+    python -m pipx ensurepath --force
+  register: pipx_config
+  failed_when: false
+  changed_when: false
+
+- name: Add Python Scripts to PATH
+  win_environment:
+    name: PATH
+    value: "{{ ansible_env.USERPROFILE }}\\AppData\\Roaming\\Python\\Python313\\Scripts;{{ ansible_env.PATH }}"
+    level: user
+    state: present
+
+- name: Display installation results
+  debug:
+    msg: |
+      🪟 Windows Python Installation Complete:
+      • Package manager used: {{ preferred_manager }}
+      • Python version: {{ python_verify.stdout | default('Unknown') }}
+      • pip upgrade: {{ 'SUCCESS' if pip_upgrade.rc == 0 else 'FAILED' }}
+      • Essential packages: {{ 'INSTALLED' if essential_packages is succeeded else 'FAILED' }}
+      • pipx configuration: {{ 'SUCCESS' if pipx_config.rc == 0 else 'FAILED' }}

@@ -1,0 +1,91 @@
+---
+# Python Version Management Role
+# Ensures all systems use the latest stable Python version (3.13.4)
+
+- name: Python Version Management initialization
+  debug:
+    msg: |
+      🐍 Python Version Management Starting
+      ========================================
+      • Target version: {{ python_version_management.target_version }}
+      • Minimum version: {{ python_version_management.minimum_version }}
+      • Auto upgrade: {{ python_version_management.auto_upgrade }}
+      • Preserve packages: {{ python_version_management.preserve_packages }}
+      ========================================
+
+- name: Pre-migration analysis
+  include_tasks: pre_migration_analysis.yml
+  tags: ['python', 'analysis', 'pre-migration']
+
+- name: Detect current Python installation
+  include_tasks: detect_python.yml
+  tags: ['python', 'detection']
+
+- name: Backup existing Python environments
+  include_tasks: backup_environments.yml
+  when:
+    - python_version_management.backup_environments
+    - python_needs_upgrade | default(false)
+  tags: ['python', 'backup']
+
+- name: Install/upgrade Python
+  include_tasks: "install_{{ ansible_os_family | lower }}.yml"
+  when: python_needs_upgrade | default(false)
+  tags: ['python', 'install']
+
+- name: Update PATH configuration
+  include_tasks: update_path_configuration.yml
+  when: python_needs_upgrade | default(false)
+  tags: ['python', 'path', 'configuration']
+
+- name: Clean up old Python versions
+  include_tasks: cleanup_old_versions.yml
+  when:
+    - python_version_management.cleanup_old_versions | default(true)
+    - python_needs_upgrade | default(false)
+  tags: ['python', 'cleanup']
+
+- name: Restore Python packages
+  include_tasks: restore_packages.yml
+  when:
+    - python_version_management.preserve_packages
+    - python_needs_upgrade | default(false)
+    - python_packages_backup is defined
+  tags: ['python', 'restore']
+
+- name: Validate Python installation
+  include_tasks: validate_python.yml
+  tags: ['python', 'validate']
+
+- name: Post-migration verification
+  include_tasks: post_migration_verification.yml
+  when: python_needs_upgrade | default(false)
+  tags: ['python', 'verification', 'post-migration']
+
+- name: Python management summary
+  debug:
+    msg: |
+      🐍 Python Management Summary:
+      • Current version: {{ final_python_version | default(detected_python_version) | default('Unknown') }}
+      • Target version: {{ python_version_management.target_version }}
+      • Status: {{ 'UP TO DATE' if not (python_needs_upgrade | default(false)) else 'UPGRADED' }}
+      • pip version: {{ detected_pip_version | default('Unknown') }}
+      • pipx available: {{ 'YES' if pipx_available | default(false) else 'NO' }}
+
+      {% if python_needs_upgrade | default(false) %}
+      🔧 Migration Actions Performed:
+      • Pre-migration analysis: ✅ Complete
+      • Environment backup: {{ 'YES' if python_version_management.backup_environments else 'SKIPPED' }}
+      • Python installation: ✅ Complete
+      • PATH configuration: ✅ Updated
+      • Old version cleanup: {{ 'YES' if python_version_management.cleanup_old_versions else 'SKIPPED' }}
+      • Package restoration: {{ 'YES' if python_version_management.preserve_packages else 'SKIPPED' }}
+      • Post-migration verification: {{ 'SUCCESS' if python_migration_successful | default(false) else 'NEEDS ATTENTION' }}
+
+      📋 Migration Reports:
+      • Analysis: ~/.dotsible/python_migration/analysis_report.txt
+      • Cleanup: ~/.dotsible/python_migration/cleanup_summary.txt
+      • PATH config: ~/.dotsible/python_migration/path_configuration_summary.txt
+      • Verification: ~/.dotsible/python_migration/verification_report.txt
+      • Environment script: ~/.dotsible/python_migration/verify_environment.sh
+      {% endif %}

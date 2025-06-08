@@ -1,0 +1,117 @@
+---
+# Arch Linux Python Installation Tasks
+# Installs Python 3.13.4 via pacman
+
+- name: Update pacman database
+  pacman:
+    update_cache: yes
+  become: yes
+
+- name: Install Python 3.13 and related packages
+  pacman:
+    name:
+      - python
+      - python-pip
+      - python-setuptools
+      - python-wheel
+    state: present
+  become: yes
+  register: python_install
+  retries: 3
+  delay: 10
+  until: python_install is succeeded
+
+- name: Verify Python version
+  shell: python --version
+  register: python_version_check
+  changed_when: false
+
+- name: Check if Python is 3.13+
+  set_fact:
+    python_is_313: >-
+      {{
+        python_version_check.stdout | 
+        regex_search('Python ([0-9]+\.[0-9]+)', '\\1') | 
+        first | 
+        version('3.13', '>=')
+      }}
+
+- name: Install Python 3.13 from AUR if needed
+  block:
+    - name: Check if yay is available
+      command: which yay
+      register: yay_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install python313 from AUR
+      shell: yay -S --noconfirm python313
+      when: yay_check.rc == 0
+      register: aur_python_install
+      failed_when: false
+
+    - name: Create python3.13 symlink
+      file:
+        src: /usr/bin/python313
+        dest: /usr/local/bin/python3.13
+        state: link
+      become: yes
+      when: aur_python_install.rc == 0
+
+  when: not python_is_313
+
+- name: Upgrade pip
+  shell: python -m pip install --user --upgrade pip
+  register: pip_upgrade
+  retries: 3
+  delay: 5
+  until: pip_upgrade is succeeded
+
+- name: Install essential Python packages
+  shell: python -m pip install --user {{ item }}
+  loop:
+    - setuptools
+    - wheel
+    - pipx
+  register: essential_packages
+  retries: 2
+  delay: 5
+  until: essential_packages is succeeded
+
+- name: Add Python user bin to PATH
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    create: yes
+    state: present
+
+- name: Add Python user bin to PATH (zsh)
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export PATH="$HOME/.local/bin:$PATH"'
+    create: yes
+    state: present
+
+- name: Configure pipx
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx ensurepath --force
+  register: pipx_config
+  failed_when: false
+  changed_when: false
+
+- name: Verify final Python installation
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    python --version
+  register: python_verify
+  changed_when: false
+
+- name: Display installation results
+  debug:
+    msg: |
+      🏔️ Arch Linux Python Installation Complete:
+      • Python version: {{ python_verify.stdout | default('Unknown') }}
+      • pip upgrade: {{ 'SUCCESS' if pip_upgrade.rc == 0 else 'FAILED' }}
+      • Essential packages: {{ 'INSTALLED' if essential_packages is succeeded else 'FAILED' }}
+      • pipx configuration: {{ 'SUCCESS' if pipx_config.rc == 0 else 'FAILED' }}

@@ -1,10 +1,26 @@
 ---
+# Ansible Collections Requirements for dotsible
+# Install with: ansible-galaxy install -r requirements.yml
+
 collections:
+  # Community General Collection (homebrew, homebrew_cask, etc.)
   - name: community.general
-    version: ">=3.0.0"
+    version: ">=7.0.0"
+
+  # Windows Collection (win_command, win_shell, etc.)
+  - name: ansible.windows
+    version: ">=1.0.0"
+
+  # POSIX Collection (mount, authorized_key, etc.)
   - name: ansible.posix
     version: ">=1.0.0"
+
+  # Crypto Collection (certificates, keys, etc.)
   - name: community.crypto
+    version: ">=2.0.0"
+
+  # Chocolatey Collection (Windows package management)
+  - name: chocolatey.chocolatey
     version: ">=1.0.0"
 
 roles: []

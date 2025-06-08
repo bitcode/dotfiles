@@ -1,0 +1,41 @@
+---
+galaxy_info:
+  author: Dotsible Project
+  description: Cross-platform Python version management for dotsible
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Darwin
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: ArchLinux
+      versions:
+        - all
+    - name: Windows
+      versions:
+        - 2019
+        - 2022
+  galaxy_tags:
+    - python
+    - development
+    - cross-platform
+    - version-management
+
+dependencies:
+  - role: common
+    when: python_version_management is defined
+
+collections:
+  - community.general
+  - ansible.windows
+  - chocolatey.chocolatey

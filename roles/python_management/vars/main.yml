@@ -1,0 +1,150 @@
+---
+# Python Management Role Variables
+
+# Platform-specific Python package names
+python_packages:
+  darwin:
+    homebrew: "python@3.13"
+    fallback: "python3"
+  
+  debian:
+    apt:
+      - python3.13
+      - python3.13-dev
+      - python3.13-venv
+      - python3.13-distutils
+    ppa: "ppa:deadsnakes/ppa"
+  
+  archlinux:
+    pacman:
+      - python
+      - python-pip
+      - python-setuptools
+      - python-wheel
+    aur: "python313"
+  
+  windows:
+    chocolatey: "python3"
+    winget: "Python.Python.3.13"
+    scoop: "python"
+
+# Essential Python packages to install after upgrade
+essential_python_packages:
+  - setuptools
+  - wheel
+  - pip
+  - pipx
+
+# Python commands to try in order of preference
+python_commands:
+  - python3.13
+  - python3
+  - python
+
+# PATH configurations for different platforms
+python_path_configs:
+  darwin:
+    homebrew_arm64: "/opt/homebrew/opt/python@3.13/bin"
+    homebrew_intel: "/usr/local/opt/python@3.13/bin"
+    user_local: "{{ ansible_user_dir }}/.local/bin"
+  
+  debian:
+    system: "/usr/bin"
+    user_local: "{{ ansible_user_dir }}/.local/bin"
+  
+  archlinux:
+    system: "/usr/bin"
+    user_local: "{{ ansible_user_dir }}/.local/bin"
+    aur: "/usr/local/bin"
+  
+  windows:
+    system: "C:\\Python313"
+    user: "{{ ansible_env.USERPROFILE }}\\AppData\\Roaming\\Python\\Python313\\Scripts"
+
+# Shell configuration files to update
+shell_configs:
+  - "{{ ansible_user_dir }}/.bashrc"
+  - "{{ ansible_user_dir }}/.zshrc"
+  - "{{ ansible_user_dir }}/.profile"
+
+# Backup configuration
+backup_settings:
+  max_backups: 5
+  backup_location: "{{ ansible_user_dir }}/.dotsible/python_backup"
+  
+# Validation settings
+validation_settings:
+  required_modules:
+    - sys
+    - ssl
+    - urllib.request
+    - json
+    - subprocess
+
+  pip_packages_test:
+    - requests
+
+  timeout_seconds: 300
+
+# Cleanup and Migration Settings
+cleanup_settings:
+  # Old Python versions to potentially clean up
+  old_python_versions:
+    - "3.9"
+    - "3.10"
+    - "3.11"
+    - "3.12"
+
+  # System Python paths to preserve (never remove)
+  protected_python_paths:
+    darwin:
+      - "/usr/bin/python3"
+      - "/System/Library/Frameworks/Python.framework"
+      - "/Library/Developer/CommandLineTools/usr/bin/python3"
+    debian:
+      - "/usr/bin/python3"
+      - "/usr/bin/python3.9"  # Ubuntu 20.04 system Python
+      - "/usr/bin/python3.10" # Ubuntu 22.04 system Python
+    archlinux:
+      - "/usr/bin/python"
+      - "/usr/bin/python3"
+    windows:
+      - "C:\\Windows\\py.exe"
+      - "C:\\Python39"  # Potential system Python
+
+  # Directories to clean up
+  cleanup_directories:
+    - "{{ ansible_user_dir }}/.local/lib/python3.9"
+    - "{{ ansible_user_dir }}/.local/lib/python3.10"
+    - "{{ ansible_user_dir }}/.local/lib/python3.11"
+    - "{{ ansible_user_dir }}/.local/lib/python3.12"
+    - "{{ ansible_user_dir }}/.cache/pip"
+    - "/tmp/pip-*"
+
+  # Symlinks to update/remove
+  symlinks_to_update:
+    - "/usr/local/bin/python3"
+    - "/usr/local/bin/pip3"
+    - "{{ ansible_user_dir }}/.local/bin/python3"
+    - "{{ ansible_user_dir }}/.local/bin/pip3"
+
+# Migration verification settings
+migration_verification:
+  critical_commands:
+    - "python3"
+    - "pip3"
+    - "pipx"
+
+  critical_packages:
+    - "pip"
+    - "setuptools"
+    - "wheel"
+    - "pipx"
+
+  post_migration_tests:
+    - command: "python3 --version"
+      expected_pattern: "3\\.13\\."
+    - command: "pip3 --version"
+      expected_pattern: "pip.*python 3\\.13"
+    - command: "pipx --version"
+      expected_pattern: "\\d+\\.\\d+\\.\\d+"

@@ -1,0 +1,120 @@
+---
+# macOS Python Installation Tasks
+# Installs Python 3.13.4 via Homebrew
+
+- name: Check if Homebrew is available
+  command: which brew
+  register: homebrew_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if Homebrew is not available
+  fail:
+    msg: |
+      Homebrew is required for Python installation on macOS.
+      Please install Homebrew first or run the bootstrap script.
+  when: homebrew_check.rc != 0
+
+- name: Update Homebrew
+  homebrew:
+    update_homebrew: true
+  register: homebrew_update
+  retries: 3
+  delay: 10
+  until: homebrew_update is succeeded
+
+- name: Check if python@3.13 formula is available
+  shell: brew search python@3.13
+  register: python_formula_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Python 3.13 via Homebrew
+  homebrew:
+    name: "{{ python_package_name }}"
+    state: present
+    update_homebrew: false
+  vars:
+    python_package_name: >-
+      {%- if 'python@3.13' in python_formula_check.stdout -%}
+        python@3.13
+      {%- else -%}
+        python3
+      {%- endif -%}
+  register: python_install_result
+  retries: 3
+  delay: 10
+  until: python_install_result is succeeded
+
+- name: Add Python 3.13 to PATH
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"'
+    create: yes
+    state: present
+  when: "'python@3.13' in python_formula_check.stdout"
+
+- name: Add Python 3.13 to PATH (Intel Mac)
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export PATH="/usr/local/opt/python@3.13/bin:$PATH"'
+    create: yes
+    state: present
+  when: 
+    - "'python@3.13' in python_formula_check.stdout"
+    - ansible_architecture != 'arm64'
+
+- name: Source shell configuration
+  shell: source {{ ansible_user_dir }}/.zshrc
+  args:
+    executable: /bin/zsh
+  failed_when: false
+  changed_when: false
+
+- name: Verify Python installation
+  shell: |
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    python3 --version
+  register: python_verify
+  failed_when: false
+  changed_when: false
+
+- name: Upgrade pip
+  shell: |
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    python3 -m pip install --upgrade pip
+  register: pip_upgrade
+  retries: 3
+  delay: 5
+  until: pip_upgrade is succeeded
+
+- name: Install essential Python packages
+  shell: |
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    python3 -m pip install --user {{ item }}
+  loop:
+    - setuptools
+    - wheel
+    - pipx
+  register: essential_packages
+  retries: 2
+  delay: 5
+  until: essential_packages is succeeded
+
+- name: Configure pipx
+  shell: |
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx ensurepath --force
+  register: pipx_config
+  failed_when: false
+  changed_when: false
+
+- name: Display installation results
+  debug:
+    msg: |
+      🍎 macOS Python Installation Complete:
+      • Python version: {{ python_verify.stdout | default('Unknown') }}
+      • pip upgrade: {{ 'SUCCESS' if pip_upgrade.rc == 0 else 'FAILED' }}
+      • Essential packages: {{ 'INSTALLED' if essential_packages is succeeded else 'FAILED' }}
+      • pipx configuration: {{ 'SUCCESS' if pipx_config.rc == 0 else 'FAILED' }}

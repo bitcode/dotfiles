@@ -1,0 +1,201 @@
+---
+# Advanced environment detection for conditional deployment
+# Detects OS, distribution, window manager, and environment type
+
+- name: Detect operating system details
+  set_fact:
+    detected_os: "{{ ansible_os_family | lower }}"
+    detected_distribution: "{{ ansible_distribution | lower }}"
+    detected_version: "{{ ansible_distribution_version }}"
+    detected_architecture: "{{ ansible_architecture }}"
+
+- name: Detect window manager (Linux only)
+  block:
+    - name: Check for i3 window manager
+      command: which i3
+      register: i3_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check for Hyprland window manager
+      command: which Hyprland
+      register: hyprland_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check for Sway window manager
+      command: which sway
+      register: sway_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check for GNOME desktop environment
+      command: which gnome-shell
+      register: gnome_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check for KDE desktop environment
+      command: which plasmashell
+      register: kde_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check current desktop session
+      shell: echo $XDG_CURRENT_DESKTOP
+      register: current_desktop
+      failed_when: false
+      changed_when: false
+
+    - name: Set detected window manager
+      set_fact:
+        detected_window_manager: >-
+          {%- if i3_check.rc == 0 -%}
+            i3
+          {%- elif hyprland_check.rc == 0 -%}
+            hyprland
+          {%- elif sway_check.rc == 0 -%}
+            sway
+          {%- elif gnome_check.rc == 0 or 'GNOME' in current_desktop.stdout -%}
+            gnome
+          {%- elif kde_check.rc == 0 or 'KDE' in current_desktop.stdout -%}
+            kde
+          {%- else -%}
+            unknown
+          {%- endif -%}
+  when: ansible_os_family == "Debian" or ansible_distribution == "Archlinux"
+
+- name: Detect environment type
+  block:
+    - name: Check for enterprise indicators (domain membership)
+      shell: |
+        if command -v realm >/dev/null 2>&1; then
+          realm list 2>/dev/null | grep -q "domain-name" && echo "enterprise" || echo "personal"
+        elif command -v net >/dev/null 2>&1; then
+          net ads info 2>/dev/null | grep -q "LDAP server" && echo "enterprise" || echo "personal"
+        else
+          echo "personal"
+        fi
+      register: domain_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check for enterprise software indicators
+      shell: |
+        enterprise_indicators=0
+        # Check for common enterprise software
+        command -v code >/dev/null 2>&1 && grep -q "ms-vscode" ~/.vscode/extensions/extensions.json 2>/dev/null && ((enterprise_indicators++))
+        command -v teams >/dev/null 2>&1 && ((enterprise_indicators++))
+        command -v slack >/dev/null 2>&1 && ((enterprise_indicators++))
+        command -v zoom >/dev/null 2>&1 && ((enterprise_indicators++))
+        
+        # Check for VPN software
+        command -v openvpn >/dev/null 2>&1 && ((enterprise_indicators++))
+        command -v cisco-anyconnect >/dev/null 2>&1 && ((enterprise_indicators++))
+        
+        if [ $enterprise_indicators -ge 2 ]; then
+          echo "enterprise"
+        else
+          echo "personal"
+        fi
+      register: software_check
+      failed_when: false
+      changed_when: false
+
+    - name: Set detected environment type
+      set_fact:
+        detected_environment: >-
+          {%- if 'enterprise' in domain_check.stdout or 'enterprise' in software_check.stdout -%}
+            enterprise
+          {%- else -%}
+            personal
+          {%- endif -%}
+
+- name: Detect Windows environment specifics
+  block:
+    - name: Check Windows edition
+      win_shell: (Get-WmiObject -Class Win32_OperatingSystem).Caption
+      register: windows_edition
+      changed_when: false
+
+    - name: Check if domain joined
+      win_shell: (Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain
+      register: windows_domain_status
+      changed_when: false
+
+    - name: Check for enterprise software on Windows
+      win_shell: |
+        $enterpriseApps = @()
+        if (Get-Command "teams.exe" -ErrorAction SilentlyContinue) { $enterpriseApps += "teams" }
+        if (Get-Command "slack.exe" -ErrorAction SilentlyContinue) { $enterpriseApps += "slack" }
+        if (Test-Path "C:\Program Files\Microsoft Office") { $enterpriseApps += "office" }
+        if (Get-Service -Name "vpnagent" -ErrorAction SilentlyContinue) { $enterpriseApps += "vpn" }
+        $enterpriseApps -join ","
+      register: windows_enterprise_apps
+      changed_when: false
+
+    - name: Set Windows environment facts
+      set_fact:
+        detected_windows_edition: "{{ windows_edition.stdout.strip() }}"
+        detected_domain_joined: "{{ windows_domain_status.stdout.strip() | bool }}"
+        detected_environment: >-
+          {%- if windows_domain_status.stdout.strip() | bool or windows_enterprise_apps.stdout.split(',') | length > 1 -%}
+            enterprise
+          {%- else -%}
+            personal
+          {%- endif -%}
+  when: ansible_os_family == "Windows"
+
+- name: Set macOS environment specifics
+  block:
+    - name: Check for macOS enterprise indicators
+      shell: |
+        enterprise_score=0
+        # Check for MDM enrollment
+        profiles status 2>/dev/null | grep -q "enrolled" && ((enterprise_score++))
+        # Check for enterprise apps
+        ls /Applications/ | grep -i "microsoft\|teams\|slack\|zoom" | wc -l | xargs -I {} expr {} + $enterprise_score
+      register: macos_enterprise_check
+      failed_when: false
+      changed_when: false
+
+    - name: Set macOS environment type
+      set_fact:
+        detected_environment: >-
+          {%- if macos_enterprise_check.stdout | int > 2 -%}
+            enterprise
+          {%- else -%}
+            personal
+          {%- endif -%}
+  when: ansible_os_family == "Darwin"
+
+- name: Display detected environment
+  debug:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║                    ENVIRONMENT DETECTION                    ║
+      ╚══════════════════════════════════════════════════════════════╝
+      
+      🖥️  Operating System: {{ detected_os | title }}
+      📦  Distribution: {{ detected_distribution | title }}
+      🏗️  Architecture: {{ detected_architecture }}
+      🪟  Window Manager: {{ detected_window_manager | default('N/A') | title }}
+      🏢  Environment Type: {{ detected_environment | title }}
+      {% if ansible_os_family == "Windows" %}
+      🪟  Windows Edition: {{ detected_windows_edition | default('Unknown') }}
+      🔗  Domain Joined: {{ detected_domain_joined | default(false) }}
+      {% endif %}
+
+- name: Detect Python version during environment detection
+  include_tasks: detect_python_version.yml
+  tags: ['python', 'detection']
+
+- name: Set global environment variables for conditional deployment
+  set_fact:
+    dotsible_os: "{{ detected_os }}"
+    dotsible_distribution: "{{ detected_distribution }}"
+    dotsible_architecture: "{{ detected_architecture }}"
+    dotsible_window_manager: "{{ detected_window_manager | default('none') }}"
+    dotsible_environment: "{{ detected_environment }}"
+    dotsible_python_version: "{{ detected_python_version | default('unknown') }}"
+    dotsible_python_needs_upgrade: "{{ python_needs_upgrade | default(true) }}"

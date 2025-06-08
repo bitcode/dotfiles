@@ -1,0 +1,117 @@
+---
+# Python Package Restoration Tasks
+# Restores previously backed up Python packages
+
+- name: Check if backup exists
+  stat:
+    path: "{{ python_packages_backup.backup_path }}/pip_packages.txt"
+  register: pip_backup_exists
+
+- name: Check if pipx backup exists
+  stat:
+    path: "{{ python_packages_backup.backup_path }}/pipx_packages.txt"
+  register: pipx_backup_exists
+
+- name: Restore pip packages
+  block:
+    - name: Read pip packages backup
+      slurp:
+        src: "{{ python_packages_backup.backup_path }}/pip_packages.txt"
+      register: pip_backup_content
+
+    - name: Parse pip packages
+      set_fact:
+        pip_packages_to_restore: >-
+          {{
+            (pip_backup_content.content | b64decode).split('\n') |
+            select('match', '^[a-zA-Z0-9].*==.*') |
+            list
+          }}
+
+    - name: Install pip packages from backup
+      shell: |
+        {% if ansible_os_family == 'Darwin' %}
+        export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+        {% elif ansible_os_family == 'Debian' or ansible_distribution == 'Archlinux' %}
+        export PATH="$HOME/.local/bin:$PATH"
+        {% endif %}
+        python3 -m pip install --user "{{ item }}"
+      loop: "{{ pip_packages_to_restore[:20] }}"  # Limit to first 20 packages
+      register: pip_restore_results
+      failed_when: false
+      when: pip_packages_to_restore | length > 0
+
+    - name: Display pip restoration results
+      debug:
+        msg: |
+          📦 pip Package Restoration:
+          • Total packages in backup: {{ pip_packages_to_restore | length }}
+          • Packages attempted: {{ pip_restore_results.results | length if pip_restore_results.results is defined else 0 }}
+          • Successful: {{ pip_restore_results.results | selectattr('rc', 'equalto', 0) | list | length if pip_restore_results.results is defined else 0 }}
+          • Failed: {{ pip_restore_results.results | rejectattr('rc', 'equalto', 0) | list | length if pip_restore_results.results is defined else 0 }}
+
+  when: pip_backup_exists.stat.exists
+
+- name: Restore pipx packages
+  block:
+    - name: Read pipx packages backup
+      slurp:
+        src: "{{ python_packages_backup.backup_path }}/pipx_packages.txt"
+      register: pipx_backup_content
+
+    - name: Parse pipx packages
+      set_fact:
+        pipx_packages_to_restore: >-
+          {{
+            (pipx_backup_content.content | b64decode).split('\n') |
+            select('match', '^[a-zA-Z0-9].*') |
+            reject('match', '^\s*$') |
+            list
+          }}
+
+    - name: Install pipx packages from backup
+      shell: |
+        {% if ansible_os_family == 'Darwin' %}
+        export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+        {% elif ansible_os_family == 'Debian' or ansible_distribution == 'Archlinux' %}
+        export PATH="$HOME/.local/bin:$PATH"
+        {% endif %}
+        pipx install "{{ item }}"
+      loop: "{{ pipx_packages_to_restore }}"
+      register: pipx_restore_results
+      failed_when: false
+      when: pipx_packages_to_restore | length > 0
+
+    - name: Display pipx restoration results
+      debug:
+        msg: |
+          🔧 pipx Package Restoration:
+          • Total packages in backup: {{ pipx_packages_to_restore | length }}
+          • Packages attempted: {{ pipx_restore_results.results | length if pipx_restore_results.results is defined else 0 }}
+          • Successful: {{ pipx_restore_results.results | selectattr('rc', 'equalto', 0) | list | length if pipx_restore_results.results is defined else 0 }}
+          • Failed: {{ pipx_restore_results.results | rejectattr('rc', 'equalto', 0) | list | length if pipx_restore_results.results is defined else 0 }}
+
+  when: pipx_backup_exists.stat.exists
+
+- name: Create restoration summary
+  copy:
+    content: |
+      Python Package Restoration Summary - {{ ansible_date_time.iso8601 }}
+      ========================================
+      
+      pip Packages:
+      • Total in backup: {{ pip_packages_to_restore | default([]) | length }}
+      • Restoration attempted: {{ pip_restore_results.results | default([]) | length }}
+      • Successful: {{ pip_restore_results.results | default([]) | selectattr('rc', 'equalto', 0) | list | length }}
+      • Failed: {{ pip_restore_results.results | default([]) | rejectattr('rc', 'equalto', 0) | list | length }}
+      
+      pipx Packages:
+      • Total in backup: {{ pipx_packages_to_restore | default([]) | length }}
+      • Restoration attempted: {{ pipx_restore_results.results | default([]) | length }}
+      • Successful: {{ pipx_restore_results.results | default([]) | selectattr('rc', 'equalto', 0) | list | length }}
+      • Failed: {{ pipx_restore_results.results | default([]) | rejectattr('rc', 'equalto', 0) | list | length }}
+      
+      Note: Only the first 20 pip packages were restored to avoid conflicts.
+      You can manually install additional packages from: {{ python_packages_backup.backup_path }}/pip_packages.txt
+    dest: "{{ ansible_user_dir }}/.dotsible/python_restoration.log"
+    mode: '0644'

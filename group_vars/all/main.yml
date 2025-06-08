@@ -1,24 +1,177 @@
 ---
-# Main configuration for all hosts
-dotfiles_enabled: true
-dotfiles_repository: "{{ ansible_env.PWD }}"
-dotfiles_local_path: "{{ ansible_env.PWD }}"
-dotfiles_backup_existing: true
+# Main global configuration for all hosts
+# These variables apply to all systems unless overridden
 
-# Profile definitions
-profiles:
-  minimal:
-    applications: [git, vim]
-    features: [basic_shell]
-  developer:
-    applications: [git, zsh, tmux, neovim, alacritty, starship]
-    features: [development_tools, shell_enhancements]
-  nixos:
-    applications: [git, zsh, tmux, neovim]
-    features: [nix_integration, declarative_config]
+# Dotsible Configuration
+dotsible:
+  version: "1.0.0"
+  author: "Dotsible Team"
+  repository: "https://github.com/username/dotsible"
+  documentation: "https://github.com/username/dotsible/docs"
 
-# Default user configuration
+# User Configuration
 default_user:
   name: "{{ ansible_user | default(ansible_user_id) }}"
-  shell: "/bin/zsh"
+  shell: "/bin/bash"
   create_home: true
+  groups: []
+
+# Dotfiles Management
+dotfiles:
+  enabled: true
+  repository: "{{ dotfiles_repo | default('https://github.com/bitcode/dotfiles') }}"
+  branch: "{{ dotfiles_branch | default('main') }}"
+  local_path: "{{ ansible_user_dir }}/.dotfiles"
+  backup_existing: true
+  backup_directory: "{{ ansible_user_dir }}/.dotfiles_backup"
+  force_update: false
+  
+  # Repository management
+  clone_depth: 1
+  update_submodules: true
+  verify_ssl: true
+  
+  # Symlink configuration
+  symlink_strategy: "force"  # force, skip, backup
+  create_directories: true
+  preserve_permissions: true
+  
+  # Template processing
+  template_engine: "jinja2"
+  template_extension: ".j2"
+  process_templates: true
+  
+  # OS-specific handling
+  os_specific_configs: true
+  profile_specific_configs: true
+  
+  # Validation and verification
+  verify_installation: true
+  validate_configs: true
+  
+  # File type handling
+  file_types:
+    configs: true
+    scripts: true
+    themes: true
+    fonts: true
+    
+  # Exclusions
+  exclude_patterns:
+    - "*.git*"
+    - "*.DS_Store"
+    - "*.tmp"
+    - "*.log"
+    - "README*"
+    - "LICENSE*"
+    - "docs/"
+    - ".github/"
+
+# System Configuration
+system:
+  timezone: "UTC"
+  locale: "en_US.UTF-8"
+  keyboard_layout: "us"
+  update_cache: true
+  install_recommended: false
+  install_suggests: false
+
+# Security Configuration
+security:
+  enforce_policies: "{{ enforce_security_policies | default(false) }}"
+  require_encrypted: "{{ require_encrypted_connections | default(false) }}"
+  disable_root_login: true
+  enable_firewall: true
+  fail2ban_enabled: true
+
+# Logging Configuration
+logging:
+  enabled: true
+  level: "{{ 'DEBUG' if enable_debug_logging | default(false) else 'INFO' }}"
+  directory: "/var/log/dotsible"
+  max_size: "100MB"
+  retention_days: 30
+
+# Backup Configuration
+backup:
+  enabled: "{{ enable_backups | default(false) }}"
+  directory: "/var/backups/dotsible"
+  schedule: "{{ backup_schedule | default('0 2 * * *') }}"
+  retention_days: 7
+  compress: true
+
+# Monitoring Configuration
+monitoring:
+  enabled: "{{ enable_monitoring | default(false) }}"
+  interval: "{{ monitoring_interval | default(300) }}"
+  metrics_retention: 30
+  alert_threshold: 80
+
+# Feature Flags
+features:
+  experimental: "{{ allow_experimental_features | default(false) }}"
+  beta_features: false
+  telemetry: false
+  auto_updates: false
+
+# Default Applications (minimal set)
+default_applications:
+  - git
+  - vim
+  - curl
+  - wget
+  - htop
+
+# Default Services
+default_services:
+  - ssh
+  - cron
+
+# Python Version Management
+python_version_management:
+  target_version: "3.13.4"
+  minimum_version: "3.8.0"
+  auto_upgrade: true
+  preserve_packages: true
+  backup_environments: true
+
+  # Cleanup and Migration Settings
+  cleanup_old_versions: true
+  safe_removal: true
+  preserve_system_python: true
+  force_migration: false
+
+  # Version Isolation Settings
+  isolate_versions: true
+  update_path_priority: true
+  clean_old_symlinks: true
+  migrate_virtual_environments: true
+
+  # Rollback Safety
+  create_rollback_point: true
+  verify_before_cleanup: true
+  rollback_on_failure: true
+
+# Package Management
+package_management:
+  state: "{{ package_state | default('present') }}"
+  update_cache: true
+  cache_valid_time: 3600
+  autoremove: true
+  autoclean: true
+  retry_count: 3
+
+# Network Configuration
+network:
+  timeout: 30
+  retries: 3
+  delay: 5
+
+# Paths
+paths:
+  home: "{{ ansible_user_dir }}"
+  config: "{{ ansible_user_dir }}/.config"
+  local: "{{ ansible_user_dir }}/.local"
+  bin: "{{ ansible_user_dir }}/.local/bin"
+  cache: "{{ ansible_user_dir }}/.cache"
+  temp: "/tmp"

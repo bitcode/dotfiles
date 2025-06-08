@@ -1,0 +1,27 @@
+---
+- name: Test Error Reporting Improvements
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    test_casks:
+      - "nonexistent-cask-test-123"
+      - "another-fake-cask-456"
+  
+  tasks:
+    - name: Test homebrew cask error handling
+      community.general.homebrew_cask:
+        name: "{{ item }}"
+        state: present
+        accept_external_apps: true
+      loop: "{{ test_casks }}"
+      register: test_cask_result
+      # Let this fail naturally to test error reporting
+      
+    - name: Show test results
+      debug:
+        msg: |
+          Test completed. Results:
+          {% for result in test_cask_result.results %}
+          - {{ result.item }}: {{ 'FAILED' if result.failed else 'SUCCESS' }}
+          {% endfor %}

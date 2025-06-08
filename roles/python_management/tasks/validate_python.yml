@@ -1,0 +1,140 @@
+---
+# Python Installation Validation Tasks
+# Validates that Python installation meets requirements
+
+- name: Detect final Python installation
+  shell: |
+    {% if ansible_os_family == 'Darwin' %}
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    {% elif ansible_os_family == 'Debian' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% elif ansible_distribution == 'Archlinux' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% endif %}
+    for cmd in python3.13 python3 python; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        version=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [[ -n "$version" ]]; then
+          echo "$cmd:$version"
+          break
+        fi
+      fi
+    done
+  register: final_python_check
+  changed_when: false
+
+- name: Parse final Python version
+  set_fact:
+    final_python_cmd: "{{ final_python_check.stdout.split(':')[0] if ':' in final_python_check.stdout else 'none' }}"
+    final_python_version: "{{ final_python_check.stdout.split(':')[1] if ':' in final_python_check.stdout else '0.0.0' }}"
+
+- name: Validate Python version meets target
+  assert:
+    that:
+      - final_python_version is version(python_version_management.minimum_version, '>=')
+    fail_msg: |
+      Python validation failed!
+      • Found version: {{ final_python_version }}
+      • Minimum required: {{ python_version_management.minimum_version }}
+      • Target version: {{ python_version_management.target_version }}
+    success_msg: |
+      Python validation successful!
+      • Version: {{ final_python_version }}
+      • Command: {{ final_python_cmd }}
+
+- name: Test pip functionality
+  shell: |
+    {% if ansible_os_family == 'Darwin' %}
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    {% elif ansible_os_family == 'Debian' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% elif ansible_distribution == 'Archlinux' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% endif %}
+    {{ final_python_cmd }} -m pip --version
+  register: pip_test
+  failed_when: false
+  changed_when: false
+
+- name: Test pipx functionality
+  shell: |
+    {% if ansible_os_family == 'Darwin' %}
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    {% elif ansible_os_family == 'Debian' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% elif ansible_distribution == 'Archlinux' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% endif %}
+    pipx --version
+  register: pipx_test
+  failed_when: false
+  changed_when: false
+
+- name: Test Python module imports
+  shell: |
+    {% if ansible_os_family == 'Darwin' %}
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    {% elif ansible_os_family == 'Debian' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% elif ansible_distribution == 'Archlinux' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% endif %}
+    {{ final_python_cmd }} -c "import sys, ssl, urllib.request; print('Core modules working')"
+  register: modules_test
+  failed_when: false
+  changed_when: false
+
+- name: Set validation results
+  set_fact:
+    python_validation_results:
+      version_check: "{{ 'PASS' if final_python_version is version(python_version_management.minimum_version, '>=') else 'FAIL' }}"
+      pip_check: "{{ 'PASS' if pip_test.rc == 0 else 'FAIL' }}"
+      pipx_check: "{{ 'PASS' if pipx_test.rc == 0 else 'FAIL' }}"
+      modules_check: "{{ 'PASS' if modules_test.rc == 0 else 'FAIL' }}"
+
+- name: Display validation summary
+  debug:
+    msg: |
+      ✅ Python Installation Validation:
+      • Python version: {{ final_python_version }} ({{ python_validation_results.version_check }})
+      • pip functionality: {{ python_validation_results.pip_check }}
+      • pipx functionality: {{ python_validation_results.pipx_check }}
+      • Core modules: {{ python_validation_results.modules_check }}
+      • Command path: {{ final_python_cmd }}
+
+- name: Create validation report
+  copy:
+    content: |
+      Python Installation Validation Report - {{ ansible_date_time.iso8601 }}
+      ========================================
+      
+      System Information:
+      • OS Family: {{ ansible_os_family }}
+      • Distribution: {{ ansible_distribution | default('Unknown') }}
+      • Architecture: {{ ansible_architecture }}
+      
+      Python Installation:
+      • Command: {{ final_python_cmd }}
+      • Version: {{ final_python_version }}
+      • Target Version: {{ python_version_management.target_version }}
+      • Minimum Version: {{ python_version_management.minimum_version }}
+      
+      Validation Results:
+      • Version Check: {{ python_validation_results.version_check }}
+      • pip Functionality: {{ python_validation_results.pip_check }}
+      • pipx Functionality: {{ python_validation_results.pipx_check }}
+      • Core Modules: {{ python_validation_results.modules_check }}
+      
+      pip Version: {{ pip_test.stdout | default('Unknown') }}
+      pipx Version: {{ pipx_test.stdout | default('Unknown') }}
+    dest: "{{ ansible_user_dir }}/.dotsible/python_validation.log"
+    mode: '0644'
+
+- name: Fail if critical validations failed
+  fail:
+    msg: |
+      Python installation validation failed!
+      Check {{ ansible_user_dir }}/.dotsible/python_validation.log for details.
+  when: 
+    - python_validation_results.version_check == 'FAIL' or 
+      python_validation_results.pip_check == 'FAIL'

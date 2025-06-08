@@ -1,0 +1,9 @@
+---
+- name: Direct Python Version Management Test
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  roles:
+    - role: python_management
+      tags: ['python', 'python_management']

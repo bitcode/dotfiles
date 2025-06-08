@@ -1,0 +1,82 @@
+---
+# Python Environment Backup Tasks
+# Backs up existing Python packages and virtual environments
+
+- name: Create backup directory
+  file:
+    path: "{{ ansible_user_dir }}/.dotsible/python_backup/{{ ansible_date_time.epoch }}"
+    state: directory
+    mode: '0755'
+  register: backup_dir
+
+- name: Backup pip packages list
+  shell: "{{ detected_python_cmd }} -m pip list --format=freeze"
+  register: pip_packages_list
+  failed_when: false
+  changed_when: false
+  when: detected_python_cmd != 'none'
+
+- name: Save pip packages to backup
+  copy:
+    content: "{{ pip_packages_list.stdout }}"
+    dest: "{{ backup_dir.path }}/pip_packages.txt"
+    mode: '0644'
+  when: 
+    - detected_python_cmd != 'none'
+    - pip_packages_list.rc == 0
+
+- name: Backup pipx packages list
+  shell: pipx list --short
+  register: pipx_packages_list
+  failed_when: false
+  changed_when: false
+  when: pipx_available
+
+- name: Save pipx packages to backup
+  copy:
+    content: "{{ pipx_packages_list.stdout }}"
+    dest: "{{ backup_dir.path }}/pipx_packages.txt"
+    mode: '0644'
+  when: 
+    - pipx_available
+    - pipx_packages_list.rc == 0
+
+- name: Find virtual environments
+  find:
+    paths:
+      - "{{ ansible_user_dir }}/.virtualenvs"
+      - "{{ ansible_user_dir }}/venv"
+      - "{{ ansible_user_dir }}/.venv"
+      - "{{ ansible_user_dir }}/virtualenvs"
+    file_type: directory
+    depth: 1
+  register: venv_directories
+  failed_when: false
+
+- name: Backup virtual environment list
+  copy:
+    content: |
+      Virtual Environments Found:
+      {% for venv in venv_directories.files %}
+      - {{ venv.path }}
+      {% endfor %}
+    dest: "{{ backup_dir.path }}/virtual_environments.txt"
+    mode: '0644'
+  when: venv_directories.files is defined
+
+- name: Set backup information
+  set_fact:
+    python_packages_backup:
+      backup_path: "{{ backup_dir.path }}"
+      pip_packages: "{{ pip_packages_list.stdout_lines | default([]) }}"
+      pipx_packages: "{{ pipx_packages_list.stdout_lines | default([]) }}"
+      virtual_environments: "{{ venv_directories.files | map(attribute='path') | list | default([]) }}"
+
+- name: Display backup summary
+  debug:
+    msg: |
+      📦 Python Environment Backup:
+      • Backup location: {{ backup_dir.path }}
+      • pip packages: {{ pip_packages_list.stdout_lines | default([]) | length }}
+      • pipx packages: {{ pipx_packages_list.stdout_lines | default([]) | length }}
+      • Virtual environments: {{ venv_directories.files | default([]) | length }}

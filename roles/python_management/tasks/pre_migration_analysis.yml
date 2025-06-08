@@ -1,0 +1,169 @@
+---
+# Pre-Migration Analysis Tasks
+# Analyzes the current Python environment before cleanup and migration
+
+- name: Create migration analysis directory
+  file:
+    path: "{{ ansible_user_dir }}/.dotsible/python_migration"
+    state: directory
+    mode: '0755'
+
+- name: Detect all Python installations on system
+  shell: |
+    echo "=== Python Executables ==="
+    find /usr/bin /usr/local/bin {{ ansible_user_dir }}/.local/bin /opt -name "python*" -type f -executable 2>/dev/null | sort
+    echo ""
+    echo "=== Python Versions ==="
+    for py in $(find /usr/bin /usr/local/bin {{ ansible_user_dir }}/.local/bin /opt -name "python*" -type f -executable 2>/dev/null); do
+      if [[ -x "$py" ]]; then
+        version=$($py --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [[ -n "$version" ]]; then
+          echo "$py: $version"
+        fi
+      fi
+    done
+    echo ""
+    echo "=== Homebrew Python (macOS) ==="
+    if command -v brew >/dev/null 2>&1; then
+      brew list | grep python || echo "No Homebrew Python packages found"
+    fi
+  register: python_analysis
+  failed_when: false
+  changed_when: false
+
+- name: Analyze current PATH for Python
+  shell: |
+    echo "=== Current PATH ==="
+    echo "$PATH" | tr ':' '\n' | grep -E "(python|bin)" | sort -u
+    echo ""
+    echo "=== Which Python Commands ==="
+    for cmd in python python3 python3.9 python3.10 python3.11 python3.12 python3.13 pip pip3 pipx; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        echo "$cmd: $(which $cmd)"
+      else
+        echo "$cmd: not found"
+      fi
+    done
+  register: path_analysis
+  failed_when: false
+  changed_when: false
+
+- name: Check for virtual environments
+  shell: |
+    echo "=== Virtual Environments ==="
+    find {{ ansible_user_dir }} -name "pyvenv.cfg" -o -name "activate" | head -20
+    echo ""
+    echo "=== Conda Environments ==="
+    if command -v conda >/dev/null 2>&1; then
+      conda env list 2>/dev/null || echo "Conda available but no environments found"
+    else
+      echo "Conda not found"
+    fi
+  register: venv_analysis
+  failed_when: false
+  changed_when: false
+
+- name: Check current pip and pipx packages
+  shell: |
+    echo "=== Current pip packages (user) ==="
+    if command -v pip3 >/dev/null 2>&1; then
+      pip3 list --user 2>/dev/null | head -20
+    else
+      echo "pip3 not available"
+    fi
+    echo ""
+    echo "=== Current pipx packages ==="
+    if command -v pipx >/dev/null 2>&1; then
+      pipx list --short 2>/dev/null || echo "No pipx packages found"
+    else
+      echo "pipx not available"
+    fi
+  register: packages_analysis
+  failed_when: false
+  changed_when: false
+
+- name: Identify system-critical Python installations
+  shell: |
+    echo "=== System Python Analysis ==="
+    {% if ansible_os_family == 'Darwin' %}
+    echo "macOS System Python:"
+    ls -la /usr/bin/python* 2>/dev/null || echo "No system Python in /usr/bin"
+    echo "Xcode Python:"
+    ls -la /Library/Developer/CommandLineTools/usr/bin/python* 2>/dev/null || echo "No Xcode Python"
+    {% elif ansible_os_family == 'Debian' %}
+    echo "Ubuntu/Debian System Python:"
+    dpkg -l | grep python3 | head -10
+    echo "Alternatives:"
+    update-alternatives --list python3 2>/dev/null || echo "No python3 alternatives"
+    {% elif ansible_distribution == 'Archlinux' %}
+    echo "Arch Linux System Python:"
+    pacman -Q | grep python | head -10
+    {% elif ansible_os_family == 'Windows' %}
+    echo "Windows Python Installations:"
+    where python 2>nul || echo "Python not in PATH"
+    where py 2>nul || echo "Python Launcher not found"
+    {% endif %}
+  register: system_python_analysis
+  failed_when: false
+  changed_when: false
+
+- name: Create comprehensive migration analysis report
+  copy:
+    content: |
+      Python Migration Analysis Report
+      ===============================
+      Generated: {{ ansible_date_time.iso8601 }}
+      Target Python Version: {{ python_version_management.target_version }}
+      Current System: {{ ansible_os_family }} {{ ansible_distribution | default('') }}
+      
+      PYTHON INSTALLATIONS FOUND:
+      {{ python_analysis.stdout }}
+      
+      PATH ANALYSIS:
+      {{ path_analysis.stdout }}
+      
+      VIRTUAL ENVIRONMENTS:
+      {{ venv_analysis.stdout }}
+      
+      PACKAGE ANALYSIS:
+      {{ packages_analysis.stdout }}
+      
+      SYSTEM PYTHON ANALYSIS:
+      {{ system_python_analysis.stdout }}
+      
+      MIGRATION RECOMMENDATIONS:
+      {% if python_needs_upgrade | default(false) %}
+      ✅ Python upgrade needed from {{ detected_python_version | default('unknown') }} to {{ python_version_management.target_version }}
+      {% else %}
+      ⚠️  Python version {{ detected_python_version | default('unknown') }} meets minimum requirements
+      {% endif %}
+      
+      SAFETY CHECKS:
+      {% for path in cleanup_settings.protected_python_paths[ansible_os_family | lower] | default([]) %}
+      🔒 Protected: {{ path }}
+      {% endfor %}
+      
+    dest: "{{ ansible_user_dir }}/.dotsible/python_migration/analysis_report.txt"
+    mode: '0644'
+
+- name: Display migration analysis summary
+  debug:
+    msg: |
+      🔍 Pre-Migration Analysis Complete:
+      • Analysis report: ~/.dotsible/python_migration/analysis_report.txt
+      • Python installations found: {{ python_analysis.stdout_lines | length }}
+      • Current Python version: {{ detected_python_version | default('unknown') }}
+      • Target version: {{ python_version_management.target_version }}
+      • Migration needed: {{ 'YES' if python_needs_upgrade | default(false) else 'NO' }}
+      
+      Next steps:
+      {% if python_needs_upgrade | default(false) %}
+      1. Backup current environment
+      2. Install Python {{ python_version_management.target_version }}
+      3. Migrate packages and configurations
+      4. Clean up old installations
+      {% else %}
+      1. Verify current installation
+      2. Update PATH priorities if needed
+      3. Clean up conflicting installations
+      {% endif %}

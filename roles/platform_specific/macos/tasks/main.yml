@@ -1,15 +1,16 @@
 ---
 # macOS platform-specific setup tasks extracted from macsible.yaml
-- name: Display software inventory
+- name: macOS platform setup initialization
   debug:
     msg: |
-      === macOS Development Environment Software Inventory ===
-      Homebrew Packages: {{ homebrew_packages | join(', ') }}
-      Homebrew Casks: {{ homebrew_casks | join(', ') }}
-      Mac App Store: {{ mac_app_store_apps | map(attribute='name') | join(', ') }}
-      Manual Installations: {{ manual_installations | map(attribute='name') | join(', ') }}
-      NPM Global Packages: {{ npm_global_packages | join(', ') }}
-      =========================================================
+      🍎 macOS Platform Configuration Starting
+      ========================================
+      • Homebrew packages: {{ homebrew_packages | length }} packages
+      • Homebrew casks: {{ homebrew_casks | length }} applications
+      • Mac App Store apps: {{ mac_app_store_apps | length }} applications
+      • Manual installations: {{ manual_installations | length }} tools
+      • NPM global packages: {{ npm_global_packages | length }} packages
+      ========================================
 
 # === SYSTEM PREREQUISITES ===
 - name: Check if Xcode Command Line Tools are installed
@@ -66,6 +67,7 @@
   debug:
     msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
   loop: "{{ homebrew_package_check.results }}"
+  when: item.rc != 0  # Only show missing packages to reduce output
 
 - name: Install missing Homebrew packages
   community.general.homebrew:
@@ -73,6 +75,14 @@
     state: present
   when: item.rc != 0
   loop: "{{ homebrew_package_check.results }}"
+
+- name: Homebrew packages summary
+  debug:
+    msg: |
+      📦 Homebrew Packages Summary:
+      • Total packages: {{ homebrew_packages | length }}
+      • Already installed: {{ homebrew_package_check.results | selectattr('rc', 'equalto', 0) | list | length }}
+      • Newly installed: {{ homebrew_package_check.results | selectattr('rc', 'ne', 0) | list | length }}
 
 # === HOMEBREW CASKS ===
 - name: Check which Homebrew casks are already installed
@@ -86,13 +96,53 @@
   debug:
     msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
   loop: "{{ homebrew_cask_check.results }}"
+  when: item.rc != 0  # Only show missing casks to reduce output
 
 - name: Install missing Homebrew casks
   community.general.homebrew_cask:
     name: "{{ item.item }}"
     state: present
+    accept_external_apps: true
   when: item.rc != 0
   loop: "{{ homebrew_cask_check.results }}"
+  register: homebrew_cask_install_result
+  retries: 3
+  delay: 10
+  until: homebrew_cask_install_result is succeeded
+  failed_when: false  # Don't fail immediately, let us handle errors
+
+- name: Report Homebrew cask installation failures
+  debug:
+    msg: |
+      ❌ Failed to install cask: {{ item.item.item }}
+      Error: {{ item.msg | default('Unknown error') }}
+      {% if item.stderr is defined and item.stderr %}
+      stderr: {{ item.stderr }}
+      {% endif %}
+      {% if item.stdout is defined and item.stdout %}
+      stdout: {{ item.stdout }}
+      {% endif %}
+  loop: "{{ homebrew_cask_install_result.results | default([]) }}"
+  when:
+    - homebrew_cask_install_result.results is defined
+    - item.failed | default(false)
+
+- name: Fail if critical casks could not be installed
+  fail:
+    msg: |
+      Critical Homebrew casks failed to install. See errors above.
+      Failed casks: {{ homebrew_cask_install_result.results | selectattr('failed', 'defined') | selectattr('failed') | map(attribute='item.item') | list | join(', ') }}
+  when:
+    - homebrew_cask_install_result.results is defined
+    - homebrew_cask_install_result.results | selectattr('failed', 'defined') | selectattr('failed') | list | length > 0
+
+- name: Homebrew casks summary
+  debug:
+    msg: |
+      🍺 Homebrew Casks Summary:
+      • Total casks: {{ homebrew_casks | length }}
+      • Already installed: {{ homebrew_cask_check.results | selectattr('rc', 'equalto', 0) | list | length }}
+      • Newly installed: {{ homebrew_cask_check.results | selectattr('rc', 'ne', 0) | list | length }}
 
 # === MANUAL INSTALLATIONS ===
 - name: Check if Rust is installed
@@ -154,7 +204,7 @@
 
 - name: Display nvm installation status
   debug:
-    msg: "Node Version Manager: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'MISSING' }} {{ '(v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else '' }}"
+    msg: "🟢 Node Version Manager: {{ 'INSTALLED' if nvm_version_check.rc == 0 else 'MISSING' }} {{ '(v' + nvm_version_check.stdout + ')' if nvm_version_check.rc == 0 else '' }}"
 
 # === NODE.JS AND NPM GLOBAL PACKAGES ===
 - name: Install latest LTS Node.js via nvm
@@ -183,7 +233,10 @@
   debug:
     msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
   loop: "{{ npm_package_check.results }}"
-  when: nvm_version_check.rc == 0 and npm_package_check.results is defined
+  when:
+    - nvm_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0  # Only show missing packages
 
 - name: Install missing npm global packages
   shell: |
@@ -206,10 +259,111 @@
   changed_when: false
   when: nvm_version_check.rc == 0
 
-- name: Display installed npm global packages
+- name: NPM global packages summary
   debug:
-    msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+    msg: |
+      📦 NPM Global Packages Summary:
+      • Total packages: {{ npm_global_packages | length }}
+      • Successfully installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages
   when: nvm_version_check.rc == 0 and npm_global_list.stdout is defined
+
+# === PYTHON DEVELOPMENT TOOLS ===
+- name: Check if pip3 is working properly
+  shell: python3 -m pip --version
+  register: pip3_check
+  failed_when: false
+  changed_when: false
+
+- name: Check if pipx is already installed
+  shell: pipx --version
+  register: pipx_check
+  failed_when: false
+  changed_when: false
+
+- name: Python development tools status
+  debug:
+    msg: |
+      🐍 Python Development Tools:
+      • pip3: {{ 'WORKING' if pip3_check.rc == 0 else 'NOT WORKING' }}
+      • pipx: {{ 'INSTALLED' if pipx_check.rc == 0 else 'MISSING' }}
+
+- name: Install pipx via pip3
+  shell: python3 -m pip install --user pipx
+  when:
+    - pip3_check.rc == 0
+    - pipx_check.rc != 0
+  register: pipx_install_result
+
+- name: Configure pipx environment
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx ensurepath --force
+  when:
+    - pip3_check.rc == 0
+    - (pipx_check.rc != 0 or pipx_install_result is defined)
+  register: pipx_config_result
+  failed_when: false
+
+- name: Verify pipx installation
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx --version
+  register: pipx_verify
+  failed_when: false
+  changed_when: false
+  when: pip3_check.rc == 0
+
+- name: Check which pipx packages are already installed
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx list | grep "{{ item }}" || echo "NOT_FOUND"
+  register: pipx_package_check
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when: pipx_verify.rc == 0
+
+- name: Display pipx package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if 'NOT_FOUND' not in item.stdout else 'MISSING' }}"
+  loop: "{{ pipx_package_check.results }}"
+  when:
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"  # Only show missing packages
+
+- name: Install missing pipx packages
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx install {{ item.item }}
+  when:
+    - pipx_verify.rc == 0
+    - pipx_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"
+  loop: "{{ pipx_package_check.results }}"
+  register: pipx_install_packages
+
+- name: Verify pipx packages installation
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    {{ item }} --version 2>/dev/null || echo "COMMAND_NOT_FOUND"
+  register: pipx_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - ansible-dev-tools
+    - ansible-lint
+  when: pipx_verify.rc == 0
+
+- name: Pipx tools summary
+  debug:
+    msg: |
+      🔧 Pipx Development Tools Summary:
+      • ansible-dev-tools: {{ 'ACCESSIBLE' if pipx_tools_verify.results[0].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[0].stdout else 'NOT_IN_PATH' }}
+      • ansible-lint: {{ 'ACCESSIBLE' if pipx_tools_verify.results[1].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[1].stdout else 'NOT_IN_PATH' }}
+  when: pipx_verify.rc == 0 and pipx_tools_verify.results is defined
 
 # === GO INSTALLATION ===
 - name: Check if Go is installed with correct version
@@ -295,6 +449,7 @@
       • Homebrew packages: {{ homebrew_packages | length }}
       • Homebrew casks: {{ homebrew_casks | length }}
       • NPM global packages: {{ npm_global_packages | length }}
+      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
       • Mac App Store apps: {{ mac_app_store_apps | length }}
       • Manual installations: {{ manual_installations | length }}
 

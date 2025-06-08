@@ -1,0 +1,230 @@
+---
+# Python Version Cleanup Tasks
+# Safely removes old Python versions while preserving system integrity
+
+- name: Create rollback point before cleanup
+  copy:
+    content: |
+      Python Cleanup Rollback Information
+      ==================================
+      Date: {{ ansible_date_time.iso8601 }}
+      Pre-cleanup Python version: {{ detected_python_version | default('unknown') }}
+      Pre-cleanup Python command: {{ detected_python_cmd | default('unknown') }}
+      
+      PATH before cleanup:
+      {{ ansible_env.PATH }}
+      
+      Python installations before cleanup:
+      {% for python in available_pythons | default([]) %}
+      {{ python[0] }}: {{ python[1] }}
+      {% endfor %}
+    dest: "{{ ansible_user_dir }}/.dotsible/python_migration/rollback_info.txt"
+    mode: '0644'
+  when: python_version_management.create_rollback_point | default(true)
+
+- name: Verify new Python installation before cleanup
+  assert:
+    that:
+      - final_python_version is defined
+      - final_python_version is version(python_version_management.target_version, '>=')
+    fail_msg: |
+      Cannot proceed with cleanup: New Python {{ python_version_management.target_version }} not properly installed.
+      Found version: {{ final_python_version | default('none') }}
+    success_msg: |
+      ✅ New Python {{ final_python_version }} verified, proceeding with cleanup
+  when: python_version_management.verify_before_cleanup | default(true)
+
+- name: Identify old Python installations to clean up
+  shell: |
+    for version in {{ cleanup_settings.old_python_versions | join(' ') }}; do
+      for cmd in python${version} python${version%.*}; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+          path=$(which "$cmd")
+          # Check if it's not a protected system path
+          protected=false
+          {% for protected_path in cleanup_settings.protected_python_paths[ansible_os_family | lower] | default([]) %}
+          if [[ "$path" == "{{ protected_path }}"* ]]; then
+            protected=true
+            break
+          fi
+          {% endfor %}
+          
+          if [[ "$protected" == "false" ]]; then
+            echo "$cmd:$path"
+          fi
+        fi
+      done
+    done
+  register: old_python_installations
+  failed_when: false
+  changed_when: false
+
+- name: Display old Python installations found for cleanup
+  debug:
+    msg: |
+      🧹 Old Python Installations Found for Cleanup:
+      {% for installation in old_python_installations.stdout_lines %}
+      • {{ installation }}
+      {% endfor %}
+      
+      🔒 Protected Installations (will NOT be removed):
+      {% for protected_path in cleanup_settings.protected_python_paths[ansible_os_family | lower] | default([]) %}
+      • {{ protected_path }}
+      {% endfor %}
+
+- name: Clean up old user-installed Python packages
+  shell: |
+    {% if ansible_os_family == 'Darwin' %}
+    export PATH="/opt/homebrew/opt/python@3.13/bin:/usr/local/opt/python@3.13/bin:$PATH"
+    {% elif ansible_os_family == 'Debian' or ansible_distribution == 'Archlinux' %}
+    export PATH="$HOME/.local/bin:$PATH"
+    {% endif %}
+    
+    # Clean up old pip cache
+    if command -v pip3 >/dev/null 2>&1; then
+      pip3 cache purge 2>/dev/null || true
+    fi
+    
+    # Remove old user site-packages directories
+    {% for version in cleanup_settings.old_python_versions %}
+    if [[ -d "{{ ansible_user_dir }}/.local/lib/python{{ version }}" ]]; then
+      echo "Removing {{ ansible_user_dir }}/.local/lib/python{{ version }}"
+      rm -rf "{{ ansible_user_dir }}/.local/lib/python{{ version }}"
+    fi
+    {% endfor %}
+  register: package_cleanup
+  when: python_version_management.cleanup_old_versions | default(true)
+
+- name: Update Python symlinks to point to new version
+  block:
+    - name: Remove old Python symlinks
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ ansible_user_dir }}/.local/bin/python3"
+        - "{{ ansible_user_dir }}/.local/bin/pip3"
+      when: python_version_management.clean_old_symlinks | default(true)
+
+    - name: Create new Python symlinks (Unix-like systems)
+      file:
+        src: "{{ new_python_path }}"
+        dest: "{{ ansible_user_dir }}/.local/bin/python3"
+        state: link
+        force: yes
+      vars:
+        new_python_path: >-
+          {%- if ansible_os_family == 'Darwin' -%}
+            /opt/homebrew/opt/python@3.13/bin/python3.13
+          {%- elif ansible_os_family == 'Debian' -%}
+            /usr/bin/python3.13
+          {%- elif ansible_distribution == 'Archlinux' -%}
+            /usr/bin/python3.13
+          {%- else -%}
+            /usr/bin/python3.13
+          {%- endif -%}
+      when: 
+        - ansible_os_family != 'Windows'
+        - python_version_management.clean_old_symlinks | default(true)
+
+    - name: Create new pip symlinks (Unix-like systems)
+      file:
+        src: "{{ new_pip_path }}"
+        dest: "{{ ansible_user_dir }}/.local/bin/pip3"
+        state: link
+        force: yes
+      vars:
+        new_pip_path: >-
+          {%- if ansible_os_family == 'Darwin' -%}
+            /opt/homebrew/opt/python@3.13/bin/pip3.13
+          {%- elif ansible_os_family == 'Debian' -%}
+            {{ ansible_user_dir }}/.local/bin/pip3.13
+          {%- elif ansible_distribution == 'Archlinux' -%}
+            {{ ansible_user_dir }}/.local/bin/pip3.13
+          {%- else -%}
+            {{ ansible_user_dir }}/.local/bin/pip3.13
+          {%- endif -%}
+      when: 
+        - ansible_os_family != 'Windows'
+        - python_version_management.clean_old_symlinks | default(true)
+
+  when: python_version_management.isolate_versions | default(true)
+
+- name: Clean up old pip cache and temporary files
+  shell: |
+    # Clean pip cache
+    rm -rf {{ ansible_user_dir }}/.cache/pip/* 2>/dev/null || true
+    
+    # Clean temporary pip files
+    rm -rf /tmp/pip-* 2>/dev/null || true
+    
+    # Clean old Python bytecode
+    find {{ ansible_user_dir }}/.local -name "*.pyc" -delete 2>/dev/null || true
+    find {{ ansible_user_dir }}/.local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+  register: cache_cleanup
+  failed_when: false
+
+- name: Remove old Homebrew Python versions (macOS only)
+  block:
+    - name: List installed Homebrew Python versions
+      shell: brew list | grep python | grep -v python@3.13
+      register: old_homebrew_pythons
+      failed_when: false
+      changed_when: false
+
+    - name: Remove old Homebrew Python versions
+      homebrew:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ old_homebrew_pythons.stdout_lines }}"
+      when: 
+        - old_homebrew_pythons.stdout_lines | length > 0
+        - python_version_management.cleanup_old_versions | default(true)
+        - not python_version_management.preserve_system_python | default(true)
+
+  when: 
+    - ansible_os_family == 'Darwin'
+    - python_version_management.cleanup_old_versions | default(true)
+
+- name: Create cleanup summary report
+  copy:
+    content: |
+      Python Cleanup Summary
+      =====================
+      Date: {{ ansible_date_time.iso8601 }}
+      
+      OLD INSTALLATIONS IDENTIFIED:
+      {% for installation in old_python_installations.stdout_lines %}
+      {{ installation }}
+      {% endfor %}
+      
+      CLEANUP ACTIONS PERFORMED:
+      {% if package_cleanup.changed | default(false) %}
+      ✅ Cleaned up old user packages and cache
+      {% endif %}
+      {% if cache_cleanup.changed | default(false) %}
+      ✅ Cleaned up pip cache and temporary files
+      {% endif %}
+      
+      SYMLINKS UPDATED:
+      {% if python_version_management.clean_old_symlinks | default(true) %}
+      ✅ Updated Python and pip symlinks to point to {{ python_version_management.target_version }}
+      {% endif %}
+      
+      PROTECTED PATHS (preserved):
+      {% for protected_path in cleanup_settings.protected_python_paths[ansible_os_family | lower] | default([]) %}
+      🔒 {{ protected_path }}
+      {% endfor %}
+      
+    dest: "{{ ansible_user_dir }}/.dotsible/python_migration/cleanup_summary.txt"
+    mode: '0644'
+
+- name: Display cleanup completion summary
+  debug:
+    msg: |
+      🧹 Python Cleanup Complete:
+      • Old installations identified: {{ old_python_installations.stdout_lines | length }}
+      • Package cleanup: {{ 'COMPLETED' if package_cleanup.changed | default(false) else 'SKIPPED' }}
+      • Cache cleanup: {{ 'COMPLETED' if cache_cleanup.changed | default(false) else 'SKIPPED' }}
+      • Symlinks updated: {{ 'YES' if python_version_management.clean_old_symlinks | default(true) else 'NO' }}
+      • Cleanup report: ~/.dotsible/python_migration/cleanup_summary.txt

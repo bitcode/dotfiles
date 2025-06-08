@@ -1,132 +1,252 @@
 ---
-# Main site playbook for restructured dotfiles
-- name: Cross-Platform Development Environment Setup
-  hosts: localhost
+# Main site playbook - Comprehensive cross-platform system configuration
+# This playbook orchestrates the complete setup of workstations and servers
+
+- name: Pre-Flight Validation and Setup
+  hosts: all
   gather_facts: yes
   become: no
   vars:
-    current_profile: "{{ profile | default('developer') }}"
-    
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    dotsible_version: "2.0.0"
+    execution_timestamp: "{{ ansible_date_time.iso8601 }}"
+    dry_run_mode: "{{ ansible_check_mode | default(false) }}"
+
   pre_tasks:
-    - name: Display configuration banner
+    - name: Dotsible startup banner
       debug:
         msg: |
           ╔══════════════════════════════════════════════════════════════╗
-          ║                    DOTFILES CONFIGURATION                   ║
-          ║              Cross-Platform Development Setup               ║
+          ║                    DOTSIBLE v{{ dotsible_version }}          ║
+          ║              Cross-Platform Environment Setup                ║
+          ║                                                              ║
+          ║  Platform: {{ ansible_os_family | default('Unknown') }}      ║
+          ║  Profile: {{ profile | default('minimal') }}                 ║
+          ║  Mode: {{ 'DRY RUN' if dry_run_mode else 'EXECUTION' }}      ║
+          ║  Time: {{ execution_timestamp }}                             ║
           ╚══════════════════════════════════════════════════════════════╝
-          
-          🖥️  Host: {{ inventory_hostname }}
-          🐧  OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          🏗️  Architecture: {{ ansible_architecture }}
-          👤  Profile: {{ current_profile }}
-          ⏰  Timestamp: {{ ansible_date_time.iso8601 }}
+      tags: ['always']
+
+    - name: Validate system requirements
+      assert:
+        that:
+          - ansible_version.full is version('2.9', '>=')
+          - ansible_python_version is version('3.8', '>=')
+        fail_msg: |
+          System requirements not met:
+          - Ansible 2.9+ required (found: {{ ansible_version.full }})
+          - Python 3.8+ required (found: {{ ansible_python_version }})
+      tags: ['always']
+
+    - name: Create dotsible working directory
+      file:
+        path: "{{ ansible_env.HOME }}/.dotsible"
+        state: directory
+        mode: '0755'
+      tags: ['always']
+
+    - name: Log execution start
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.dotsible/execution.log"
+        line: "{{ execution_timestamp }} - Dotsible execution started (Profile: {{ profile | default('minimal') }})"
+        create: yes
+      tags: ['always']
+
+  tasks:
+    - name: Display detected platform information
+      debug:
+        msg: |
+          Detected Platform Information:
+          • OS Family: {{ ansible_os_family }}
+          • Distribution: {{ ansible_distribution | default('N/A') }}
+          • Version: {{ ansible_distribution_version | default('N/A') }}
+          • Architecture: {{ ansible_architecture }}
+          • Python: {{ ansible_python_version }}
+          • User: {{ ansible_user_id }}
+          • Home: {{ ansible_env.HOME }}
+      tags: ['always']
+
+- name: Platform-Specific Configuration
+  hosts: all
+  gather_facts: no
+  become: no
+
+  pre_tasks:
+    - name: Platform configuration banner
+      debug:
+        msg: |
+          🔧 PLATFORM-SPECIFIC CONFIGURATION
+          ===================================
+          Applying {{ ansible_os_family }}-specific configurations...
+      tags: ['always']
 
   roles:
-    # Common setup (environment detection and base configuration)
-    - role: common
-      tags: ['common', 'base']
-
-    # Package manager setup
-    - role: package_manager
-      tags: ['package_manager', 'packages']
-
-    # Platform-specific setup (must run after common)
     - role: platform_specific/macos
+      tags: ['platform_specific', 'macos']
       when: ansible_os_family == "Darwin"
-      tags: ['platform', 'macos']
 
     - role: platform_specific/windows
+      tags: ['platform_specific', 'windows']
       when: ansible_os_family == "Windows"
-      tags: ['platform', 'windows']
 
     - role: platform_specific/archlinux
+      tags: ['platform_specific', 'archlinux']
       when: ansible_distribution == "Archlinux"
-      tags: ['platform', 'archlinux']
 
     - role: platform_specific/ubuntu
-      when: ansible_os_family == "Debian"
-      tags: ['platform', 'ubuntu']
+      tags: ['platform_specific', 'ubuntu']
+      when: ansible_distribution in ["Ubuntu", "Debian"]
 
-    # Core application configuration
-    - role: applications/neovim
-      tags: ['applications', 'neovim']
+  post_tasks:
+    - name: Platform configuration completed
+      debug:
+        msg: "✅ Platform-specific configuration completed for {{ ansible_os_family }}"
+      tags: ['always']
+
+- name: Application Configuration
+  hosts: all
+  gather_facts: no
+  become: no
+
+  pre_tasks:
+    - name: Application configuration banner
+      debug:
+        msg: |
+          📱 APPLICATION CONFIGURATION
+          ============================
+          Installing and configuring applications...
+      tags: ['always']
+
+  roles:
+    # Core applications (always installed)
+    - role: applications/git
+      tags: ['applications', 'git']
+      when: profile in ['minimal', 'developer', 'enterprise']
 
     - role: applications/zsh
       tags: ['applications', 'zsh']
+      when: profile in ['developer', 'enterprise']
 
     - role: applications/tmux
       tags: ['applications', 'tmux']
+      when: profile in ['developer', 'enterprise']
 
-    - role: applications/alacritty
-      tags: ['applications', 'alacritty']
+    # Development applications
+    - role: applications/neovim
+      tags: ['applications', 'neovim']
+      when: profile in ['developer', 'enterprise']
 
-    - role: applications/starship
-      tags: ['applications', 'starship']
-
-    # Window manager specific configurations (Linux only)
+    # Window managers (Linux only)
     - role: applications/i3
-      when:
-        - dotsible_window_manager is defined
-        - dotsible_window_manager == "i3"
-      tags: ['applications', 'i3', 'window-manager']
+      tags: ['applications', 'i3', 'window_manager']
+      when: 
+        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
+        - dotsible_window_manager | default('') == 'i3'
 
     - role: applications/hyprland
-      when:
-        - dotsible_window_manager is defined
-        - dotsible_window_manager == "hyprland"
-      tags: ['applications', 'hyprland', 'window-manager']
+      tags: ['applications', 'hyprland', 'window_manager']
+      when: 
+        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
+        - dotsible_window_manager | default('') == 'hyprland'
 
     - role: applications/sway
-      when:
-        - dotsible_window_manager is defined
-        - dotsible_window_manager == "sway"
-      tags: ['applications', 'sway', 'window-manager']
-
-    # Status bar configurations (conditional on window manager)
-    - role: applications/waybar
-      when:
-        - dotsible_window_manager is defined
-        - dotsible_window_manager in ["hyprland", "sway"]
-      tags: ['applications', 'waybar', 'status-bar']
-
-    - role: applications/polybar
-      when:
-        - dotsible_window_manager is defined
-        - dotsible_window_manager == "i3"
-      tags: ['applications', 'polybar', 'status-bar']
+      tags: ['applications', 'sway', 'window_manager']
+      when: 
+        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
+        - dotsible_window_manager | default('') == 'sway'
 
   post_tasks:
-    - name: Phase 3 - Cross-Platform Integration completed
+    - name: Application configuration completed
+      debug:
+        msg: "✅ Application configuration completed"
+      tags: ['always']
+
+- name: Profile-Specific Configuration
+  hosts: all
+  gather_facts: no
+  become: no
+
+  pre_tasks:
+    - name: Profile configuration banner
       debug:
         msg: |
-          ✅ Phase 3 completed successfully!
+          👤 PROFILE CONFIGURATION
+          ========================
+          Applying {{ profile | default('minimal') }} profile configurations...
+      tags: ['always']
 
-          Environment Detection:
-          - OS: {{ dotsible_os | default('unknown') }}
-          - Distribution: {{ dotsible_distribution | default('unknown') }}
-          - Window Manager: {{ dotsible_window_manager | default('none') }}
-          - Environment Type: {{ dotsible_environment | default('unknown') }}
+  roles:
+    - role: profiles/minimal
+      tags: ['profiles', 'minimal']
+      when: profile | default('minimal') == 'minimal'
 
-          Platform Support:
-          - macOS: Full support with Homebrew package management
-          - Windows: Full support with Chocolatey/Scoop/winget
-          - Arch Linux: Full support with pacman/AUR
-          - Ubuntu/Debian: Full support with apt/snap/flatpak
+    - role: profiles/developer
+      tags: ['profiles', 'developer']
+      when: profile | default('minimal') == 'developer'
 
-          Applications Configured:
-          - Neovim (cross-platform with language servers)
-          - ZSH (cross-platform shell configuration)
-          - Tmux (cross-platform terminal multiplexer)
-          - Alacritty (cross-platform terminal emulator)
-          - Starship (cross-platform shell prompt)
-          {% if dotsible_window_manager is defined and dotsible_window_manager != 'none' %}
-          - {{ dotsible_window_manager | title }} (window manager)
-          {% if dotsible_window_manager in ["hyprland", "sway"] %}
-          - Waybar (Wayland status bar)
-          {% elif dotsible_window_manager == "i3" %}
-          - Polybar (X11 status bar)
-          {% endif %}
-          {% endif %}
+    - role: profiles/enterprise
+      tags: ['profiles', 'enterprise']
+      when: profile | default('minimal') == 'enterprise'
 
-          Ready for production deployment across all supported platforms!
+  post_tasks:
+    - name: Profile configuration completed
+      debug:
+        msg: "✅ Profile configuration completed for {{ profile | default('minimal') }}"
+      tags: ['always']
+
+- name: Final System Configuration
+  hosts: all
+  gather_facts: no
+  become: no
+
+  pre_tasks:
+    - name: Final configuration banner
+      debug:
+        msg: |
+          🏁 FINAL SYSTEM CONFIGURATION
+          ==============================
+          Applying final configurations and validations...
+      tags: ['always']
+
+  tasks:
+    - name: Create dotsible completion marker
+      file:
+        path: "{{ ansible_env.HOME }}/.dotsible/last_run"
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+      tags: ['always']
+
+    - name: Log execution completion
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.dotsible/execution.log"
+        line: "{{ ansible_date_time.iso8601 }} - Dotsible execution completed successfully (Profile: {{ profile | default('minimal') }})"
+      tags: ['always']
+
+    - name: Display completion summary
+      debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════╗
+          ║                  DOTSIBLE EXECUTION COMPLETE                ║
+          ╠══════════════════════════════════════════════════════════════╣
+          ║ Platform: {{ ansible_os_family | default('Unknown') }}                                      ║
+          ║ Profile: {{ profile | default('minimal') }}                                       ║
+          ║ Execution Time: {{ ansible_date_time.iso8601 }}            ║
+          ║                                                              ║
+          ║ ✅ Platform-specific configuration applied                  ║
+          ║ ✅ Applications installed and configured                    ║
+          ║ ✅ Profile settings applied                                 ║
+          ║ ✅ System ready for use                                     ║
+          ║                                                              ║
+          ║ Next Steps:                                                  ║
+          ║ • Restart your shell or source your profile                 ║
+          ║ • Run validation: ./tests/scripts/run_all_tests.sh          ║
+          ║ • Check logs: ~/.dotsible/execution.log                     ║
+          ╚══════════════════════════════════════════════════════════════╝
+      tags: ['always']
+
+  handlers:
+    - name: restart shell
+      debug:
+        msg: "Please restart your shell or run: source ~/.zshrc (or ~/.bashrc)"

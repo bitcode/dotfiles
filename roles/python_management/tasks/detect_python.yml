@@ -1,0 +1,109 @@
+---
+# Python Detection Tasks
+# Detects current Python version and determines if upgrade is needed
+
+- name: Check for Python installations
+  shell: |
+    for cmd in python3 python python3.13 python3.12 python3.11 python3.10 python3.9 python3.8; do
+      if command -v "$cmd" >/dev/null 2>&1; then
+        version=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [[ -n "$version" ]]; then
+          echo "$cmd:$version"
+        fi
+      fi
+    done
+  register: python_installations
+  failed_when: false
+  changed_when: false
+
+- name: Parse Python installations
+  set_fact:
+    available_pythons: >-
+      {{
+        python_installations.stdout_lines | 
+        map('split', ':') | 
+        map('list') | 
+        list
+      }}
+
+- name: Find highest Python version
+  set_fact:
+    detected_python_cmd: >-
+      {{
+        available_pythons | 
+        sort(attribute='1', reverse=true) | 
+        first | 
+        first if available_pythons else 'none'
+      }}
+    detected_python_version: >-
+      {{
+        available_pythons | 
+        sort(attribute='1', reverse=true) | 
+        first | 
+        last if available_pythons else '0.0.0'
+      }}
+
+- name: Check if Python upgrade is needed
+  set_fact:
+    python_needs_upgrade: >-
+      {{
+        detected_python_version is version(python_version_management.target_version, '<') or
+        detected_python_cmd == 'none'
+      }}
+
+- name: Display Python detection results
+  debug:
+    msg: |
+      🔍 Python Detection Results:
+      • Available Python installations: {{ available_pythons | length }}
+      {% for python in available_pythons %}
+      • {{ python[0] }}: {{ python[1] }}
+      {% endfor %}
+      • Highest version found: {{ detected_python_version }}
+      • Target version: {{ python_version_management.target_version }}
+      • Upgrade needed: {{ 'YES' if python_needs_upgrade else 'NO' }}
+
+- name: Check pip availability
+  shell: "{{ detected_python_cmd }} -m pip --version"
+  register: pip_check
+  failed_when: false
+  changed_when: false
+  when: detected_python_cmd != 'none'
+
+- name: Set pip version
+  set_fact:
+    detected_pip_version: >-
+      {{
+        pip_check.stdout | regex_search('pip ([0-9]+\.[0-9]+\.[0-9]+)', '\\1') | first
+        if pip_check.rc == 0 else 'Not available'
+      }}
+  when: detected_python_cmd != 'none'
+
+- name: Check pipx availability
+  shell: pipx --version
+  register: pipx_check
+  failed_when: false
+  changed_when: false
+
+- name: Set pipx availability
+  set_fact:
+    pipx_available: "{{ pipx_check.rc == 0 }}"
+
+- name: Log Python detection to file
+  copy:
+    content: |
+      Python Detection Results - {{ ansible_date_time.iso8601 }}
+      ========================================
+      Available Python installations:
+      {% for python in available_pythons %}
+      - {{ python[0] }}: {{ python[1] }}
+      {% endfor %}
+      
+      Highest version found: {{ detected_python_version }}
+      Target version: {{ python_version_management.target_version }}
+      Upgrade needed: {{ python_needs_upgrade }}
+      pip version: {{ detected_pip_version | default('Unknown') }}
+      pipx available: {{ pipx_available }}
+    dest: "{{ ansible_user_dir }}/.dotsible/python_detection.log"
+    mode: '0644'
+  delegate_to: localhost
