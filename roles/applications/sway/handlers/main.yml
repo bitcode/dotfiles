@@ -1,0 +1,16 @@
+---
+# Sway handlers
+- name: restart sway
+  debug:
+    msg: "Sway configuration updated. Restart Sway session or use Mod+Shift+c to reload."
+  listen: "restart sway"
+
+- name: reload sway config
+  debug:
+    msg: "Sway configuration reloaded. Use Mod+Shift+c to reload sway config."
+  listen: "reload sway config"
+
+- name: restart waybar
+  debug:
+    msg: "Waybar configuration updated. Restart waybar with 'killall waybar && waybar &'."
+  listen: "restart waybar"

@@ -1,0 +1,114 @@
+---
+# Sway Wayland compositor variables
+
+# Package names for different OS families
+sway_packages:
+  debian:
+    - sway
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+    - swaybg
+    - xdg-desktop-portal-wlr
+  archlinux:
+    - sway
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+    - swaybg
+    - xdg-desktop-portal-wlr
+  fedora:
+    - sway
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+    - swaybg
+    - xdg-desktop-portal-wlr
+
+# Configuration directory paths
+sway_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/sway"
+  archlinux: "{{ ansible_user_dir }}/.config/sway"
+  fedora: "{{ ansible_user_dir }}/.config/sway"
+
+# Waybar configuration directory
+waybar_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/waybar"
+  archlinux: "{{ ansible_user_dir }}/.config/waybar"
+  fedora: "{{ ansible_user_dir }}/.config/waybar"
+
+# Essential Wayland dependencies
+sway_dependencies:
+  - "wayland"
+  - "wayland-protocols"
+  - "wlroots"
+
+# Default Sway configuration
+sway_default_config:
+  mod_key: "Mod4"  # Super key
+  terminal: "alacritty"
+  browser: "firefox"
+  file_manager: "ranger"
+  launcher: "wofi --show drun"
+  
+# Sway output configuration
+sway_outputs:
+  - { name: "eDP-1", resolution: "1920x1080", position: "0,0", scale: "1" }
+  - { name: "HDMI-A-1", resolution: "1920x1080", position: "1920,0", scale: "1" }
+
+# Sway workspace configuration
+sway_workspaces:
+  - { number: 1, name: "1:term", output: "" }
+  - { number: 2, name: "2:web", output: "" }
+  - { number: 3, name: "3:code", output: "" }
+  - { number: 4, name: "4:files", output: "" }
+  - { number: 5, name: "5:media", output: "" }
+  - { number: 6, name: "6:chat", output: "" }
+  - { number: 7, name: "7:misc", output: "" }
+  - { number: 8, name: "8:sys", output: "" }
+  - { number: 9, name: "9:tmp", output: "" }
+  - { number: 10, name: "10:bg", output: "" }
+
+# Sway key bindings (i3-compatible)
+sway_keybindings:
+  - { key: "Return", command: "exec {{ sway_default_config.terminal }}" }
+  - { key: "d", command: "exec {{ sway_default_config.launcher }}" }
+  - { key: "Shift+q", command: "kill" }
+  - { key: "Shift+c", command: "reload" }
+  - { key: "Shift+r", command: "restart" }
+  - { key: "Shift+e", command: "exec swaynag -t warning -m 'Exit sway?' -b 'Yes' 'swaymsg exit'" }
+
+# Autostart applications
+sway_autostart:
+  - "exec waybar"
+  - "exec dunst"
+  - "exec swayidle -w"
+  - "exec /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+
+# Input configuration
+sway_input_config:
+  touchpad:
+    tap: "enabled"
+    natural_scroll: "enabled"
+    dwt: "enabled"
+    accel_profile: "adaptive"
+    click_method: "clickfinger"
+  keyboard:
+    xkb_layout: "us"
+    xkb_variant: ""
+    xkb_options: "caps:escape"

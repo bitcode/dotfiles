@@ -1,0 +1,16 @@
+---
+# Hyprland handlers
+- name: restart hyprland
+  debug:
+    msg: "Hyprland configuration updated. Restart Hyprland session to apply changes."
+  listen: "restart hyprland"
+
+- name: reload hyprland config
+  debug:
+    msg: "Hyprland configuration reloaded. Use Super+Shift+C to reload config."
+  listen: "reload hyprland config"
+
+- name: restart waybar
+  debug:
+    msg: "Waybar configuration updated. Restart waybar with 'killall waybar && waybar &'."
+  listen: "restart waybar"

@@ -5,11 +5,11 @@ dependencies:
 
 galaxy_info:
   author: Dotsible Team
-  description: Cross-platform Neovim configuration and setup with plugin management
+  description: Polybar status bar configuration for X11 window managers
   company: Dotsible
   license: MIT
   min_ansible_version: 2.9
-
+  
   platforms:
     - name: Ubuntu
       versions: [18.04, 20.04, 22.04, 24.04]
@@ -17,21 +17,18 @@ galaxy_info:
       versions: [10, 11, 12]
     - name: ArchLinux
       versions: [all]
-    - name: MacOSX
-      versions: [10.15, 11.0, 12.0, 13.0, 14.0, 15.0]
-    - name: Windows
-      versions: [10, 11, Server2019, Server2022]
-
+    - name: Fedora
+      versions: [35, 36, 37, 38, 39]
+      
   galaxy_tags:
-    - neovim
-    - editor
-    - development
-    - cross-platform
-    - lua
-    - plugins
+    - polybar
+    - status-bar
+    - x11
+    - desktop
+    - linux
+    - i3
+    - bspwm
 
 collections:
   - community.general
   - ansible.posix
-  - chocolatey.chocolatey
-  - community.windows

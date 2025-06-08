@@ -1,0 +1,110 @@
+---
+# Hyprland Wayland compositor variables
+
+# Package names for different OS families
+hyprland_packages:
+  archlinux:
+    - hyprland
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+    - xdg-desktop-portal-hyprland
+  debian:
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+  ubuntu:
+    - waybar
+    - wofi
+    - dunst
+    - grim
+    - slurp
+    - wl-clipboard
+    - swaylock
+    - swayidle
+
+# AUR packages for Arch Linux (Hyprland)
+hyprland_aur_packages:
+  - hyprland-git
+  - xdg-desktop-portal-hyprland-git
+
+# Configuration directory paths
+hyprland_config_dir:
+  archlinux: "{{ ansible_user_dir }}/.config/hypr"
+  debian: "{{ ansible_user_dir }}/.config/hypr"
+  ubuntu: "{{ ansible_user_dir }}/.config/hypr"
+
+# Waybar configuration directory
+waybar_config_dir:
+  archlinux: "{{ ansible_user_dir }}/.config/waybar"
+  debian: "{{ ansible_user_dir }}/.config/waybar"
+  ubuntu: "{{ ansible_user_dir }}/.config/waybar"
+
+# Essential Wayland dependencies
+hyprland_dependencies:
+  - "wayland"
+  - "wayland-protocols"
+  - "wlroots"
+  - "libdrm"
+  - "libxkbcommon"
+
+# Default Hyprland configuration
+hyprland_default_config:
+  mod_key: "SUPER"
+  terminal: "alacritty"
+  browser: "firefox"
+  file_manager: "ranger"
+  launcher: "wofi --show drun"
+  
+# Hyprland monitor configuration
+hyprland_monitors:
+  - { name: "eDP-1", resolution: "1920x1080@60", position: "0x0", scale: "1" }
+  - { name: "HDMI-A-1", resolution: "1920x1080@60", position: "1920x0", scale: "1" }
+
+# Hyprland workspace configuration
+hyprland_workspaces:
+  - { id: 1, name: "term", monitor: "" }
+  - { id: 2, name: "web", monitor: "" }
+  - { id: 3, name: "code", monitor: "" }
+  - { id: 4, name: "files", monitor: "" }
+  - { id: 5, name: "media", monitor: "" }
+  - { id: 6, name: "chat", monitor: "" }
+  - { id: 7, name: "misc", monitor: "" }
+  - { id: 8, name: "sys", monitor: "" }
+  - { id: 9, name: "tmp", monitor: "" }
+  - { id: 10, name: "bg", monitor: "" }
+
+# Hyprland key bindings
+hyprland_keybindings:
+  - { key: "SUPER, Return", command: "exec, {{ hyprland_default_config.terminal }}" }
+  - { key: "SUPER, D", command: "exec, {{ hyprland_default_config.launcher }}" }
+  - { key: "SUPER SHIFT, Q", command: "killactive" }
+  - { key: "SUPER SHIFT, E", command: "exit" }
+  - { key: "SUPER, V", command: "togglefloating" }
+  - { key: "SUPER, F", command: "fullscreen" }
+
+# Autostart applications
+hyprland_autostart:
+  - "exec-once = waybar"
+  - "exec-once = dunst"
+  - "exec-once = swayidle -w"
+  - "exec-once = /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+
+# Environment variables for Hyprland
+hyprland_env_vars:
+  - "XCURSOR_SIZE,24"
+  - "QT_QPA_PLATFORMTHEME,qt5ct"
+  - "QT_QPA_PLATFORM,wayland;xcb"
+  - "GDK_BACKEND,wayland,x11"
+  - "SDL_VIDEODRIVER,wayland"
+  - "CLUTTER_BACKEND,wayland"

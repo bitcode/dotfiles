@@ -1,0 +1,370 @@
+---
+# Ubuntu/Debian platform-specific setup tasks
+- name: Display software inventory
+  debug:
+    msg: |
+      === Ubuntu/Debian Development Environment Software Inventory ===
+      APT Packages: {{ apt_packages | join(', ') }}
+      Snap Packages: {{ snap_packages | join(', ') }}
+      Development Packages: {{ dev_packages | join(', ') }}
+      Window Manager Packages: {{ wm_packages | join(', ') }}
+      Font Packages: {{ font_packages | join(', ') }}
+      System Packages: {{ system_packages | join(', ') }}
+      NPM Global Packages: {{ npm_global_packages | join(', ') }}
+      Python Packages: {{ python_packages | join(', ') }}
+      Cargo Packages: {{ cargo_packages | join(', ') }}
+      Flatpak Packages: {{ flatpak_packages | join(', ') }}
+      ====================================================================
+
+# === SYSTEM UPDATE ===
+- name: Update package database
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+  become: yes
+  when: ubuntu_full_upgrade | default(false)
+
+# === ADD PPAS ===
+- name: Add Ubuntu PPAs
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop: "{{ ubuntu_ppas }}"
+  become: yes
+  when: ansible_distribution == "Ubuntu"
+
+# === ADD EXTERNAL REPOSITORIES ===
+- name: Add external repository keys
+  apt_key:
+    url: "{{ item.key_url }}"
+    state: present
+  loop: "{{ external_repos }}"
+  become: yes
+
+- name: Add external repositories
+  apt_repository:
+    repo: "{{ item.repo }}"
+    state: present
+  loop: "{{ external_repos }}"
+  become: yes
+
+- name: Update package database after adding repos
+  apt:
+    update_cache: yes
+  become: yes
+
+# === APT PACKAGES ===
+- name: Check which apt packages are already installed
+  shell: dpkg -l | grep "^ii  {{ item }} "
+  register: apt_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ apt_packages }}"
+
+- name: Display apt package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ apt_package_check.results }}"
+
+- name: Install missing apt packages
+  apt:
+    name: "{{ item.item }}"
+    state: present
+  become: yes
+  when: item.rc != 0
+  loop: "{{ apt_package_check.results }}"
+  register: apt_install_result
+
+- name: Verify apt packages installation
+  shell: dpkg -l | grep "^ii  {{ item.item.item }} "
+  register: apt_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ apt_package_check.results }}"
+  when: item.rc != 0
+
+- name: Display apt installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ apt_verify_check.results }}"
+  when: apt_verify_check.results is defined
+
+# === DEVELOPMENT PACKAGES ===
+- name: Install development packages
+  apt:
+    name: "{{ dev_packages }}"
+    state: present
+  become: yes
+
+# === WINDOW MANAGER PACKAGES ===
+- name: Install window manager packages
+  apt:
+    name: "{{ wm_packages }}"
+    state: present
+  become: yes
+  when: install_window_managers | default(true)
+
+# === FONT PACKAGES ===
+- name: Install font packages
+  apt:
+    name: "{{ font_packages }}"
+    state: present
+  become: yes
+
+# === SYSTEM PACKAGES ===
+- name: Install system utility packages
+  apt:
+    name: "{{ system_packages }}"
+    state: present
+  become: yes
+
+# === SNAP PACKAGES ===
+- name: Check if snapd is installed
+  command: which snap
+  register: snap_check
+  failed_when: false
+  changed_when: false
+
+- name: Display snapd status
+  debug:
+    msg: "Snapd: {{ 'INSTALLED' if snap_check.rc == 0 else 'MISSING' }}"
+
+- name: Check which snap packages are already installed
+  shell: snap list | grep "^{{ item }} "
+  register: snap_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ snap_packages }}"
+  when: snap_check.rc == 0
+
+- name: Display snap package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ snap_package_check.results }}"
+  when: snap_check.rc == 0 and snap_package_check.results is defined
+
+- name: Install missing snap packages
+  snap:
+    name: "{{ item.item }}"
+    state: present
+  when:
+    - snap_check.rc == 0
+    - snap_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ snap_package_check.results }}"
+  become: yes
+  register: snap_install_result
+
+- name: Verify snap packages installation
+  shell: snap list | grep "^{{ item.item.item }} "
+  register: snap_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ snap_package_check.results }}"
+  when:
+    - snap_check.rc == 0
+    - snap_package_check.results is defined
+    - item.rc != 0
+
+- name: Display snap installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ snap_verify_check.results }}"
+  when: snap_verify_check.results is defined
+
+# === FLATPAK SETUP ===
+- name: Check if Flatpak is installed
+  command: which flatpak
+  register: flatpak_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Flatpak status
+  debug:
+    msg: "Flatpak: {{ 'INSTALLED' if flatpak_check.rc == 0 else 'MISSING' }}"
+
+- name: Add Flathub repository
+  flatpak_remote:
+    name: flathub
+    state: present
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+  become: yes
+  when: flatpak_check.rc == 0
+
+- name: Check which Flatpak packages are already installed
+  shell: flatpak list | grep "{{ item }}"
+  register: flatpak_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ flatpak_packages }}"
+  when: flatpak_check.rc == 0
+
+- name: Display Flatpak package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ flatpak_package_check.results }}"
+  when: flatpak_check.rc == 0 and flatpak_package_check.results is defined
+
+- name: Install missing Flatpak packages
+  flatpak:
+    name: "{{ item.item }}"
+    state: present
+  when:
+    - flatpak_check.rc == 0
+    - flatpak_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ flatpak_package_check.results }}"
+  become: yes
+  register: flatpak_install_result
+
+- name: Verify Flatpak packages installation
+  shell: flatpak list | grep "{{ item.item.item }}"
+  register: flatpak_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ flatpak_package_check.results }}"
+  when:
+    - flatpak_check.rc == 0
+    - flatpak_package_check.results is defined
+    - item.rc != 0
+
+- name: Display Flatpak installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ flatpak_verify_check.results }}"
+  when: flatpak_verify_check.results is defined
+
+# === NODE.JS AND NPM GLOBAL PACKAGES ===
+- name: Check if Node.js is installed
+  command: node --version
+  register: node_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Node.js status
+  debug:
+    msg: "Node.js: {{ 'INSTALLED (' + node_version_check.stdout.strip() + ')' if node_version_check.rc == 0 else 'MISSING' }}"
+
+- name: Check which npm global packages are already installed
+  shell: npm list -g --depth=0 {{ item }} 2>/dev/null
+  register: npm_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_global_packages }}"
+  when: node_version_check.rc == 0
+
+- name: Display npm package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ npm_package_check.results }}"
+  when: node_version_check.rc == 0 and npm_package_check.results is defined
+
+- name: Install missing npm global packages
+  npm:
+    name: "{{ item.item }}"
+    global: yes
+    state: present
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ npm_package_check.results }}"
+  become: no
+  register: npm_install_result
+
+- name: Verify npm global packages installation
+  shell: npm list -g --depth=0 {{ item.item.item }} 2>/dev/null
+  register: npm_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_package_check.results }}"
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+
+- name: Display npm installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ npm_verify_check.results }}"
+  when: npm_verify_check.results is defined
+
+- name: Display final npm global packages summary
+  shell: npm list -g --depth=0
+  register: npm_global_list
+  failed_when: false
+  changed_when: false
+  when: node_version_check.rc == 0
+
+- name: Show npm global packages count
+  debug:
+    msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+  when: node_version_check.rc == 0 and npm_global_list.stdout is defined
+
+# === PYTHON PACKAGES ===
+- name: Install Python packages
+  pip:
+    name: "{{ python_packages }}"
+    state: present
+    extra_args: --user
+  become: no
+
+# === RUST AND CARGO PACKAGES ===
+- name: Check if Rust is installed
+  command: rustc --version
+  register: rust_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Rust toolchain if not present
+  shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source {{ ansible_user_dir }}/.cargo/env
+  when: rust_version_check.rc != 0
+  become: no
+
+- name: Install Cargo packages
+  shell: cargo install {{ item }}
+  loop: "{{ cargo_packages }}"
+  when: rust_version_check.rc == 0
+  become: no
+  register: cargo_install_result
+  failed_when: false
+
+# === SYSTEMD SERVICES ===
+- name: Enable systemd services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ systemd_services }}"
+  become: yes
+  failed_when: false
+
+# === DEVELOPMENT DIRECTORIES ===
+- name: Create development directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ development_directories }}"
+
+# === ENVIRONMENT VARIABLES ===
+- name: Set environment variables in .bashrc
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    line: 'export {{ item.name }}="{{ item.value }}"'
+    create: yes
+  loop: "{{ ubuntu_environment_vars }}"
+
+- name: Set environment variables in .zshrc
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export {{ item.name }}="{{ item.value }}"'
+    create: yes
+  loop: "{{ ubuntu_environment_vars }}"

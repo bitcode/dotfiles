@@ -1,0 +1,35 @@
+---
+# Windows platform-specific role metadata
+
+galaxy_info:
+  author: Dotsible Team
+  description: Windows platform-specific setup and package management
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: Windows
+      versions:
+        - 10
+        - 11
+        - Server2019
+        - Server2022
+
+  galaxy_tags:
+    - windows
+    - platform
+    - chocolatey
+    - powershell
+    - package-management
+    - development
+    - cross-platform
+
+dependencies:
+  - role: package_manager
+    when: package_manager_enabled | default(true)
+
+collections:
+  - chocolatey.chocolatey
+  - community.windows
+  - ansible.windows

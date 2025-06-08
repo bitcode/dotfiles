@@ -1,0 +1,35 @@
+---
+# Arch Linux platform-specific handlers
+
+- name: update package database
+  pacman:
+    update_cache: yes
+  become: yes
+  listen: "update package database"
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  become: yes
+  listen: "reload systemd"
+
+- name: restart networkmanager
+  systemd:
+    name: NetworkManager
+    state: restarted
+  become: yes
+  listen: "restart networkmanager"
+
+- name: restart bluetooth
+  systemd:
+    name: bluetooth
+    state: restarted
+  become: yes
+  listen: "restart bluetooth"
+
+- name: restart docker
+  systemd:
+    name: docker
+    state: restarted
+  become: yes
+  listen: "restart docker"

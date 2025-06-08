@@ -20,18 +20,40 @@
   become: yes
   when: ansible_os_family == "Debian"
 
-- name: Create Alacritty config directory
+- name: Install Alacritty on Windows
+  win_chocolatey:
+    name: alacritty
+    state: present
+  when: ansible_os_family == "Windows"
+
+- name: Create Alacritty config directory (Unix-like)
   file:
     path: "{{ ansible_user_dir }}/.config/alacritty"
     state: directory
     mode: '0755'
+  when: ansible_os_family != "Windows"
 
-- name: Deploy Alacritty configuration files
+- name: Create Alacritty config directory (Windows)
+  win_file:
+    path: "{{ ansible_user_dir }}\\AppData\\Roaming\\alacritty"
+    state: directory
+  when: ansible_os_family == "Windows"
+
+- name: Deploy Alacritty configuration files (Unix-like)
   copy:
     src: "{{ playbook_dir }}/files/dotfiles/alacritty/.config/alacritty/"
     dest: "{{ ansible_user_dir }}/.config/alacritty/"
     mode: '0644'
     backup: yes
+  when: ansible_os_family != "Windows"
+  notify: restart alacritty
+
+- name: Deploy Alacritty configuration files (Windows)
+  win_copy:
+    src: "{{ playbook_dir }}/files/dotfiles/alacritty/.config/alacritty/"
+    dest: "{{ ansible_user_dir }}\\AppData\\Roaming\\alacritty\\"
+    backup: yes
+  when: ansible_os_family == "Windows"
   notify: restart alacritty
 
 - name: Verify Alacritty installation

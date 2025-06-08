@@ -1,0 +1,82 @@
+# .ansible-lint.yml - Comprehensive Ansible Lint configuration
+
+# Exclude paths from linting
+exclude_paths:
+  - .git/              # Git directory
+  - .github/           # GitHub workflows/actions
+  - .venv/             # Virtual environment
+  - venv/              # Alternative virtual environment name
+  - .tox/              # Tox testing environments
+  - tests/             # Test directories (optional, you may want to lint these)
+  - roles/external/    # External roles not maintained in this repo
+
+# Parse all files, including those not in tasks directories
+parseable: true
+
+# Quiet mode - less verbose output
+quiet: false
+
+# Use default rules plus customizations
+use_default_rules: true
+
+# Specify additional rule directories
+# rulesdir:
+#   - ./custom_rules/
+
+# Skip specific rules
+skip_list:
+  - yaml[line-length]  # Skip line length checks
+  - experimental       # Skip experimental rules
+  - fqcn[action]       # Skip fully qualified collection name checks (remove if you want to enforce FQCN)
+  - meta-no-info       # Skip meta/main.yml info checks
+
+# Enable specific rules that are disabled by default
+enable_list:
+  - name[prefix]       # Enforce role name prefixes
+  - no-same-owner      # Detect when owner/group are unnecessarily identical
+  - no-log-password    # Ensure no_log is set when handling sensitive data
+
+# Set warning level for specific rules
+warn_list:
+  - git-latest         # Warn when using latest with git
+  - no-changed-when    # Warn when changed_when is not used with commands
+  - no-handler         # Warn when handlers are not used for notify
+  - command-instead-of-module  # Warn when command is used instead of a module
+
+# Verbosity level
+verbosity: 1
+
+# Offline mode - don't make any network calls
+offline: true
+
+# Enforce YAML file extension
+kinds:
+  - playbook: "*.{yml,yaml}"
+  - galaxy: galaxy.yml
+  - tasks: "tasks/*.{yml,yaml}"
+  - vars: "vars/*.{yml,yaml}"
+  - meta: "meta/main.yml"
+  - handlers: "handlers/*.{yml,yaml}"
+  - role: "**/roles/*/tasks/*.{yml,yaml}"
+
+# Enforce tags on tasks
+task_name_prefix: "{module}: "  # Optional prefix format for task names
+
+# Enforce variable naming standards
+var_naming_pattern: "^[a-z_][a-z0-9_]*$"
+
+# Control mock modules during testing
+mock_modules:
+  - zuul_return
+  - fake_namespace.fake_collection.fake_module
+
+# Control mock roles during testing
+mock_roles:
+  - mocked_role
+
+# Enforce loop syntax
+loop_var_prefix: "^(item|inner_item|outer_item)$"
+
+# Control tag usage
+tags:
+  - skip_ansible_lint  # Tag to skip linting for specific tasks

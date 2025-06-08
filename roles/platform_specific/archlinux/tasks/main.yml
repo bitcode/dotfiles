@@ -1,0 +1,291 @@
+---
+# Arch Linux platform-specific setup tasks
+- name: Display software inventory
+  debug:
+    msg: |
+      === Arch Linux Development Environment Software Inventory ===
+      Pacman Packages: {{ pacman_packages | join(', ') }}
+      AUR Packages: {{ aur_packages | join(', ') }}
+      Development Packages: {{ dev_packages | join(', ') }}
+      Window Manager Packages: {{ wm_packages | join(', ') }}
+      Font Packages: {{ font_packages | join(', ') }}
+      System Packages: {{ system_packages | join(', ') }}
+      NPM Global Packages: {{ npm_global_packages | join(', ') }}
+      Python Packages: {{ python_packages | join(', ') }}
+      Cargo Packages: {{ cargo_packages | join(', ') }}
+      ================================================================
+
+# === SYSTEM UPDATE ===
+- name: Update package database
+  pacman:
+    update_cache: yes
+  become: yes
+
+- name: Upgrade all packages
+  pacman:
+    upgrade: yes
+  become: yes
+  when: arch_full_upgrade | default(false)
+
+# === PACMAN PACKAGES ===
+- name: Check which pacman packages are already installed
+  shell: pacman -Q {{ item }} 2>/dev/null
+  register: pacman_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ pacman_packages }}"
+
+- name: Display pacman package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ pacman_package_check.results }}"
+
+- name: Install missing pacman packages
+  pacman:
+    name: "{{ item.item }}"
+    state: present
+  become: yes
+  when: item.rc != 0
+  loop: "{{ pacman_package_check.results }}"
+  register: pacman_install_result
+
+- name: Verify pacman packages installation
+  shell: pacman -Q {{ item.item.item }} 2>/dev/null
+  register: pacman_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ pacman_package_check.results }}"
+  when: item.rc != 0
+
+- name: Display pacman installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ pacman_verify_check.results }}"
+  when: pacman_verify_check.results is defined
+
+# === DEVELOPMENT PACKAGES ===
+- name: Install development packages
+  pacman:
+    name: "{{ dev_packages }}"
+    state: present
+  become: yes
+
+# === WINDOW MANAGER PACKAGES ===
+- name: Install window manager packages
+  pacman:
+    name: "{{ wm_packages }}"
+    state: present
+  become: yes
+  when: install_window_managers | default(true)
+
+# === FONT PACKAGES ===
+- name: Install font packages
+  pacman:
+    name: "{{ font_packages }}"
+    state: present
+  become: yes
+
+# === SYSTEM PACKAGES ===
+- name: Install system utility packages
+  pacman:
+    name: "{{ system_packages }}"
+    state: present
+  become: yes
+
+# === AUR HELPER SETUP ===
+- name: Check if AUR helper is installed
+  command: which {{ aur_helper }}
+  register: aur_helper_check
+  failed_when: false
+  changed_when: false
+
+- name: Install AUR helper (yay)
+  block:
+    - name: Clone yay repository
+      git:
+        repo: https://aur.archlinux.org/yay.git
+        dest: "{{ ansible_user_dir }}/src/yay"
+        force: yes
+      become: no
+
+    - name: Build and install yay
+      shell: |
+        cd {{ ansible_user_dir }}/src/yay
+        makepkg -si --noconfirm
+      become: no
+      args:
+        creates: /usr/bin/yay
+  when: 
+    - aur_helper == "yay"
+    - aur_helper_check.rc != 0
+
+# === AUR PACKAGES ===
+- name: Check which AUR packages are already installed
+  shell: pacman -Q {{ item }} 2>/dev/null
+  register: aur_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ aur_packages }}"
+  when: aur_helper_check.rc == 0 or aur_helper == "yay"
+
+- name: Display AUR package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ aur_package_check.results }}"
+  when: aur_package_check.results is defined
+
+- name: Install missing AUR packages
+  shell: "{{ aur_helper }} -S --noconfirm {{ item.item }}"
+  when:
+    - aur_helper_check.rc == 0 or aur_helper == "yay"
+    - aur_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ aur_package_check.results }}"
+  become: no
+  register: aur_install_result
+
+- name: Verify AUR packages installation
+  shell: pacman -Q {{ item.item.item }} 2>/dev/null
+  register: aur_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ aur_package_check.results }}"
+  when:
+    - aur_package_check.results is defined
+    - item.rc != 0
+
+- name: Display AUR installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ aur_verify_check.results }}"
+  when: aur_verify_check.results is defined
+
+# === NODE.JS AND NPM GLOBAL PACKAGES ===
+- name: Check if Node.js is installed
+  command: node --version
+  register: node_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Node.js status
+  debug:
+    msg: "Node.js: {{ 'INSTALLED (' + node_version_check.stdout.strip() + ')' if node_version_check.rc == 0 else 'MISSING' }}"
+
+- name: Check which npm global packages are already installed
+  shell: npm list -g --depth=0 {{ item }} 2>/dev/null
+  register: npm_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_global_packages }}"
+  when: node_version_check.rc == 0
+
+- name: Display npm package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ npm_package_check.results }}"
+  when: node_version_check.rc == 0 and npm_package_check.results is defined
+
+- name: Install missing npm global packages
+  npm:
+    name: "{{ item.item }}"
+    global: yes
+    state: present
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ npm_package_check.results }}"
+  become: no
+  register: npm_install_result
+
+- name: Verify npm global packages installation
+  shell: npm list -g --depth=0 {{ item.item.item }} 2>/dev/null
+  register: npm_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_package_check.results }}"
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+
+- name: Display npm installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ npm_verify_check.results }}"
+  when: npm_verify_check.results is defined
+
+- name: Display final npm global packages summary
+  shell: npm list -g --depth=0
+  register: npm_global_list
+  failed_when: false
+  changed_when: false
+  when: node_version_check.rc == 0
+
+- name: Show npm global packages count
+  debug:
+    msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+  when: node_version_check.rc == 0 and npm_global_list.stdout is defined
+
+# === PYTHON PACKAGES ===
+- name: Install Python packages
+  pip:
+    name: "{{ python_packages }}"
+    state: present
+    extra_args: --user
+  become: no
+
+# === RUST AND CARGO PACKAGES ===
+- name: Check if Rust is installed
+  command: rustc --version
+  register: rust_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Rust toolchain if not present
+  shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source {{ ansible_user_dir }}/.cargo/env
+  when: rust_version_check.rc != 0
+  become: no
+
+- name: Install Cargo packages
+  shell: cargo install {{ item }}
+  loop: "{{ cargo_packages }}"
+  when: rust_version_check.rc == 0
+  become: no
+  register: cargo_install_result
+  failed_when: false
+
+# === SYSTEMD SERVICES ===
+- name: Enable systemd services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ systemd_services }}"
+  become: yes
+  failed_when: false
+
+# === DEVELOPMENT DIRECTORIES ===
+- name: Create development directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ development_directories }}"
+
+# === ENVIRONMENT VARIABLES ===
+- name: Set environment variables in .bashrc
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    line: 'export {{ item.name }}="{{ item.value }}"'
+    create: yes
+  loop: "{{ arch_environment_vars }}"
+
+- name: Set environment variables in .zshrc
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: 'export {{ item.name }}="{{ item.value }}"'
+    create: yes
+  loop: "{{ arch_environment_vars }}"

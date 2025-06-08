@@ -1,0 +1,34 @@
+---
+dependencies:
+  - role: common
+  - role: package_manager
+
+galaxy_info:
+  author: Dotsible Team
+  description: Waybar status bar configuration for Wayland compositors
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+  
+  platforms:
+    - name: Ubuntu
+      versions: [20.04, 22.04, 24.04]
+    - name: Debian
+      versions: [11, 12]
+    - name: ArchLinux
+      versions: [all]
+    - name: Fedora
+      versions: [35, 36, 37, 38, 39]
+      
+  galaxy_tags:
+    - waybar
+    - status-bar
+    - wayland
+    - desktop
+    - linux
+    - hyprland
+    - sway
+
+collections:
+  - community.general
+  - ansible.posix

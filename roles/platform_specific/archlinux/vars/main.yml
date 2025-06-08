@@ -1,0 +1,175 @@
+---
+# Arch Linux-specific variables for development environment setup
+# Equivalent to macOS macsible.yaml functionality for Arch Linux
+
+# Software inventory - tracks all managed software
+pacman_packages:
+  - base-devel
+  - git
+  - curl
+  - wget
+  - vim
+  - neovim
+  - tmux
+  - zsh
+  - starship
+  - alacritty
+  - firefox
+  - docker
+  - docker-compose
+  - python
+  - python-pip
+  - nodejs
+  - npm
+  - go
+  - rust
+  - rustup
+  - ripgrep
+  - fd
+  - bat
+  - exa
+  - fzf
+  - ranger
+  - htop
+  - tree
+  - unzip
+  - zip
+  - jq
+  - yq
+
+# AUR packages (requires AUR helper)
+aur_packages:
+  - visual-studio-code-bin
+  - google-chrome
+  - discord
+  - slack-desktop
+  - notion-app
+  - postman-bin
+  - zellij
+  - lazygit
+  - bottom
+  - obsidian
+  - figma-linux
+  - zoom
+
+# Development packages
+dev_packages:
+  - gcc
+  - clang
+  - cmake
+  - make
+  - pkg-config
+  - openssl
+  - sqlite
+  - postgresql
+  - redis
+  - mongodb-bin
+
+# Window manager packages
+wm_packages:
+  - i3-wm
+  - i3status
+  - i3lock
+  - sway
+  - waybar
+  - wofi
+  - rofi
+  - dmenu
+  - polybar
+  - picom
+  - dunst
+  - feh
+  - grim
+  - slurp
+  - wl-clipboard
+
+# Fonts
+font_packages:
+  - ttf-jetbrains-mono
+  - ttf-font-awesome
+  - noto-fonts
+  - noto-fonts-emoji
+  - powerline-fonts
+  - ttf-hack
+
+# System utilities
+system_packages:
+  - networkmanager
+  - bluez
+  - bluez-utils
+  - pulseaudio
+  - pulseaudio-bluetooth
+  - pavucontrol
+  - brightnessctl
+  - acpi
+  - upower
+
+# NPM global packages (same as macOS for consistency)
+npm_global_packages:
+  - "@angular/cli"
+  - "create-react-app"
+  - "typescript"
+  - "ts-node"
+  - "nodemon"
+  - "pm2"
+  - "yarn"
+  - "pnpm"
+  - "eslint"
+  - "prettier"
+  - "http-server"
+  - "live-server"
+  - "@modelcontextprotocol/server-brave-search"
+  - "@modelcontextprotocol/server-puppeteer"
+  - "firecrawl-mcp"
+
+# Python packages
+python_packages:
+  - "pynvim"
+  - "black"
+  - "isort"
+  - "flake8"
+  - "mypy"
+  - "pytest"
+  - "requests"
+  - "beautifulsoup4"
+  - "pandas"
+  - "numpy"
+
+# Rust packages (cargo)
+cargo_packages:
+  - "zellij"
+  - "starship"
+  - "ripgrep"
+  - "fd-find"
+  - "bat"
+  - "exa"
+  - "bottom"
+  - "tokei"
+  - "hyperfine"
+
+# AUR helper preference
+aur_helper: "yay"
+
+# Services to enable
+systemd_services:
+  - "NetworkManager"
+  - "bluetooth"
+  - "docker"
+
+# Development directories to create
+development_directories:
+  - "{{ ansible_user_dir }}/dev"
+  - "{{ ansible_user_dir }}/projects"
+  - "{{ ansible_user_dir }}/src"
+  - "{{ ansible_user_dir }}/.local/bin"
+
+# Environment variables
+arch_environment_vars:
+  - name: "EDITOR"
+    value: "nvim"
+  - name: "BROWSER"
+    value: "firefox"
+  - name: "TERMINAL"
+    value: "alacritty"
+  - name: "PATH"
+    value: "{{ ansible_user_dir }}/.local/bin:{{ ansible_user_dir }}/.cargo/bin:$PATH"

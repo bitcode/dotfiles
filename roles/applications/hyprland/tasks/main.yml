@@ -1,0 +1,136 @@
+---
+# Hyprland Wayland compositor installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "Hyprland is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Install Hyprland packages on Arch Linux
+  pacman:
+    name: "{{ hyprland_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Hyprland packages on Ubuntu
+  apt:
+    name: "{{ hyprland_packages.ubuntu }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: Install Hyprland packages on Debian
+  apt:
+    name: "{{ hyprland_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian" and ansible_distribution != "Ubuntu"
+
+- name: Check if AUR helper is available (Arch Linux)
+  command: which yay
+  register: aur_helper_check
+  failed_when: false
+  changed_when: false
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Hyprland from AUR (Arch Linux)
+  shell: yay -S --noconfirm {{ hyprland_aur_packages | join(' ') }}
+  when: 
+    - ansible_distribution == "Archlinux"
+    - aur_helper_check.rc == 0
+  become: no
+
+- name: Install Hyprland from source (non-Arch)
+  block:
+    - name: Clone Hyprland repository
+      git:
+        repo: https://github.com/hyprwm/Hyprland.git
+        dest: "{{ ansible_user_dir }}/src/Hyprland"
+        version: main
+        force: yes
+      
+    - name: Build and install Hyprland
+      shell: |
+        cd {{ ansible_user_dir }}/src/Hyprland
+        make all
+        sudo make install
+      args:
+        creates: /usr/local/bin/Hyprland
+  when: ansible_distribution != "Archlinux"
+
+- name: Create Hyprland config directory
+  file:
+    path: "{{ hyprland_config_dir[ansible_distribution | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Create Waybar config directory
+  file:
+    path: "{{ waybar_config_dir[ansible_distribution | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Hyprland config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/hyprland"
+  register: hyprland_config_source
+
+- name: Deploy Hyprland configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/hyprland/"
+    dest: "{{ hyprland_config_dir[ansible_distribution | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: hyprland_config_source.stat.exists
+  notify: restart hyprland
+
+- name: Check if Waybar config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/waybar"
+  register: waybar_config_source
+
+- name: Deploy Waybar configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/waybar/"
+    dest: "{{ waybar_config_dir[ansible_distribution | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: waybar_config_source.stat.exists
+  notify: restart waybar
+
+- name: Create Hyprland desktop entry
+  copy:
+    content: |
+      [Desktop Entry]
+      Name=Hyprland
+      Comment=An intelligent dynamic tiling Wayland compositor
+      Exec=Hyprland
+      Type=Application
+    dest: /usr/share/wayland-sessions/hyprland.desktop
+    mode: '0644'
+  become: yes
+
+- name: Check if Hyprland is executable
+  command: which Hyprland
+  register: hyprland_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Hyprland installation status
+  debug:
+    msg: |
+      Hyprland installation completed.
+      {% if hyprland_check.rc == 0 %}
+      Hyprland is available. You can start it from a display manager or TTY.
+      {% else %}
+      Hyprland installation may have failed. Check the logs above.
+      {% endif %}
+      
+      Configuration deployed to: {{ hyprland_config_dir[ansible_distribution | lower] }}
+      
+      To start Hyprland:
+      1. Log out of current session
+      2. Select Hyprland from display manager, or
+      3. Run 'Hyprland' from a TTY

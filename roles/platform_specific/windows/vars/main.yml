@@ -1,0 +1,135 @@
+---
+# Windows-specific variables for development environment setup
+# Equivalent to macOS macsible.yaml functionality for Windows
+
+# Software inventory - tracks all managed software
+chocolatey_packages:
+  - powershell-core
+  - starship
+  - git
+  - docker-desktop
+  - python3
+  - nodejs
+  - golang
+  - rustup.install
+  - 7zip
+  - curl
+  - wget
+  - vim
+  - tmux
+  - ranger
+
+chocolatey_gui_packages:
+  - vscode
+  - alacritty
+  - firefox
+  - googlechrome
+  - postman
+  - discord
+  - slack
+  - notion
+  - obsidian
+  - figma
+  - zoom
+
+# Windows Store apps (using winget)
+winget_packages:
+  - Microsoft.WindowsTerminal
+  - Microsoft.PowerToys
+  - Microsoft.VisualStudioCode
+  - Git.Git
+
+# Scoop packages (alternative package manager)
+scoop_packages:
+  - neovim
+  - fzf
+  - ripgrep
+  - fd
+  - bat
+  - exa
+  - zoxide
+
+# Manual installations with verification
+manual_installations:
+  - name: "Windows Subsystem for Linux (WSL2)"
+    check_command: "wsl --version"
+    install_command: "wsl --install"
+  - name: "Rust toolchain"
+    check_command: "rustc --version"
+    install_creates: "%USERPROFILE%\\.cargo\\bin\\rustc.exe"
+  - name: "Node Version Manager (nvm-windows)"
+    check_path: "%APPDATA%\\nvm\\nvm.exe"
+  - name: "Zellij"
+    check_command: "zellij --version"
+    install_creates: "%USERPROFILE%\\.cargo\\bin\\zellij.exe"
+
+# NPM global packages (same as macOS for consistency)
+npm_global_packages:
+  - "@angular/cli"
+  - "create-react-app"
+  - "typescript"
+  - "ts-node"
+  - "nodemon"
+  - "pm2"
+  - "yarn"
+  - "pnpm"
+  - "eslint"
+  - "prettier"
+  - "http-server"
+  - "live-server"
+  - "@modelcontextprotocol/server-brave-search"
+  - "@modelcontextprotocol/server-puppeteer"
+  - "firecrawl-mcp"
+
+# PowerShell modules
+powershell_modules:
+  - PSReadLine
+  - posh-git
+  - Terminal-Icons
+  - PSFzf
+  - z
+
+# Windows features to enable
+windows_features:
+  - Microsoft-Windows-Subsystem-Linux
+  - VirtualMachinePlatform
+  - Microsoft-Hyper-V-All
+  - Containers-DisposableClientVM
+
+# Environment variables
+windows_environment_vars:
+  - name: "EDITOR"
+    value: "nvim"
+    level: "user"
+  - name: "BROWSER"
+    value: "firefox"
+    level: "user"
+  - name: "TERMINAL"
+    value: "alacritty"
+    level: "user"
+
+# Registry settings for development environment
+registry_settings:
+  - path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+    name: "HideFileExt"
+    value: 0
+    type: "dword"
+  - path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced"
+    name: "Hidden"
+    value: 1
+    type: "dword"
+
+# Windows Defender exclusions for development
+defender_exclusions:
+  - "C:\\tools"
+  - "C:\\ProgramData\\chocolatey"
+  - "%USERPROFILE%\\.cargo"
+  - "%USERPROFILE%\\AppData\\Roaming\\npm"
+  - "%USERPROFILE%\\scoop"
+
+# Development directories to create
+development_directories:
+  - "%USERPROFILE%\\dev"
+  - "%USERPROFILE%\\projects"
+  - "%USERPROFILE%\\tools"
+  - "%USERPROFILE%\\.config"

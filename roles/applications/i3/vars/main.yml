@@ -1,0 +1,86 @@
+---
+# i3 window manager variables
+
+# Package names for different OS families
+i3_packages:
+  debian:
+    - i3-wm
+    - i3status
+    - i3lock
+    - dmenu
+    - feh
+    - compton
+    - rofi
+    - dunst
+  archlinux:
+    - i3-wm
+    - i3status
+    - i3lock
+    - dmenu
+    - feh
+    - picom
+    - rofi
+    - dunst
+  fedora:
+    - i3
+    - i3status
+    - i3lock
+    - dmenu
+    - feh
+    - picom
+    - rofi
+    - dunst
+
+# Configuration directory paths
+i3_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/i3"
+  archlinux: "{{ ansible_user_dir }}/.config/i3"
+  fedora: "{{ ansible_user_dir }}/.config/i3"
+
+# i3status configuration directory
+i3status_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/i3status"
+  archlinux: "{{ ansible_user_dir }}/.config/i3status"
+  fedora: "{{ ansible_user_dir }}/.config/i3status"
+
+# Essential i3 dependencies
+i3_dependencies:
+  - "xorg-server"
+  - "xorg-xinit"
+  - "xorg-xrandr"
+  - "xorg-xsetroot"
+
+# Default i3 configuration
+i3_default_config:
+  mod_key: "Mod4"  # Super key
+  terminal: "alacritty"
+  browser: "firefox"
+  file_manager: "ranger"
+  launcher: "rofi -show drun"
+  
+# i3 workspace configuration
+i3_workspaces:
+  - { number: 1, name: "1:term", output: "" }
+  - { number: 2, name: "2:web", output: "" }
+  - { number: 3, name: "3:code", output: "" }
+  - { number: 4, name: "4:files", output: "" }
+  - { number: 5, name: "5:media", output: "" }
+  - { number: 6, name: "6:chat", output: "" }
+  - { number: 7, name: "7:misc", output: "" }
+  - { number: 8, name: "8:sys", output: "" }
+  - { number: 9, name: "9:tmp", output: "" }
+  - { number: 10, name: "10:bg", output: "" }
+
+# i3 key bindings
+i3_keybindings:
+  - { key: "Return", command: "exec {{ i3_default_config.terminal }}" }
+  - { key: "d", command: "exec {{ i3_default_config.launcher }}" }
+  - { key: "Shift+q", command: "kill" }
+  - { key: "Shift+c", command: "reload" }
+  - { key: "Shift+r", command: "restart" }
+
+# Autostart applications
+i3_autostart:
+  - "exec --no-startup-id feh --bg-scale ~/.config/wallpapers/default.jpg"
+  - "exec --no-startup-id picom -b"
+  - "exec --no-startup-id dunst"

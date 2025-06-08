@@ -1,0 +1,109 @@
+---
+# Waybar status bar variables
+
+# Package names for different OS families
+waybar_packages:
+  debian:
+    - waybar
+    - fonts-font-awesome
+    - fonts-powerline
+  archlinux:
+    - waybar
+    - ttf-font-awesome
+    - powerline-fonts
+  fedora:
+    - waybar
+    - fontawesome-fonts
+    - powerline-fonts
+
+# Configuration directory paths
+waybar_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/waybar"
+  archlinux: "{{ ansible_user_dir }}/.config/waybar"
+  fedora: "{{ ansible_user_dir }}/.config/waybar"
+
+# Default Waybar configuration
+waybar_default_config:
+  position: "top"
+  height: 30
+  spacing: 4
+  
+# Waybar modules configuration
+waybar_modules:
+  left:
+    - "hyprland/workspaces"
+    - "sway/workspaces"
+    - "hyprland/window"
+    - "sway/window"
+  center:
+    - "clock"
+  right:
+    - "pulseaudio"
+    - "network"
+    - "cpu"
+    - "memory"
+    - "temperature"
+    - "battery"
+    - "tray"
+
+# Waybar module settings
+waybar_module_settings:
+  clock:
+    tooltip_format: "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    format: "{:%Y-%m-%d %H:%M}"
+    format_alt: "{:%A, %B %d, %Y}"
+  
+  cpu:
+    format: " {usage}%"
+    tooltip: false
+    
+  memory:
+    format: " {}%"
+    
+  temperature:
+    thermal_zone: 2
+    hwmon_path: "/sys/class/hwmon/hwmon2/temp1_input"
+    critical_threshold: 80
+    format: "{temperatureC}°C {icon}"
+    format_icons: ["", "", ""]
+    
+  battery:
+    states:
+      good: 95
+      warning: 30
+      critical: 15
+    format: "{capacity}% {icon}"
+    format_charging: "{capacity}% "
+    format_plugged: "{capacity}% "
+    format_alt: "{time} {icon}"
+    format_icons: ["", "", "", "", ""]
+    
+  network:
+    format_wifi: " {signalStrength}%"
+    format_ethernet: " {ipaddr}/{cidr}"
+    tooltip_format: " {ifname} via {gwaddr}"
+    format_linked: " {ifname} (No IP)"
+    format_disconnected: "⚠ Disconnected"
+    format_alt: "{ifname}: {ipaddr}/{cidr}"
+    
+  pulseaudio:
+    format: "{volume}% {icon} {format_source}"
+    format_bluetooth: "{volume}% {icon} {format_source}"
+    format_bluetooth_muted: " {icon} {format_source}"
+    format_muted: " {format_source}"
+    format_source: " {volume}%"
+    format_source_muted: ""
+    format_icons:
+      headphone: ""
+      hands_free: ""
+      headset: ""
+      phone: ""
+      portable: ""
+      car: ""
+      default: ["", "", ""]
+    on_click: "pavucontrol"
+
+# Waybar styling
+waybar_css_theme: "default"
+waybar_font_family: "JetBrains Mono"
+waybar_font_size: "13px"

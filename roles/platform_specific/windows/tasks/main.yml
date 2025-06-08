@@ -1,0 +1,343 @@
+---
+# Windows platform-specific setup tasks
+- name: Display software inventory
+  debug:
+    msg: |
+      === Windows Development Environment Software Inventory ===
+      Chocolatey Packages: {{ chocolatey_packages | join(', ') }}
+      Chocolatey GUI Apps: {{ chocolatey_gui_packages | join(', ') }}
+      Winget Packages: {{ winget_packages | join(', ') }}
+      Scoop Packages: {{ scoop_packages | join(', ') }}
+      Manual Installations: {{ manual_installations | map(attribute='name') | join(', ') }}
+      NPM Global Packages: {{ npm_global_packages | join(', ') }}
+      PowerShell Modules: {{ powershell_modules | join(', ') }}
+      =========================================================
+
+# === SYSTEM PREREQUISITES ===
+- name: Check PowerShell execution policy
+  win_shell: Get-ExecutionPolicy -Scope CurrentUser
+  register: execution_policy_check
+  changed_when: false
+
+- name: Set PowerShell execution policy if needed
+  win_shell: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+  when: execution_policy_check.stdout.strip() == "Restricted"
+
+- name: Check if Chocolatey is installed
+  win_command: choco --version
+  register: chocolatey_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Chocolatey if not present
+  win_shell: |
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+  when: chocolatey_version_check.rc != 0
+
+# === CHOCOLATEY PACKAGES ===
+- name: Check which Chocolatey packages are already installed
+  win_shell: choco list --local-only | findstr /i "^{{ item }} "
+  register: chocolatey_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ chocolatey_packages }}"
+
+- name: Display Chocolatey package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ chocolatey_package_check.results }}"
+
+- name: Install missing Chocolatey packages
+  win_chocolatey:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ chocolatey_package_check.results }}"
+  register: chocolatey_install_result
+
+- name: Verify Chocolatey packages installation
+  win_shell: choco list --local-only | findstr /i "^{{ item.item }} "
+  register: chocolatey_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ chocolatey_package_check.results }}"
+  when: item.rc != 0
+
+- name: Display Chocolatey installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ chocolatey_verify_check.results }}"
+  when: chocolatey_verify_check.results is defined
+
+# === CHOCOLATEY GUI PACKAGES ===
+- name: Check which Chocolatey GUI packages are already installed
+  win_shell: choco list --local-only | findstr /i "^{{ item }} "
+  register: chocolatey_gui_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ chocolatey_gui_packages }}"
+
+- name: Display Chocolatey GUI package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ chocolatey_gui_check.results }}"
+
+- name: Install missing Chocolatey GUI packages
+  win_chocolatey:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ chocolatey_gui_check.results }}"
+
+- name: Verify Chocolatey GUI packages installation
+  win_shell: choco list --local-only | findstr /i "^{{ item.item }} "
+  register: chocolatey_gui_verify
+  failed_when: false
+  changed_when: false
+  loop: "{{ chocolatey_gui_check.results }}"
+  when: item.rc != 0
+
+- name: Display Chocolatey GUI installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ chocolatey_gui_verify.results }}"
+  when: chocolatey_gui_verify.results is defined
+
+# === WINGET PACKAGES ===
+- name: Check if winget is available
+  win_command: winget --version
+  register: winget_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Check which winget packages are already installed
+  win_shell: winget list "{{ item }}" --accept-source-agreements
+  register: winget_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ winget_packages }}"
+  when: winget_version_check.rc == 0
+
+- name: Display winget package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ winget_package_check.results }}"
+  when: winget_version_check.rc == 0 and winget_package_check.results is defined
+
+- name: Install missing winget packages
+  win_shell: winget install "{{ item.item }}" --accept-package-agreements --accept-source-agreements --silent
+  when:
+    - winget_version_check.rc == 0
+    - winget_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ winget_package_check.results }}"
+  register: winget_install_result
+  failed_when: false
+
+- name: Verify winget packages installation
+  win_shell: winget list "{{ item.item.item }}" --accept-source-agreements
+  register: winget_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ winget_package_check.results }}"
+  when:
+    - winget_version_check.rc == 0
+    - winget_package_check.results is defined
+    - item.rc != 0
+
+- name: Display winget installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ winget_verify_check.results }}"
+  when: winget_verify_check.results is defined
+
+# === SCOOP PACKAGES ===
+- name: Check if Scoop is installed
+  win_command: scoop --version
+  register: scoop_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Install Scoop if not present
+  win_shell: |
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    iwr -useb get.scoop.sh | iex
+  when: scoop_version_check.rc != 0
+
+- name: Re-check Scoop availability after installation
+  win_command: scoop --version
+  register: scoop_recheck
+  failed_when: false
+  changed_when: false
+  when: scoop_version_check.rc != 0
+
+- name: Check which Scoop packages are already installed
+  win_shell: scoop list | findstr /i "{{ item }}"
+  register: scoop_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ scoop_packages }}"
+  when: scoop_version_check.rc == 0 or (scoop_recheck is defined and scoop_recheck.rc == 0)
+
+- name: Display Scoop package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ scoop_package_check.results }}"
+  when: scoop_package_check.results is defined
+
+- name: Install missing Scoop packages
+  win_shell: scoop install "{{ item.item }}"
+  when:
+    - scoop_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ scoop_package_check.results }}"
+  register: scoop_install_result
+  failed_when: false
+
+- name: Verify Scoop packages installation
+  win_shell: scoop list | findstr /i "{{ item.item.item }}"
+  register: scoop_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ scoop_package_check.results }}"
+  when:
+    - scoop_package_check.results is defined
+    - item.rc != 0
+
+- name: Display Scoop installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ scoop_verify_check.results }}"
+  when: scoop_verify_check.results is defined
+
+# === MANUAL INSTALLATIONS ===
+- name: Check manual installations
+  win_shell: "{{ item.check_command }}"
+  register: manual_check_results
+  failed_when: false
+  changed_when: false
+  loop: "{{ manual_installations }}"
+  when: item.check_command is defined
+
+- name: Display manual installation status
+  debug:
+    msg: "{{ item.item.name }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ manual_check_results.results }}"
+  when: manual_check_results.results is defined
+
+# === WINDOWS FEATURES ===
+- name: Enable Windows features
+  win_optional_feature:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ windows_features }}"
+  register: windows_features_result
+
+# === DEVELOPMENT DIRECTORIES ===
+- name: Create development directories
+  win_file:
+    path: "{{ item }}"
+    state: directory
+  loop: "{{ development_directories }}"
+
+# === ENVIRONMENT VARIABLES ===
+- name: Set environment variables
+  win_environment:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    level: "{{ item.level }}"
+  loop: "{{ windows_environment_vars }}"
+
+# === REGISTRY SETTINGS ===
+- name: Configure registry settings
+  win_regedit:
+    path: "{{ item.path }}"
+    name: "{{ item.name }}"
+    data: "{{ item.value }}"
+    type: "{{ item.type }}"
+  loop: "{{ registry_settings }}"
+
+# === NODE.JS AND NPM GLOBAL PACKAGES ===
+- name: Check if Node.js is installed
+  win_command: node --version
+  register: node_version_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Node.js status
+  debug:
+    msg: "Node.js: {{ 'INSTALLED (' + node_version_check.stdout.strip() + ')' if node_version_check.rc == 0 else 'MISSING' }}"
+
+- name: Check which npm global packages are already installed
+  win_shell: npm list -g --depth=0 | findstr /i "{{ item }}"
+  register: npm_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_global_packages }}"
+  when: node_version_check.rc == 0
+
+- name: Display npm package status
+  debug:
+    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+  loop: "{{ npm_package_check.results }}"
+  when: node_version_check.rc == 0 and npm_package_check.results is defined
+
+- name: Install missing npm global packages
+  win_shell: npm install -g "{{ item.item }}"
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ npm_package_check.results }}"
+  register: npm_install_result
+
+- name: Verify npm global packages installation
+  win_shell: npm list -g --depth=0 | findstr /i "{{ item.item.item }}"
+  register: npm_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ npm_package_check.results }}"
+  when:
+    - node_version_check.rc == 0
+    - npm_package_check.results is defined
+    - item.rc != 0
+
+- name: Display npm installation verification
+  debug:
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+  loop: "{{ npm_verify_check.results }}"
+  when: npm_verify_check.results is defined
+
+- name: Display final npm global packages summary
+  win_shell: npm list -g --depth=0
+  register: npm_global_list
+  failed_when: false
+  changed_when: false
+  when: node_version_check.rc == 0
+
+- name: Show npm global packages count
+  debug:
+    msg: "NPM Global Packages Installed: {{ npm_global_list.stdout_lines | select('match', '.*@.*') | list | length }} packages"
+  when: node_version_check.rc == 0 and npm_global_list.stdout is defined
+
+# === POWERSHELL MODULES ===
+- name: Check which PowerShell modules are installed
+  win_shell: Get-Module -ListAvailable "{{ item }}" | Select-Object Name
+  register: powershell_module_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ powershell_modules }}"
+
+- name: Install missing PowerShell modules
+  win_shell: Install-Module -Name "{{ item.item }}" -Force -AllowClobber -Scope CurrentUser
+  when: item.stdout == ""
+  loop: "{{ powershell_module_check.results }}"
+  register: powershell_module_install
+
+# === WINDOWS DEFENDER EXCLUSIONS ===
+- name: Add Windows Defender exclusions
+  win_shell: Add-MpPreference -ExclusionPath "{{ item }}"
+  loop: "{{ defender_exclusions }}"
+  register: defender_exclusions_result
+  failed_when: false

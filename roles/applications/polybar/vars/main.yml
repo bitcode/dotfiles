@@ -1,0 +1,142 @@
+---
+# Polybar status bar variables
+
+# Package names for different OS families
+polybar_packages:
+  debian:
+    - polybar
+    - fonts-font-awesome
+    - fonts-powerline
+    - fonts-noto
+  archlinux:
+    - polybar
+    - ttf-font-awesome
+    - powerline-fonts
+    - noto-fonts
+  fedora:
+    - polybar
+    - fontawesome-fonts
+    - powerline-fonts
+    - google-noto-fonts
+
+# Configuration directory paths
+polybar_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/polybar"
+  archlinux: "{{ ansible_user_dir }}/.config/polybar"
+  fedora: "{{ ansible_user_dir }}/.config/polybar"
+
+# Default Polybar configuration
+polybar_default_config:
+  bar_name: "main"
+  width: "100%"
+  height: 27
+  radius: 0
+  fixed_center: true
+  background: "#282A2E"
+  foreground: "#C5C8C6"
+  
+# Polybar modules configuration
+polybar_modules:
+  left: "i3"
+  center: "date"
+  right: "filesystem pulseaudio memory cpu temperature wlan eth battery powermenu"
+
+# Polybar module settings
+polybar_module_settings:
+  i3:
+    type: "internal/i3"
+    format: "<label-state> <label-mode>"
+    index_sort: true
+    wrapping_scroll: false
+    
+  date:
+    type: "internal/date"
+    interval: 5
+    date: "%Y-%m-%d"
+    time: "%H:%M"
+    format_primary: "<label>"
+    format_secondary: "<label>"
+    label: "%date% %time%"
+    
+  filesystem:
+    type: "internal/fs"
+    interval: 25
+    mount_0: "/"
+    label_mounted: " %percentage_used%%"
+    label_unmounted: " %mountpoint% not mounted"
+    
+  pulseaudio:
+    type: "internal/pulseaudio"
+    format_volume: "<label-volume> <bar-volume>"
+    label_volume: " %percentage%%"
+    label_muted: " muted"
+    
+  memory:
+    type: "internal/memory"
+    interval: 2
+    format_primary: "<label> <bar-used>"
+    label: " %percentage_used%%"
+    
+  cpu:
+    type: "internal/cpu"
+    interval: 2
+    format_primary: "<label> <ramp-coreload>"
+    label: " %percentage:2%%"
+    
+  temperature:
+    type: "internal/temperature"
+    thermal_zone: 0
+    warn_temperature: 60
+    format: "<ramp> <label>"
+    format_warn: "<ramp> <label-warn>"
+    label: "%temperature-c%"
+    label_warn: "%temperature-c%"
+    ramp_0: ""
+    ramp_1: ""
+    ramp_2: ""
+    
+  wlan:
+    type: "internal/network"
+    interface: "wlp3s0"
+    interval: 3.0
+    format_connected: "<ramp-signal> <label-connected>"
+    label_connected: "%essid%"
+    format_disconnected: "<label-disconnected>"
+    label_disconnected: " disconnected"
+    
+  eth:
+    type: "internal/network"
+    interface: "enp0s25"
+    interval: 3.0
+    format_connected_prefix: " "
+    label_connected: "%local_ip%"
+    format_disconnected: ""
+    
+  battery:
+    type: "internal/battery"
+    battery: "BAT0"
+    adapter: "ADP1"
+    full_at: 98
+    format_charging: "<animation-charging> <label-charging>"
+    format_discharging: "<animation-discharging> <label-discharging>"
+    format_full_prefix: " "
+    label_charging: "Charging %percentage%%"
+    label_discharging: "Discharging %percentage%%"
+    label_full: "Fully charged"
+
+# Polybar colors
+polybar_colors:
+  background: "#282A2E"
+  background_alt: "#373B41"
+  foreground: "#C5C8C6"
+  foreground_alt: "#555"
+  primary: "#F0C674"
+  secondary: "#8ABEB7"
+  alert: "#A54242"
+
+# Polybar fonts
+polybar_fonts:
+  - "JetBrains Mono:pixelsize=10;1"
+  - "Font Awesome 5 Free:pixelsize=10;1"
+  - "Font Awesome 5 Free Solid:pixelsize=10;1"
+  - "Font Awesome 5 Brands:pixelsize=10;1"

@@ -19,18 +19,40 @@
   register: starship_install
   changed_when: "'Starship installed' in starship_install.stdout"
 
-- name: Create Starship config directory
+- name: Install Starship on Windows
+  win_chocolatey:
+    name: starship
+    state: present
+  when: ansible_os_family == "Windows"
+
+- name: Create Starship config directory (Unix-like)
   file:
     path: "{{ ansible_user_dir }}/.config"
     state: directory
     mode: '0755'
+  when: ansible_os_family != "Windows"
 
-- name: Deploy Starship configuration files
+- name: Create Starship config directory (Windows)
+  win_file:
+    path: "{{ ansible_user_dir }}\\AppData\\Roaming"
+    state: directory
+  when: ansible_os_family == "Windows"
+
+- name: Deploy Starship configuration files (Unix-like)
   copy:
     src: "{{ playbook_dir }}/files/dotfiles/starship/.config/"
     dest: "{{ ansible_user_dir }}/.config/"
     mode: '0644'
     backup: yes
+  when: ansible_os_family != "Windows"
+  notify: reload starship
+
+- name: Deploy Starship configuration files (Windows)
+  win_copy:
+    src: "{{ playbook_dir }}/files/dotfiles/starship/.config/"
+    dest: "{{ ansible_user_dir }}\\AppData\\Roaming\\"
+    backup: yes
+  when: ansible_os_family == "Windows"
   notify: reload starship
 
 - name: Verify Starship installation

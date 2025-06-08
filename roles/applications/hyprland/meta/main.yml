@@ -1,0 +1,31 @@
+---
+dependencies:
+  - role: common
+  - role: package_manager
+
+galaxy_info:
+  author: Dotsible Team
+  description: Hyprland Wayland compositor configuration and setup
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+  
+  platforms:
+    - name: ArchLinux
+      versions: [all]
+    - name: Ubuntu
+      versions: [22.04, 24.04]
+    - name: Debian
+      versions: [11, 12]
+      
+  galaxy_tags:
+    - hyprland
+    - wayland
+    - compositor
+    - desktop
+    - linux
+    - tiling
+
+collections:
+  - community.general
+  - ansible.posix

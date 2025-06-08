@@ -1,0 +1,99 @@
+---
+# Waybar status bar installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "Waybar is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Check if Wayland compositor is available
+  shell: echo $XDG_SESSION_TYPE
+  register: session_type
+  changed_when: false
+  failed_when: false
+
+- name: Install Waybar packages on Arch Linux
+  pacman:
+    name: "{{ waybar_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Waybar packages on Ubuntu/Debian
+  apt:
+    name: "{{ waybar_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install Waybar packages on Fedora
+  dnf:
+    name: "{{ waybar_packages.fedora }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Fedora"
+
+- name: Create Waybar config directory
+  file:
+    path: "{{ waybar_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Waybar config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/waybar"
+  register: waybar_config_source
+
+- name: Deploy Waybar configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/waybar/"
+    dest: "{{ waybar_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: waybar_config_source.stat.exists
+  notify: restart waybar
+
+- name: Create default Waybar config if none exists
+  template:
+    src: config.json.j2
+    dest: "{{ waybar_config_dir[ansible_os_family | lower] }}/config"
+    mode: '0644'
+    backup: yes
+  when: not waybar_config_source.stat.exists
+  notify: restart waybar
+
+- name: Create default Waybar style if none exists
+  template:
+    src: style.css.j2
+    dest: "{{ waybar_config_dir[ansible_os_family | lower] }}/style.css"
+    mode: '0644'
+    backup: yes
+  when: not waybar_config_source.stat.exists
+  notify: restart waybar
+
+- name: Check if Waybar is executable
+  command: which waybar
+  register: waybar_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Waybar installation status
+  debug:
+    msg: |
+      Waybar installation completed.
+      {% if waybar_check.rc == 0 %}
+      Waybar is available and ready to use.
+      {% else %}
+      Waybar installation may have failed. Check the logs above.
+      {% endif %}
+      
+      Configuration deployed to: {{ waybar_config_dir[ansible_os_family | lower] }}
+      
+      To start Waybar:
+      - It should start automatically with your Wayland compositor
+      - Or run 'waybar' manually
+      - Or add 'exec waybar' to your compositor config
+      
+      {% if session_type.stdout != "wayland" %}
+      Note: You're not currently in a Wayland session. Waybar works best with Wayland compositors like Sway or Hyprland.
+      {% endif %}

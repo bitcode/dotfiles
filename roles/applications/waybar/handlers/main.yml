@@ -1,0 +1,11 @@
+---
+# Waybar handlers
+- name: restart waybar
+  debug:
+    msg: "Waybar configuration updated. Restart waybar with 'killall waybar && waybar &'."
+  listen: "restart waybar"
+
+- name: reload waybar config
+  debug:
+    msg: "Waybar configuration reloaded. Send SIGUSR2 to waybar process to reload."
+  listen: "reload waybar config"

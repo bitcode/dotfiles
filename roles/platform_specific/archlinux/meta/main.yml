@@ -1,0 +1,28 @@
+---
+dependencies:
+  - role: package_manager
+    when: package_manager_enabled | default(true)
+
+galaxy_info:
+  author: Dotsible Team
+  description: Arch Linux platform-specific setup and package management
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: ArchLinux
+      versions: [all]
+
+  galaxy_tags:
+    - archlinux
+    - platform
+    - pacman
+    - aur
+    - package-management
+    - development
+    - cross-platform
+
+collections:
+  - community.general
+  - ansible.posix

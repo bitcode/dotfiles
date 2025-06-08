@@ -1,0 +1,109 @@
+---
+# i3 window manager installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "i3 window manager is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Install i3 packages on Arch Linux
+  pacman:
+    name: "{{ i3_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install i3 packages on Ubuntu/Debian
+  apt:
+    name: "{{ i3_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install i3 packages on Fedora
+  dnf:
+    name: "{{ i3_packages.fedora }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Fedora"
+
+- name: Create i3 config directory
+  file:
+    path: "{{ i3_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Create i3status config directory
+  file:
+    path: "{{ i3status_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if i3 config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/i3"
+  register: i3_config_source
+
+- name: Deploy i3 configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/i3/"
+    dest: "{{ i3_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: i3_config_source.stat.exists
+  notify: restart i3
+
+- name: Check if i3status config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/i3status"
+  register: i3status_config_source
+
+- name: Deploy i3status configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/i3status/"
+    dest: "{{ i3status_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: i3status_config_source.stat.exists
+  notify: restart i3
+
+- name: Create wallpapers directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/wallpapers"
+    state: directory
+    mode: '0755'
+
+- name: Check if wallpapers exist in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/wallpapers"
+  register: wallpapers_source
+
+- name: Deploy wallpapers
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/wallpapers/"
+    dest: "{{ ansible_user_dir }}/.config/wallpapers/"
+    mode: '0644'
+  when: wallpapers_source.stat.exists
+
+- name: Ensure X11 is available
+  command: which X
+  register: x11_check
+  failed_when: false
+  changed_when: false
+
+- name: Display i3 installation status
+  debug:
+    msg: |
+      i3 window manager installation completed.
+      {% if x11_check.rc == 0 %}
+      X11 is available. You can start i3 with 'startx' or through a display manager.
+      {% else %}
+      X11 not found. Please install X11 server to use i3.
+      {% endif %}
+      
+      Configuration deployed to: {{ i3_config_dir[ansible_os_family | lower] }}
+      
+      To start i3:
+      1. Log out of current session
+      2. Select i3 from display manager, or
+      3. Add 'exec i3' to ~/.xinitrc and run 'startx'

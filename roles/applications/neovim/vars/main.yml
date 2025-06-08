@@ -1,10 +1,96 @@
 ---
-# Neovim role variables
-neovim_package_name:
-  Darwin: neovim
-  Archlinux: neovim
-  Debian: neovim
-  Ubuntu: neovim
+# Neovim application role variables
 
-neovim_config_dir: "{{ ansible_user_dir }}/.config/nvim"
-neovim_backup_dir: "{{ ansible_user_dir }}/.config/nvim.backup"
+# Package names for different OS families
+neovim_packages:
+  debian:
+    - neovim
+    - python3-neovim
+    - python3-pip
+    - nodejs
+    - npm
+    - ripgrep
+    - fd-find
+  archlinux:
+    - neovim
+    - python-pynvim
+    - python-pip
+    - nodejs
+    - npm
+    - ripgrep
+    - fd
+  darwin:
+    - neovim
+    - python3
+    - node
+    - ripgrep
+    - fd
+  windows:
+    - neovim
+    - python3
+    - nodejs
+    - ripgrep
+    - fd
+
+# Configuration directory paths
+neovim_config_dir:
+  debian: "{{ ansible_user_dir }}/.config/nvim"
+  archlinux: "{{ ansible_user_dir }}/.config/nvim"
+  darwin: "{{ ansible_user_dir }}/.config/nvim"
+  windows: "{{ ansible_user_dir }}\\AppData\\Local\\nvim"
+
+# Data directory paths
+neovim_data_dir:
+  debian: "{{ ansible_user_dir }}/.local/share/nvim"
+  archlinux: "{{ ansible_user_dir }}/.local/share/nvim"
+  darwin: "{{ ansible_user_dir }}/.local/share/nvim"
+  windows: "{{ ansible_user_dir }}\\AppData\\Local\\nvim-data"
+
+# Backup directory
+neovim_backup_dir:
+  debian: "{{ ansible_user_dir }}/.config/nvim.backup"
+  archlinux: "{{ ansible_user_dir }}/.config/nvim.backup"
+  darwin: "{{ ansible_user_dir }}/.config/nvim.backup"
+  windows: "{{ ansible_user_dir }}\\AppData\\Local\\nvim.backup"
+
+# Plugin manager configuration
+neovim_plugin_manager: "lazy.nvim"
+neovim_plugin_manager_url: "https://github.com/folke/lazy.nvim.git"
+
+# Essential plugins for cross-platform development
+neovim_essential_plugins:
+  - "nvim-treesitter/nvim-treesitter"
+  - "neovim/nvim-lspconfig"
+  - "hrsh7th/nvim-cmp"
+  - "hrsh7th/cmp-nvim-lsp"
+  - "L3MON4D3/LuaSnip"
+  - "nvim-telescope/telescope.nvim"
+  - "nvim-lua/plenary.nvim"
+  - "lewis6991/gitsigns.nvim"
+  - "folke/which-key.nvim"
+  - "nvim-lualine/lualine.nvim"
+
+# Language servers to install
+neovim_language_servers:
+  - "lua-language-server"
+  - "typescript-language-server"
+  - "pyright"
+  - "rust-analyzer"
+  - "gopls"
+  - "clangd"
+
+# Python packages for Neovim
+neovim_python_packages:
+  - "pynvim"
+  - "black"
+  - "isort"
+  - "flake8"
+  - "mypy"
+
+# Node.js packages for Neovim
+neovim_node_packages:
+  - "neovim"
+  - "@fsouza/prettierd"
+  - "eslint_d"
+  - "typescript"
+  - "typescript-language-server"

@@ -23,12 +23,32 @@
           ⏰  Timestamp: {{ ansible_date_time.iso8601 }}
 
   roles:
-    # Platform-specific setup (must run first)
+    # Common setup (environment detection and base configuration)
+    - role: common
+      tags: ['common', 'base']
+
+    # Package manager setup
+    - role: package_manager
+      tags: ['package_manager', 'packages']
+
+    # Platform-specific setup (must run after common)
     - role: platform_specific/macos
       when: ansible_os_family == "Darwin"
       tags: ['platform', 'macos']
 
-    # Application configuration
+    - role: platform_specific/windows
+      when: ansible_os_family == "Windows"
+      tags: ['platform', 'windows']
+
+    - role: platform_specific/archlinux
+      when: ansible_distribution == "Archlinux"
+      tags: ['platform', 'archlinux']
+
+    - role: platform_specific/ubuntu
+      when: ansible_os_family == "Debian"
+      tags: ['platform', 'ubuntu']
+
+    # Core application configuration
     - role: applications/neovim
       tags: ['applications', 'neovim']
 
@@ -44,27 +64,69 @@
     - role: applications/starship
       tags: ['applications', 'starship']
 
+    # Window manager specific configurations (Linux only)
+    - role: applications/i3
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "i3"
+      tags: ['applications', 'i3', 'window-manager']
+
+    - role: applications/hyprland
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "hyprland"
+      tags: ['applications', 'hyprland', 'window-manager']
+
+    - role: applications/sway
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "sway"
+      tags: ['applications', 'sway', 'window-manager']
+
+    # Status bar configurations (conditional on window manager)
+    - role: applications/waybar
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager in ["hyprland", "sway"]
+      tags: ['applications', 'waybar', 'status-bar']
+
+    - role: applications/polybar
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "i3"
+      tags: ['applications', 'polybar', 'status-bar']
+
   post_tasks:
-    - name: Phase 2 - Configuration migration completed
+    - name: Phase 3 - Cross-Platform Integration completed
       debug:
         msg: |
-          ✅ Phase 2 completed successfully!
+          ✅ Phase 3 completed successfully!
 
-          Migrated configurations:
-          - Application configs moved to files/dotfiles/
-          - Created functional application roles
-          - Extracted macOS platform logic from macsible.yaml
-          - Updated main playbook with role-based system
+          Environment Detection:
+          - OS: {{ dotsible_os | default('unknown') }}
+          - Distribution: {{ dotsible_distribution | default('unknown') }}
+          - Window Manager: {{ dotsible_window_manager | default('none') }}
+          - Environment Type: {{ dotsible_environment | default('unknown') }}
 
-          Applications configured:
-          - Neovim (cross-platform)
-          - ZSH (cross-platform)
-          - Tmux (cross-platform)
-          - Alacritty (cross-platform)
-          - Starship (cross-platform)
+          Platform Support:
+          - macOS: Full support with Homebrew package management
+          - Windows: Full support with Chocolatey/Scoop/winget
+          - Arch Linux: Full support with pacman/AUR
+          - Ubuntu/Debian: Full support with apt/snap/flatpak
 
-          Platform support:
-          - macOS: Full support with idempotent package management
-          - Linux: Basic support (Arch, Ubuntu/Debian)
+          Applications Configured:
+          - Neovim (cross-platform with language servers)
+          - ZSH (cross-platform shell configuration)
+          - Tmux (cross-platform terminal multiplexer)
+          - Alacritty (cross-platform terminal emulator)
+          - Starship (cross-platform shell prompt)
+          {% if dotsible_window_manager is defined and dotsible_window_manager != 'none' %}
+          - {{ dotsible_window_manager | title }} (window manager)
+          {% if dotsible_window_manager in ["hyprland", "sway"] %}
+          - Waybar (Wayland status bar)
+          {% elif dotsible_window_manager == "i3" %}
+          - Polybar (X11 status bar)
+          {% endif %}
+          {% endif %}
 
-          Ready for Phase 3: Advanced Integration
+          Ready for production deployment across all supported platforms!

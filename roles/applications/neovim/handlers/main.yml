@@ -3,3 +3,19 @@
 - name: restart neovim
   debug:
     msg: "Neovim configuration updated. Restart any running nvim instances."
+  listen: "restart neovim"
+
+- name: reload neovim config
+  debug:
+    msg: "Neovim configuration reloaded. Use :source $MYVIMRC in nvim to apply changes."
+  listen: "reload neovim config"
+
+- name: update neovim plugins
+  debug:
+    msg: "Neovim plugins updated. Run :Lazy sync in nvim to update plugins."
+  listen: "update neovim plugins"
+
+- name: install language servers
+  debug:
+    msg: "Language servers updated. Run :LspInstall in nvim to install/update language servers."
+  listen: "install language servers"

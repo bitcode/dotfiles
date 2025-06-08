@@ -1,0 +1,201 @@
+---
+# Ubuntu/Debian-specific variables for development environment setup
+# Equivalent to macOS macsible.yaml functionality for Ubuntu/Debian
+
+# Software inventory - tracks all managed software
+apt_packages:
+  - build-essential
+  - git
+  - curl
+  - wget
+  - vim
+  - neovim
+  - tmux
+  - zsh
+  - alacritty
+  - firefox
+  - docker.io
+  - docker-compose
+  - python3
+  - python3-pip
+  - python3-venv
+  - nodejs
+  - npm
+  - golang-go
+  - rustc
+  - cargo
+  - ripgrep
+  - fd-find
+  - bat
+  - fzf
+  - ranger
+  - htop
+  - tree
+  - unzip
+  - zip
+  - jq
+  - software-properties-common
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+# Snap packages
+snap_packages:
+  - code
+  - discord
+  - slack
+  - postman
+  - go
+  - node
+  - obsidian
+  - figma-linux
+  - zoom-client
+
+# Development packages
+dev_packages:
+  - gcc
+  - g++
+  - clang
+  - cmake
+  - make
+  - pkg-config
+  - libssl-dev
+  - sqlite3
+  - libsqlite3-dev
+  - postgresql
+  - postgresql-contrib
+  - redis-server
+  - default-jdk
+
+# Window manager packages (for Ubuntu desktop)
+wm_packages:
+  - i3-wm
+  - i3status
+  - i3lock
+  - sway
+  - waybar
+  - wofi
+  - rofi
+  - dmenu
+  - polybar
+  - picom
+  - dunst
+  - feh
+  - grim
+  - slurp
+  - wl-clipboard
+
+# Fonts
+font_packages:
+  - fonts-jetbrains-mono
+  - fonts-font-awesome
+  - fonts-noto
+  - fonts-noto-color-emoji
+  - fonts-powerline
+  - fonts-hack
+
+# System utilities
+system_packages:
+  - network-manager
+  - bluetooth
+  - bluez
+  - pulseaudio
+  - pulseaudio-module-bluetooth
+  - pavucontrol
+  - brightnessctl
+  - acpi
+  - upower
+  - flatpak
+  - snapd
+
+# PPAs to add
+ubuntu_ppas:
+  - ppa:neovim-ppa/unstable
+  - ppa:git-core/ppa
+  - ppa:deadsnakes/ppa
+
+# External repositories
+external_repos:
+  - name: "Docker"
+    key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+  - name: "NodeJS"
+    key_url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    repo: "deb https://deb.nodesource.com/node_18.x {{ ansible_distribution_release }} main"
+
+# NPM global packages (same as macOS for consistency)
+npm_global_packages:
+  - "@angular/cli"
+  - "create-react-app"
+  - "typescript"
+  - "ts-node"
+  - "nodemon"
+  - "pm2"
+  - "yarn"
+  - "pnpm"
+  - "eslint"
+  - "prettier"
+  - "http-server"
+  - "live-server"
+  - "@modelcontextprotocol/server-brave-search"
+  - "@modelcontextprotocol/server-puppeteer"
+  - "firecrawl-mcp"
+
+# Python packages
+python_packages:
+  - "pynvim"
+  - "black"
+  - "isort"
+  - "flake8"
+  - "mypy"
+  - "pytest"
+  - "requests"
+  - "beautifulsoup4"
+  - "pandas"
+  - "numpy"
+  - "jupyter"
+
+# Rust packages (cargo)
+cargo_packages:
+  - "starship"
+  - "zellij"
+  - "exa"
+  - "bottom"
+  - "tokei"
+  - "hyperfine"
+
+# Services to enable
+systemd_services:
+  - "docker"
+  - "bluetooth"
+  - "NetworkManager"
+
+# Development directories to create
+development_directories:
+  - "{{ ansible_user_dir }}/dev"
+  - "{{ ansible_user_dir }}/projects"
+  - "{{ ansible_user_dir }}/src"
+  - "{{ ansible_user_dir }}/.local/bin"
+
+# Environment variables
+ubuntu_environment_vars:
+  - name: "EDITOR"
+    value: "nvim"
+  - name: "BROWSER"
+    value: "firefox"
+  - name: "TERMINAL"
+    value: "alacritty"
+  - name: "PATH"
+    value: "{{ ansible_user_dir }}/.local/bin:{{ ansible_user_dir }}/.cargo/bin:$PATH"
+
+# Flatpak applications
+flatpak_packages:
+  - "com.visualstudio.code"
+  - "org.mozilla.firefox"
+  - "com.google.Chrome"
+  - "com.discordapp.Discord"
+  - "com.slack.Slack"
+  - "md.obsidian.Obsidian"
+  - "io.github.Figma_Linux.figma_linux"
+  - "us.zoom.Zoom"

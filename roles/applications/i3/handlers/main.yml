@@ -1,0 +1,16 @@
+---
+# i3 window manager handlers
+- name: restart i3
+  debug:
+    msg: "i3 configuration updated. Restart i3 with Mod+Shift+r or restart X session."
+  listen: "restart i3"
+
+- name: reload i3 config
+  debug:
+    msg: "i3 configuration reloaded. Use Mod+Shift+c to reload i3 config."
+  listen: "reload i3 config"
+
+- name: restart i3status
+  debug:
+    msg: "i3status configuration updated. i3status will reload automatically."
+  listen: "restart i3status"

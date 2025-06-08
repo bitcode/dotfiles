@@ -1,0 +1,11 @@
+---
+# Polybar handlers
+- name: restart polybar
+  debug:
+    msg: "Polybar configuration updated. Restart polybar with the launch script."
+  listen: "restart polybar"
+
+- name: reload polybar config
+  debug:
+    msg: "Polybar configuration reloaded. Run 'polybar-msg cmd restart' to reload."
+  listen: "reload polybar config"

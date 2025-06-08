@@ -1,0 +1,118 @@
+---
+# Sway Wayland compositor installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "Sway is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Install Sway packages on Arch Linux
+  pacman:
+    name: "{{ sway_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Sway packages on Ubuntu/Debian
+  apt:
+    name: "{{ sway_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install Sway packages on Fedora
+  dnf:
+    name: "{{ sway_packages.fedora }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Fedora"
+
+- name: Create Sway config directory
+  file:
+    path: "{{ sway_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Create Waybar config directory
+  file:
+    path: "{{ waybar_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Sway config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/sway"
+  register: sway_config_source
+
+- name: Deploy Sway configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/sway/"
+    dest: "{{ sway_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: sway_config_source.stat.exists
+  notify: restart sway
+
+- name: Check if Waybar config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/waybar"
+  register: waybar_config_source
+
+- name: Deploy Waybar configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/waybar/"
+    dest: "{{ waybar_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: waybar_config_source.stat.exists
+  notify: restart waybar
+
+- name: Create wallpapers directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/wallpapers"
+    state: directory
+    mode: '0755'
+
+- name: Check if wallpapers exist in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/wallpapers"
+  register: wallpapers_source
+
+- name: Deploy wallpapers
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/wallpapers/"
+    dest: "{{ ansible_user_dir }}/.config/wallpapers/"
+    mode: '0644'
+  when: wallpapers_source.stat.exists
+
+- name: Add user to video group (for screen brightness control)
+  user:
+    name: "{{ ansible_user_id }}"
+    groups: video
+    append: yes
+  become: yes
+
+- name: Check if Sway is executable
+  command: which sway
+  register: sway_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Sway installation status
+  debug:
+    msg: |
+      Sway installation completed.
+      {% if sway_check.rc == 0 %}
+      Sway is available. You can start it from a display manager or TTY.
+      {% else %}
+      Sway installation may have failed. Check the logs above.
+      {% endif %}
+      
+      Configuration deployed to: {{ sway_config_dir[ansible_os_family | lower] }}
+      
+      To start Sway:
+      1. Log out of current session
+      2. Select Sway from display manager, or
+      3. Run 'sway' from a TTY
+      
+      Note: Sway requires running from a TTY or compatible display manager.

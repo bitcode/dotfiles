@@ -1,0 +1,98 @@
+---
+# Polybar status bar installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "Polybar is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Check if X11 is available
+  shell: echo $XDG_SESSION_TYPE
+  register: session_type
+  changed_when: false
+  failed_when: false
+
+- name: Install Polybar packages on Arch Linux
+  pacman:
+    name: "{{ polybar_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Polybar packages on Ubuntu/Debian
+  apt:
+    name: "{{ polybar_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install Polybar packages on Fedora
+  dnf:
+    name: "{{ polybar_packages.fedora }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Fedora"
+
+- name: Create Polybar config directory
+  file:
+    path: "{{ polybar_config_dir[ansible_os_family | lower] }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Polybar config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/polybar"
+  register: polybar_config_source
+
+- name: Deploy Polybar configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/polybar/"
+    dest: "{{ polybar_config_dir[ansible_os_family | lower] }}/"
+    mode: '0644'
+    backup: yes
+  when: polybar_config_source.stat.exists
+  notify: restart polybar
+
+- name: Create default Polybar config if none exists
+  template:
+    src: config.ini.j2
+    dest: "{{ polybar_config_dir[ansible_os_family | lower] }}/config.ini"
+    mode: '0644'
+    backup: yes
+  when: not polybar_config_source.stat.exists
+  notify: restart polybar
+
+- name: Create Polybar launch script
+  template:
+    src: launch.sh.j2
+    dest: "{{ polybar_config_dir[ansible_os_family | lower] }}/launch.sh"
+    mode: '0755'
+    backup: yes
+  notify: restart polybar
+
+- name: Check if Polybar is executable
+  command: which polybar
+  register: polybar_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Polybar installation status
+  debug:
+    msg: |
+      Polybar installation completed.
+      {% if polybar_check.rc == 0 %}
+      Polybar is available and ready to use.
+      {% else %}
+      Polybar installation may have failed. Check the logs above.
+      {% endif %}
+      
+      Configuration deployed to: {{ polybar_config_dir[ansible_os_family | lower] }}
+      
+      To start Polybar:
+      - Run the launch script: {{ polybar_config_dir[ansible_os_family | lower] }}/launch.sh
+      - Or add it to your window manager config (i3, bspwm, etc.)
+      - Or add 'exec_always --no-startup-id $HOME/.config/polybar/launch.sh' to i3 config
+      
+      {% if session_type.stdout == "wayland" %}
+      Note: You're in a Wayland session. Polybar is designed for X11. Consider using Waybar instead.
+      {% endif %}
