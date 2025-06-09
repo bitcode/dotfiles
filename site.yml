@@ -11,6 +11,7 @@
     dotsible_version: "2.0.0"
     execution_timestamp: "{{ ansible_date_time.iso8601 }}"
     dry_run_mode: "{{ ansible_check_mode | default(false) }}"
+    dotsible_home: "{{ ansible_env.HOME | default(ansible_user_dir) | default('/Users/' + ansible_user_id) }}"
 
   pre_tasks:
     - name: Dotsible startup banner
@@ -40,14 +41,14 @@
 
     - name: Create dotsible working directory
       file:
-        path: "{{ ansible_env.HOME }}/.dotsible"
+        path: "{{ dotsible_home }}/.dotsible"
         state: directory
         mode: '0755'
       tags: ['always']
 
     - name: Log execution start
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.dotsible/execution.log"
+        path: "{{ dotsible_home }}/.dotsible/execution.log"
         line: "{{ execution_timestamp }} - Dotsible execution started (Profile: {{ profile | default('minimal') }})"
         create: yes
       tags: ['always']
@@ -63,7 +64,7 @@
           • Architecture: {{ ansible_architecture }}
           • Python: {{ ansible_python_version }}
           • User: {{ ansible_user_id }}
-          • Home: {{ ansible_env.HOME }}
+          • Home: {{ dotsible_home }}
       tags: ['always']
 
 - name: Platform-Specific Configuration
@@ -123,8 +124,20 @@
       tags: ['applications', 'git']
       when: profile in ['minimal', 'developer', 'enterprise']
 
+    - role: applications/fonts
+      tags: ['applications', 'fonts']
+      when: profile in ['minimal', 'developer', 'enterprise']
+
     - role: applications/zsh
       tags: ['applications', 'zsh']
+      when: profile in ['developer', 'enterprise']
+
+    - role: applications/zoxide
+      tags: ['applications', 'zoxide']
+      when: profile in ['developer', 'enterprise']
+
+    - role: applications/starship
+      tags: ['applications', 'starship']
       when: profile in ['developer', 'enterprise']
 
     - role: applications/tmux
@@ -159,6 +172,31 @@
     - name: Application configuration completed
       debug:
         msg: "✅ Application configuration completed"
+      tags: ['always']
+
+- name: Dotfiles Configuration
+  hosts: all
+  gather_facts: no
+  become: no
+
+  pre_tasks:
+    - name: Dotfiles configuration banner
+      debug:
+        msg: |
+          📁 DOTFILES CONFIGURATION
+          =========================
+          Deploying dotfiles and configurations...
+      tags: ['always']
+
+  roles:
+    - role: dotfiles
+      tags: ['dotfiles']
+      when: profile in ['minimal', 'developer', 'enterprise']
+
+  post_tasks:
+    - name: Dotfiles configuration completed
+      debug:
+        msg: "✅ Dotfiles configuration completed"
       tags: ['always']
 
 - name: Profile-Specific Configuration
@@ -199,6 +237,9 @@
   gather_facts: no
   become: no
 
+  vars:
+    dotsible_home: "{{ ansible_env.HOME | default(ansible_user_dir) | default('/Users/' + ansible_user_id) }}"
+
   pre_tasks:
     - name: Final configuration banner
       debug:
@@ -211,7 +252,7 @@
   tasks:
     - name: Create dotsible completion marker
       file:
-        path: "{{ ansible_env.HOME }}/.dotsible/last_run"
+        path: "{{ dotsible_home }}/.dotsible/last_run"
         state: touch
         modification_time: preserve
         access_time: preserve
@@ -219,7 +260,7 @@
 
     - name: Log execution completion
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.dotsible/execution.log"
+        path: "{{ dotsible_home }}/.dotsible/execution.log"
         line: "{{ ansible_date_time.iso8601 }} - Dotsible execution completed successfully (Profile: {{ profile | default('minimal') }})"
       tags: ['always']
 

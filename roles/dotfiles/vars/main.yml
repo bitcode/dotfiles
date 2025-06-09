@@ -1,0 +1,24 @@
+---
+# Simplified dotfiles role variables
+
+# Basic dotfiles configuration
+dotfiles:
+  enabled: true
+  local_path: "{{ playbook_dir }}/files/dotfiles"
+  backup_existing: true
+  backup_directory: "{{ ansible_user_dir }}/.dotsible/backups"
+
+# Common directories to ensure exist
+dotfiles_common_directories:
+  - "{{ ansible_user_dir }}/.config"
+  - "{{ ansible_user_dir }}/.local/bin"
+  - "{{ ansible_user_dir }}/.dotsible"
+  - "{{ ansible_user_dir }}/.dotsible/backups"
+
+# File mappings for deployment
+dotfiles_file_mappings:
+  zsh: "{{ ansible_user_dir }}/.zshrc"
+  git: "{{ ansible_user_dir }}/.gitconfig"
+  tmux: "{{ ansible_user_dir }}/.tmux.conf"
+  starship: "{{ ansible_user_dir }}/.config/starship.toml"
+  nvim: "{{ ansible_user_dir }}/.config/nvim/"

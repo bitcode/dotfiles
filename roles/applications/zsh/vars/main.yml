@@ -1,12 +1,243 @@
 ---
-# ZSH role variables
-zsh_package_name:
-  Darwin: zsh
-  Archlinux: zsh
-  Debian: zsh
-  Ubuntu: zsh
+# ZSH application role variables
 
-zsh_config_files:
-  - .zshrc
-  - .zprofile
-  - .zshenv
+# Package names for different OS families
+zsh_packages:
+  debian:
+    - zsh
+    - zsh-common
+    - zsh-doc
+  archlinux:
+    - zsh
+    - zsh-completions
+  darwin:
+    - zsh
+    - zsh-completions
+  windows: []  # ZSH not natively supported on Windows
+
+# ZSH configuration paths
+zsh_home_path: "{{ ansible_env.HOME if ansible_os_family != 'Windows' else ansible_env.USERPROFILE }}"
+zsh_config_path: "{{ zsh_home_path }}/.zshrc"
+zsh_profile_path: "{{ zsh_home_path }}/.zprofile"
+zsh_env_path: "{{ zsh_home_path }}/.zshenv"
+
+# Oh My Zsh configuration
+zsh_oh_my_zsh_enabled: true
+zsh_oh_my_zsh_path: "{{ zsh_home_path }}/.oh-my-zsh"
+zsh_oh_my_zsh_custom_path: "{{ zsh_oh_my_zsh_path }}/custom"
+zsh_oh_my_zsh_install_url: "https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+
+# Default theme
+zsh_theme: "robbyrussell"
+
+# Profile-specific theme mapping
+zsh_profile_themes:
+  minimal: "robbyrussell"
+  developer: "powerlevel10k/powerlevel10k"
+  server: "simple"
+  gaming: "agnoster"
+  designer: "spaceship"
+
+# Default plugins for all profiles
+zsh_base_plugins:
+  - git
+  - sudo
+  - history
+  - colored-man-pages
+
+# Profile-specific plugins
+zsh_profile_plugins:
+  minimal: []
+  developer:
+    - docker
+    - docker-compose
+    - node
+    - npm
+    - python
+    - pip
+    - virtualenv
+    - tmux
+    - zsh-autosuggestions
+    - zsh-syntax-highlighting
+    - zsh-completions
+    - zsh-fzf-history-search
+    - zsh-history-substring-search
+  server:
+    - systemd
+    - tmux
+    - rsync
+  gaming:
+    - steam
+  designer:
+    - brew
+    - macos
+
+# Combined plugins based on profile
+zsh_plugins: "{{ zsh_base_plugins + zsh_profile_plugins.get(profile | default('minimal'), []) }}"
+
+# Custom Oh My Zsh plugins to install
+zsh_oh_my_zsh_custom_plugins:
+  - name: zsh-autosuggestions
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+  - name: zsh-syntax-highlighting
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+  - name: zsh-completions
+    repo: https://github.com/zsh-users/zsh-completions
+  - name: zsh-fzf-history-search
+    repo: https://github.com/joshskidmore/zsh-fzf-history-search
+  - name: zsh-history-substring-search
+    repo: https://github.com/zsh-users/zsh-history-substring-search
+  - name: zsh-vi-mode
+    repo: https://github.com/jeffreytse/zsh-vi-mode
+
+# Custom Oh My Zsh themes to install
+zsh_oh_my_zsh_custom_themes:
+  - name: spaceship-prompt
+    repo: https://github.com/spaceship-prompt/spaceship-prompt.git
+  - name: powerlevel10k
+    repo: https://github.com/romkatv/powerlevel10k.git
+
+# ZSH options
+zsh_options:
+  - HIST_VERIFY
+  - SHARE_HISTORY
+  - APPEND_HISTORY
+  - INC_APPEND_HISTORY
+  - HIST_IGNORE_DUPS
+  - HIST_IGNORE_ALL_DUPS
+  - HIST_IGNORE_SPACE
+  - HIST_SAVE_NO_DUPS
+  - HIST_REDUCE_BLANKS
+  - CORRECT
+  - AUTO_CD
+  - AUTO_PUSHD
+  - PUSHD_IGNORE_DUPS
+  - EXTENDED_GLOB
+  - GLOB_COMPLETE
+  - COMPLETE_IN_WORD
+  - ALWAYS_TO_END
+
+# History configuration
+zsh_history_file: "{{ zsh_home_path }}/.zsh_history"
+zsh_history_size: 50000
+zsh_save_history: 50000
+
+# Basic aliases
+zsh_basic_aliases:
+  ll: "ls -alF"
+  la: "ls -A"
+  l: "ls -CF"
+  grep: "grep --color=auto"
+  fgrep: "fgrep --color=auto"
+  egrep: "egrep --color=auto"
+
+# Profile-specific aliases
+zsh_profile_aliases:
+  minimal: {}
+  developer:
+    dc: "docker-compose"
+    dps: "docker ps"
+    dimg: "docker images"
+    g: "git"
+    gs: "git status"
+    ga: "git add"
+    gc: "git commit"
+    gp: "git push"
+    gl: "git pull"
+    gd: "git diff"
+    gco: "git checkout"
+    gbr: "git branch"
+    py: "python3"
+    pip: "pip3"
+    venv: "python3 -m venv"
+    serve: "python3 -m http.server"
+  server:
+    htop: "htop -d 10"
+    df: "df -h"
+    du: "du -h"
+    free: "free -h"
+    ps: "ps aux"
+    netstat: "netstat -tuln"
+    ss: "ss -tuln"
+    systemctl: "sudo systemctl"
+    journalctl: "sudo journalctl"
+  gaming:
+    steam: "steam &"
+    lutris: "lutris &"
+  designer:
+    gimp: "gimp &"
+    inkscape: "inkscape &"
+    blender: "blender &"
+
+# Combined aliases based on profile
+zsh_aliases: "{{ zsh_basic_aliases | combine(zsh_profile_aliases.get(profile | default('minimal'), {})) }}"
+
+# Environment variables
+zsh_environment_vars:
+  EDITOR: "{{ git_editor | default('vim') }}"
+  BROWSER: "{{ default_browser | default('firefox') }}"
+  TERM: "xterm-256color"
+  LANG: "en_US.UTF-8"
+  LC_ALL: "en_US.UTF-8"
+
+# PATH additions
+zsh_path_additions:
+  - "$HOME/.local/bin"
+  - "$HOME/bin"
+  - "/usr/local/bin"
+
+# Package management configuration
+package_state: "present"
+package_update_cache: true
+
+# Homebrew configuration (macOS)
+homebrew_config:
+  update_homebrew: true
+  upgrade_all: false
+
+# Feature flags
+zsh_set_as_default: true
+zsh_backup_enabled: true
+zsh_custom_functions_enabled: true
+zsh_completion_enabled: true
+zsh_case_sensitive: false
+zsh_hyphen_insensitive: true
+zsh_disable_auto_update: false
+zsh_update_days: 13
+zsh_disable_ls_colors: false
+zsh_disable_auto_title: false
+zsh_enable_correction: true
+zsh_completion_waiting_dots: true
+zsh_disable_untracked_files_dirty: false
+
+# Powerlevel10k configuration
+zsh_p10k_config_path: "{{ zsh_home_path }}/.p10k.zsh"
+zsh_p10k_instant_prompt: true
+
+# Completion configuration
+zsh_completion_case_sensitive: false
+zsh_completion_hyphen_insensitive: true
+zsh_completion_partial_word: true
+zsh_completion_end: true
+
+# FZF integration configuration
+zsh_fzf_enabled: true
+zsh_fzf_history_search_enabled: true
+zsh_fzf_completion_enabled: true
+zsh_fzf_key_bindings_enabled: true
+
+# Plugin-specific configurations
+zsh_autosuggestions_highlight_style: "fg=10"
+zsh_autosuggestions_accept_key: "^J"  # Ctrl+J to accept suggestion
+
+# History substring search configuration
+zsh_history_substring_search_highlight_found: "bg=cyan,fg=white,bold"
+zsh_history_substring_search_highlight_not_found: "bg=magenta,fg=white,bold"
+zsh_history_substring_search_globbing_flags: "i"
+
+# Syntax highlighting configuration
+zsh_syntax_highlighting_highlighters:
+  - main
+  - brackets
+  - pattern
+  - cursor

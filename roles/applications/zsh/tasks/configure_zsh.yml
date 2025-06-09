@@ -1,0 +1,112 @@
+---
+# Configure ZSH settings and options
+
+- name: Check if .zshrc exists
+  stat:
+    path: "{{ zsh_config_path }}"
+  register: zshrc_check
+  tags: ['zsh', 'config', 'check']
+
+- name: Create .zshrc if it doesn't exist
+  file:
+    path: "{{ zsh_config_path }}"
+    state: touch
+    mode: '0644'
+  when: not zshrc_check.stat.exists
+  tags: ['zsh', 'config', 'create']
+
+- name: Configure ZSH options
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ZSH Options"
+    block: |
+      # ZSH Options
+      {% for option in zsh_options %}
+      setopt {{ option }}
+      {% endfor %}
+    create: yes
+    backup: yes
+  tags: ['zsh', 'config', 'options']
+
+- name: Configure ZSH history settings
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - History Settings"
+    block: |
+      # History Configuration
+      HISTFILE={{ zsh_history_file }}
+      HISTSIZE={{ zsh_history_size }}
+      SAVEHIST={{ zsh_save_history }}
+      
+      # History options
+      setopt HIST_EXPIRE_DUPS_FIRST
+      setopt HIST_IGNORE_DUPS
+      setopt HIST_IGNORE_ALL_DUPS
+      setopt HIST_IGNORE_SPACE
+      setopt HIST_FIND_NO_DUPS
+      setopt HIST_SAVE_NO_DUPS
+      setopt HIST_BEEP
+    create: yes
+    backup: yes
+  tags: ['zsh', 'config', 'history']
+
+- name: Configure ZSH completion system
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Completion System"
+    block: |
+      # Completion Configuration
+      autoload -Uz compinit
+      compinit
+      
+      # Completion options
+      zstyle ':completion:*' auto-description 'specify: %d'
+      zstyle ':completion:*' completer _expand _complete _correct _approximate
+      zstyle ':completion:*' format 'Completing %d'
+      zstyle ':completion:*' group-name ''
+      zstyle ':completion:*' menu select=2
+      zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+      zstyle ':completion:*' list-colors ''
+      zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+      zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+      zstyle ':completion:*' menu select=long
+      zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+      zstyle ':completion:*' use-compctl false
+      zstyle ':completion:*' verbose true
+      
+      zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+      zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
+    create: yes
+    backup: yes
+  when: zsh_completion_enabled | default(true)
+  tags: ['zsh', 'config', 'completion']
+
+- name: Configure ZSH key bindings
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Key Bindings"
+    block: |
+      # Key Bindings
+      bindkey -e  # Use emacs key bindings
+      
+      # Custom key bindings
+      bindkey '^[[1;5C' forward-word      # Ctrl+Right
+      bindkey '^[[1;5D' backward-word     # Ctrl+Left
+      bindkey '^[[3~' delete-char         # Delete
+      bindkey '^[[H' beginning-of-line    # Home
+      bindkey '^[[F' end-of-line          # End
+      bindkey '^[[5~' up-line-or-history  # Page Up
+      bindkey '^[[6~' down-line-or-history # Page Down
+    create: yes
+    backup: yes
+  tags: ['zsh', 'config', 'keybindings']
+
+- name: Display ZSH configuration status
+  debug:
+    msg: |
+      ZSH Configuration Status:
+      • Config file: {{ zsh_config_path }}
+      • Options configured: {{ zsh_options | length }}
+      • Completion: {{ 'Enabled' if zsh_completion_enabled else 'Disabled' }}
+      • History size: {{ zsh_history_size }}
+  tags: ['zsh', 'config', 'status']

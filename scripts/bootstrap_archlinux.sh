@@ -21,6 +21,8 @@ info() { echo -e "${BLUE}$(date) [INFO] $*${NC}" | tee -a "$LOG_FILE"; }
 warning() { echo -e "${YELLOW}$(date) [WARN] $*${NC}" | tee -a "$LOG_FILE"; }
 
 ENVIRONMENT_TYPE="${1:-personal}"
+TARGET_PYTHON_VERSION="3.13.4"
+REQUIRED_PYTHON_MAJOR_MINOR="3.13"
 
 # Progress indicator
 show_progress() {
@@ -92,25 +94,68 @@ install_base_tools() {
     success "Base development tools installed"
 }
 
+# Python version management - upgrade to Python 3.13
+manage_python_version() {
+    info "🐍 Managing Python version..."
+
+    # Check current Python version
+    local current_version=""
+    if command -v python3 >/dev/null 2>&1; then
+        current_version=$(python3 --version 2>&1 | cut -d' ' -f2)
+        info "Current Python: $current_version"
+    fi
+
+    # Check if we already have the target version
+    if [[ "$current_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
+        success "Python $REQUIRED_PYTHON_MAJOR_MINOR already installed"
+        return 0
+    fi
+
+    # Install Python 3.13 via pacman
+    info "Installing Python 3.13 via pacman..."
+    sudo pacman -S --noconfirm python python-pip
+
+    # Verify installation
+    if command -v python3 >/dev/null 2>&1; then
+        local new_version=$(python3 --version 2>&1 | cut -d' ' -f2)
+        if [[ "$new_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
+            success "✅ Python $new_version installed successfully"
+        else
+            warning "⚠️  Python installed but version is $new_version (expected $REQUIRED_PYTHON_MAJOR_MINOR.x)"
+        fi
+    else
+        error "❌ Python installation failed"
+        exit 1
+    fi
+
+    # Verify pip
+    if ! python3 -m pip --version >/dev/null 2>&1; then
+        error "❌ pip not working properly"
+        exit 1
+    fi
+
+    success "Python version management completed"
+}
+
 # Python and pip validation
 validate_python() {
     info "Validating Python installation..."
-    
+
     if ! command -v python3 >/dev/null 2>&1; then
         error "Python 3 not found"
         exit 1
     fi
-    
+
     if ! python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)" 2>/dev/null; then
         error "Python 3.8+ required"
         exit 1
     fi
-    
+
     if ! python3 -m pip --version >/dev/null 2>&1; then
         error "pip not working properly"
         exit 1
     fi
-    
+
     local python_version
     python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
     success "Python validation passed: version $python_version"
@@ -231,15 +276,15 @@ install_ansible_dev_tools() {
         exit 1
     fi
     
-    # Install ansible-dev-tools
-    if pipx list | grep -q "ansible-dev-tools" 2>/dev/null; then
-        success "ansible-dev-tools already installed"
+    # Install community-ansible-dev-tools
+    if pipx list | grep -q "community-ansible-dev-tools" 2>/dev/null; then
+        success "community-ansible-dev-tools already installed"
     else
-        info "Installing ansible-dev-tools via pipx..."
-        if pipx install ansible-dev-tools; then
-            success "ansible-dev-tools installed successfully"
+        info "Installing community-ansible-dev-tools via pipx..."
+        if pipx install community-ansible-dev-tools; then
+            success "community-ansible-dev-tools installed successfully"
         else
-            error "ansible-dev-tools installation failed"
+            error "community-ansible-dev-tools installation failed"
             exit 1
         fi
     fi
@@ -258,7 +303,7 @@ install_ansible_dev_tools() {
     fi
     
     # Verify installations
-    local tools=("ansible-dev-tools" "ansible-lint")
+    local tools=("community-ansible-dev-tools" "ansible-lint")
     for tool in "${tools[@]}"; do
         if command -v "$tool" >/dev/null 2>&1; then
             success "$tool is accessible"
@@ -320,7 +365,7 @@ final_validation() {
     fi
     
     # Check development tools
-    local dev_tools=("ansible-dev-tools" "ansible-lint")
+    local dev_tools=("community-ansible-dev-tools" "ansible-lint")
     for tool in "${dev_tools[@]}"; do
         if command -v "$tool" >/dev/null 2>&1; then
             success "$tool validation passed"
@@ -329,13 +374,36 @@ final_validation() {
         fi
     done
     
+    # Comprehensive Ansible command verification
+    local expected_commands=("ansible" "ansible-playbook" "ansible-galaxy" "ansible-vault")
+    local missing_commands=()
+
+    for cmd in "${expected_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_commands+=("$cmd")
+        fi
+    done
+
+    if [[ ${#missing_commands[@]} -gt 0 ]]; then
+        warning "Missing Ansible commands: ${missing_commands[*]}"
+        warning "This may indicate an incomplete pipx installation"
+
+        # Try to fix with pipx force reinstall
+        if command -v pipx >/dev/null 2>&1; then
+            info "Attempting to fix Ansible installation..."
+            pipx install --force ansible >/dev/null 2>&1 || warning "Failed to force reinstall Ansible"
+        fi
+    else
+        success "All critical Ansible commands available"
+    fi
+
     # Test Ansible functionality
     if ! ansible localhost -m ping >/dev/null 2>&1; then
         warning "Ansible ping test failed, but installation appears successful"
     else
         success "Ansible functionality verified"
     fi
-    
+
     success "All validations passed!"
     return 0
 }
@@ -349,7 +417,7 @@ main() {
     
     log "Arch Linux bootstrap started for environment: $ENVIRONMENT_TYPE"
     
-    local total_steps=9
+    local total_steps=10
     local current_step=0
     
     show_progress $((++current_step)) $total_steps "Validating Arch system..."
@@ -360,7 +428,10 @@ main() {
     
     show_progress $((++current_step)) $total_steps "Installing base tools..."
     install_base_tools
-    
+
+    show_progress $((++current_step)) $total_steps "Managing Python version..."
+    manage_python_version
+
     show_progress $((++current_step)) $total_steps "Validating Python..."
     validate_python
     
@@ -393,8 +464,8 @@ main() {
     if command -v pipx >/dev/null 2>&1; then
         echo "  - pipx: $(pipx --version 2>/dev/null || echo 'installed')"
     fi
-    if command -v ansible-dev-tools >/dev/null 2>&1; then
-        echo "  - ansible-dev-tools: $(ansible-dev-tools --version 2>/dev/null || echo 'installed')"
+    if command -v community-ansible-dev-tools >/dev/null 2>&1; then
+        echo "  - community-ansible-dev-tools: $(community-ansible-dev-tools --version 2>/dev/null || echo 'installed')"
     fi
     if command -v ansible-lint >/dev/null 2>&1; then
         echo "  - ansible-lint: $(ansible-lint --version 2>/dev/null || echo 'installed')"

@@ -1,0 +1,37 @@
+---
+# Windows-specific font variables
+
+# Font installation paths
+font_install_path: "{{ ansible_env.LOCALAPPDATA }}\\Microsoft\\Windows\\Fonts"
+system_font_path: "C:\\Windows\\Fonts"
+
+# Font cache command (Windows handles automatically)
+font_cache_command: ""
+
+# Dependencies
+font_dependencies:
+  - unzip
+
+# Windows-specific font management
+windows_font_config:
+  user_fonts_dir: "{{ ansible_env.LOCALAPPDATA }}\\Microsoft\\Windows\\Fonts"
+  system_fonts_dir: "C:\\Windows\\Fonts"
+  registry_path: "HKCU:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
+
+# Font validation commands
+font_validation_commands:
+  list_fonts: "Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts'"
+  check_iosevka: "Get-ChildItem -Path '{{ font_install_path }}' -Filter '*Iosevka*'"
+
+# Chocolatey font packages (alternative installation method)
+chocolatey_font_packages:
+  - nerd-fonts-iosevka
+  - nerd-fonts-jetbrainsmono
+  - nerd-fonts-firacode
+  - nerd-fonts-hack
+
+# Windows font installation requires different approach
+windows_font_installation:
+  method: "copy_to_directory"  # or "registry_install" for system-wide
+  requires_admin: false  # for user fonts
+  restart_required: false

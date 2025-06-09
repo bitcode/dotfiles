@@ -1,0 +1,148 @@
+---
+# Setup ZSH theme configuration
+
+- name: Determine theme based on profile
+  set_fact:
+    selected_theme: "{{ zsh_profile_themes.get(profile | default('minimal'), zsh_theme) }}"
+  tags: ['zsh', 'theme', 'selection']
+
+- name: Display theme information
+  debug:
+    msg: |
+      ZSH Theme Configuration:
+      • Profile: {{ profile | default('minimal') }}
+      • Selected theme: {{ selected_theme }}
+      • Oh My Zsh path: {{ zsh_oh_my_zsh_path }}
+  tags: ['zsh', 'theme', 'info']
+
+- name: Install custom themes if needed
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/themes/{{ item.name }}"
+    depth: 1
+    force: yes
+    update: yes
+  loop: "{{ zsh_oh_my_zsh_custom_themes }}"
+  when: 
+    - zsh_oh_my_zsh_custom_themes is defined
+    - selected_theme in ['spaceship', 'powerlevel10k/powerlevel10k']
+  tags: ['zsh', 'theme', 'custom']
+
+- name: Configure theme in .zshrc
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Theme Configuration"
+    block: |
+      # ZSH Theme Configuration
+      ZSH_THEME="{{ selected_theme }}"
+      
+      # Theme-specific settings
+      {% if selected_theme == 'powerlevel10k/powerlevel10k' %}
+      # Powerlevel10k instant prompt
+      if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+        source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+      fi
+      {% elif selected_theme == 'spaceship' %}
+      # Spaceship theme configuration
+      SPACESHIP_PROMPT_ORDER=(
+        user          # Username section
+        dir           # Current directory section
+        host          # Hostname section
+        git           # Git section (git_branch + git_status)
+        hg            # Mercurial section (hg_branch  + hg_status)
+        exec_time     # Execution time
+        line_sep      # Line break
+        vi_mode       # Vi-mode indicator
+        jobs          # Background jobs indicator
+        exit_code     # Exit code section
+        char          # Prompt character
+      )
+      {% endif %}
+    create: yes
+    backup: yes
+  tags: ['zsh', 'theme', 'config']
+
+- name: Check if Powerlevel10k config exists
+  stat:
+    path: "{{ zsh_p10k_config_path }}"
+  register: p10k_config_check
+  when: selected_theme == 'powerlevel10k/powerlevel10k'
+  tags: ['zsh', 'theme', 'p10k']
+
+- name: Create basic Powerlevel10k configuration
+  copy:
+    content: |
+      # Powerlevel10k configuration
+      # To customize prompt, run `p10k configure` or edit this file.
+      
+      # Instant prompt mode
+      typeset -g POWERLEVEL9K_INSTANT_PROMPT=verbose
+      
+      # Basic prompt elements
+      typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
+        dir                     # current directory
+        vcs                     # git status
+        prompt_char             # prompt symbol
+      )
+      
+      typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
+        status                  # exit code of the last command
+        command_execution_time  # duration of the last command
+        background_jobs         # presence of background jobs
+        time                    # current time
+      )
+      
+      # Directory configuration
+      typeset -g POWERLEVEL9K_SHORTEN_STRATEGY=truncate_to_unique
+      typeset -g POWERLEVEL9K_SHORTEN_DELIMITER=
+      
+      # Git configuration
+      typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND=green
+      typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND=yellow
+      typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND=blue
+      
+      # Prompt character configuration
+      typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=green
+      typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_{VIINS,VICMD,VIVIS,VIOWR}_FOREGROUND=red
+    dest: "{{ zsh_p10k_config_path }}"
+    mode: '0644'
+    backup: yes
+  when: 
+    - selected_theme == 'powerlevel10k/powerlevel10k'
+    - not p10k_config_check.stat.exists
+  tags: ['zsh', 'theme', 'p10k']
+
+- name: Source Powerlevel10k config in .zshrc
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Powerlevel10k Config"
+    block: |
+      # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+      [[ ! -f {{ zsh_p10k_config_path }} ]] || source {{ zsh_p10k_config_path }}
+    create: yes
+    backup: yes
+  when: selected_theme == 'powerlevel10k/powerlevel10k'
+  tags: ['zsh', 'theme', 'p10k']
+
+- name: Verify theme installation
+  shell: |
+    if [[ -f "{{ zsh_oh_my_zsh_path }}/themes/{{ selected_theme }}.zsh-theme" ]] || \
+       [[ -d "{{ zsh_oh_my_zsh_custom_path }}/themes/{{ selected_theme.split('/')[0] }}" ]]; then
+      echo "installed"
+    else
+      echo "missing"
+    fi
+  register: theme_verification
+  changed_when: false
+  tags: ['zsh', 'theme', 'verify']
+
+- name: Display theme installation status
+  debug:
+    msg: |
+      Theme Installation Status:
+      • Theme: {{ selected_theme }}
+      • Status: {{ '✅ INSTALLED' if theme_verification.stdout == 'installed' else '❌ MISSING' }}
+      {% if selected_theme == 'powerlevel10k/powerlevel10k' %}
+      • P10k config: {{ '✅ CONFIGURED' if p10k_config_check.stat.exists else '📝 BASIC CONFIG CREATED' }}
+      {% endif %}
+  tags: ['zsh', 'theme', 'status']

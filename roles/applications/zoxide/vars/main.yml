@@ -1,0 +1,102 @@
+---
+# Zoxide configuration variables - Smart directory navigation
+
+# Zoxide installation methods by platform
+zoxide_install_methods:
+  darwin: "homebrew"      # brew install zoxide
+  windows: "chocolatey"   # choco install zoxide
+  archlinux: "pacman"     # pacman -S zoxide
+  debian: "cargo"         # cargo install zoxide (Ubuntu/Debian)
+
+# Shell configuration files by platform
+shell_config_files:
+  zsh: "{{ ansible_user_dir }}/.zshrc"
+  bash: "{{ ansible_user_dir }}/.bashrc"
+  fish: "{{ ansible_user_dir }}/.config/fish/config.fish"
+  powershell: "{{ ansible_env.USERPROFILE }}\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"
+
+# Zoxide configuration options
+zoxide_config:
+  # Command prefix (default: z)
+  cmd_prefix: "z"
+  
+  # Hook type for directory scoring
+  hook_type: "pwd"  # Options: none, prompt, pwd
+  
+  # Enable command replacement (replaces cd with z)
+  replace_cd: false
+  
+  # Custom environment variables
+  environment_vars:
+    _ZO_ECHO: "1"                    # Print matched directory before navigating
+    _ZO_EXCLUDE_DIRS: "$HOME"        # Exclude home directory from database
+    _ZO_MAXAGE: "10000"              # Maximum number of entries in database
+    _ZO_RESOLVE_SYMLINKS: "0"        # Don't resolve symlinks
+
+# Shell-specific initialization commands
+zoxide_init_commands:
+  zsh: 'eval "$(zoxide init zsh)"'
+  bash: 'eval "$(zoxide init bash)"'
+  fish: 'zoxide init fish | source'
+  powershell: 'Invoke-Expression (& { (zoxide init powershell | Out-String) })'
+  nushell: 'zoxide init nushell | save -f ~/.zoxide.nu'
+
+# Integration with fzf (fuzzy finder)
+zoxide_fzf_integration:
+  enabled: true
+  fzf_opts: "--height 40% --layout=reverse --border"
+  
+# Profile-specific configurations
+profile_configs:
+  minimal:
+    enable_fzf: false
+    custom_aliases: false
+  
+  developer:
+    enable_fzf: true
+    custom_aliases: true
+    aliases:
+      - alias: "zz"
+        command: "z -"  # Jump to previous directory
+      - alias: "zi"
+        command: "z -i" # Interactive selection with fzf
+  
+  enterprise:
+    enable_fzf: true
+    custom_aliases: true
+    enable_logging: true
+    aliases:
+      - alias: "zz"
+        command: "z -"
+      - alias: "zi"
+        command: "z -i"
+      - alias: "zq"
+        command: "zoxide query"
+
+# Platform-specific data directories
+zoxide_data_dirs:
+  darwin: "{{ ansible_user_dir }}/Library/Application Support"
+  windows: "{{ ansible_env.LOCALAPPDATA }}"
+  linux: "{{ ansible_user_dir }}/.local/share"
+
+# Validation and testing
+zoxide_validation:
+  test_commands:
+    - "zoxide --version"
+    - "zoxide query --list"
+  
+  required_features:
+    - "Smart directory matching"
+    - "Frecency algorithm"
+    - "Shell integration"
+
+# Backup and migration
+zoxide_migration:
+  import_from:
+    - autojump
+    - z
+    - fasd
+    - z.lua
+  
+  backup_existing: true
+  backup_location: "{{ ansible_user_dir }}/.dotsible/backups/zoxide"

@@ -1,0 +1,110 @@
+---
+# Set ZSH as the default shell
+
+- name: Get current shell
+  shell: echo $SHELL
+  register: current_shell
+  changed_when: false
+  tags: ['zsh', 'default', 'check']
+
+- name: Display current shell information
+  debug:
+    msg: |
+      Shell Configuration:
+      • Current shell: {{ current_shell.stdout }}
+      • ZSH path: {{ zsh_binary_path | default('/bin/zsh') }}
+      • Set as default: {{ zsh_set_as_default | default(true) }}
+  tags: ['zsh', 'default', 'info']
+
+- name: Check if ZSH is in /etc/shells
+  shell: grep -q "{{ zsh_binary_path | default('/bin/zsh') }}" /etc/shells
+  register: zsh_in_shells
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'default', 'shells']
+
+- name: Add ZSH to /etc/shells if not present
+  lineinfile:
+    path: /etc/shells
+    line: "{{ zsh_binary_path | default('/bin/zsh') }}"
+    state: present
+  become: yes
+  when: zsh_in_shells.rc != 0
+  tags: ['zsh', 'default', 'shells']
+
+- name: Set ZSH as default shell (Linux/Unix)
+  user:
+    name: "{{ ansible_user }}"
+    shell: "{{ zsh_binary_path | default('/bin/zsh') }}"
+  become: yes
+  when: 
+    - ansible_os_family != "Darwin"
+    - current_shell.stdout != zsh_binary_path | default('/bin/zsh')
+  register: shell_change_unix
+  tags: ['zsh', 'default', 'unix']
+
+- name: Set ZSH as default shell (macOS)
+  shell: chsh -s "{{ zsh_binary_path | default('/bin/zsh') }}"
+  when: 
+    - ansible_os_family == "Darwin"
+    - current_shell.stdout != zsh_binary_path | default('/bin/zsh')
+  register: shell_change_macos
+  failed_when: false
+  changed_when: shell_change_macos.rc == 0
+  tags: ['zsh', 'default', 'macos']
+
+- name: Handle macOS shell change authentication
+  debug:
+    msg: |
+      Note: On macOS, changing the default shell may require authentication.
+      If the automatic change failed, you can manually run:
+      chsh -s {{ zsh_binary_path | default('/bin/zsh') }}
+  when: 
+    - ansible_os_family == "Darwin"
+    - shell_change_macos is defined
+    - shell_change_macos.rc != 0
+  tags: ['zsh', 'default', 'macos']
+
+- name: Verify shell change
+  shell: echo $SHELL
+  register: new_shell_check
+  changed_when: false
+  tags: ['zsh', 'default', 'verify']
+
+- name: Create shell change notification
+  copy:
+    content: |
+      ZSH Default Shell Configuration
+      ==============================
+      
+      Previous shell: {{ current_shell.stdout }}
+      New shell: {{ zsh_binary_path | default('/bin/zsh') }}
+      Change status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and shell_change_macos.rc == 0) else 'Pending' }}
+      
+      To activate the new shell:
+      1. Close and reopen your terminal, or
+      2. Start a new shell session with: exec zsh
+      
+      To verify the change:
+      echo $SHELL
+      
+      Generated: {{ ansible_date_time.iso8601 }}
+    dest: "{{ ansible_user_dir }}/.zsh_shell_change.log"
+    mode: '0644'
+  tags: ['zsh', 'default', 'log']
+
+- name: Display shell change status
+  debug:
+    msg: |
+      Shell Change Status:
+      • Previous shell: {{ current_shell.stdout }}
+      • Target shell: {{ zsh_binary_path | default('/bin/zsh') }}
+      • Change required: {{ current_shell.stdout != zsh_binary_path | default('/bin/zsh') }}
+      • Status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and shell_change_macos.rc == 0) else 'No change needed' if current_shell.stdout == zsh_binary_path | default('/bin/zsh') else 'Failed/Pending' }}
+      
+      {% if current_shell.stdout != zsh_binary_path | default('/bin/zsh') %}
+      Next steps:
+      • Restart your terminal or run: exec zsh
+      • Verify with: echo $SHELL
+      {% endif %}
+  tags: ['zsh', 'default', 'status']

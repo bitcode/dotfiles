@@ -1,0 +1,125 @@
+---
+# Install Oh My Zsh framework
+
+- name: Check if Oh My Zsh is already installed
+  stat:
+    path: "{{ zsh_oh_my_zsh_path }}"
+  register: oh_my_zsh_check
+  tags: ['zsh', 'oh-my-zsh', 'check']
+
+- name: Display Oh My Zsh installation status
+  debug:
+    msg: "Oh My Zsh: {{ '✅ INSTALLED' if oh_my_zsh_check.stat.exists else '❌ MISSING' }}"
+  tags: ['zsh', 'oh-my-zsh', 'check']
+
+- name: Install Oh My Zsh
+  block:
+    - name: Download Oh My Zsh installation script
+      get_url:
+        url: "{{ zsh_oh_my_zsh_install_url }}"
+        dest: /tmp/install_oh_my_zsh.sh
+        mode: '0755'
+        timeout: 30
+
+    - name: Install Oh My Zsh (non-interactive)
+      shell: |
+        export RUNZSH=no
+        export CHSH=no
+        sh /tmp/install_oh_my_zsh.sh
+      args:
+        creates: "{{ zsh_oh_my_zsh_path }}"
+      environment:
+        RUNZSH: "no"
+        CHSH: "no"
+
+    - name: Clean up installation script
+      file:
+        path: /tmp/install_oh_my_zsh.sh
+        state: absent
+  when: not oh_my_zsh_check.stat.exists
+  tags: ['zsh', 'oh-my-zsh', 'install']
+
+- name: Create Oh My Zsh custom directory
+  file:
+    path: "{{ zsh_oh_my_zsh_custom_path }}"
+    state: directory
+    mode: '0755'
+  tags: ['zsh', 'oh-my-zsh', 'custom']
+
+- name: Create Oh My Zsh custom plugins directory
+  file:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/plugins"
+    state: directory
+    mode: '0755'
+  tags: ['zsh', 'oh-my-zsh', 'plugins']
+
+- name: Create Oh My Zsh custom themes directory
+  file:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/themes"
+    state: directory
+    mode: '0755'
+  tags: ['zsh', 'oh-my-zsh', 'themes']
+
+- name: Install Oh My Zsh custom plugins
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/plugins/{{ item.name }}"
+    depth: 1
+    force: yes
+    update: yes
+  loop: "{{ zsh_oh_my_zsh_custom_plugins }}"
+  when: zsh_oh_my_zsh_custom_plugins is defined
+  register: custom_plugins_install
+  tags: ['zsh', 'oh-my-zsh', 'plugins']
+
+- name: Install Oh My Zsh custom themes
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/themes/{{ item.name }}"
+    depth: 1
+    force: yes
+    update: yes
+  loop: "{{ zsh_oh_my_zsh_custom_themes }}"
+  when: zsh_oh_my_zsh_custom_themes is defined
+  tags: ['zsh', 'oh-my-zsh', 'themes']
+
+- name: Install Powerlevel10k theme
+  git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/themes/powerlevel10k"
+    depth: 1
+    force: yes
+    update: yes
+  when: zsh_theme == "powerlevel10k/powerlevel10k"
+  tags: ['zsh', 'oh-my-zsh', 'powerlevel10k']
+
+- name: Set Oh My Zsh directory permissions
+  file:
+    path: "{{ zsh_oh_my_zsh_path }}"
+    mode: '0755'
+    recurse: yes
+  tags: ['zsh', 'oh-my-zsh', 'permissions']
+
+- name: Verify Oh My Zsh installation
+  stat:
+    path: "{{ zsh_oh_my_zsh_path }}/oh-my-zsh.sh"
+  register: oh_my_zsh_verify
+  failed_when: not oh_my_zsh_verify.stat.exists
+  tags: ['zsh', 'oh-my-zsh', 'verify']
+
+- name: Set Oh My Zsh installation fact
+  set_fact:
+    oh_my_zsh_installed: true
+  when: oh_my_zsh_verify.stat.exists
+  tags: ['zsh', 'oh-my-zsh', 'facts']
+
+- name: Display Oh My Zsh installation summary
+  debug:
+    msg: |
+      Oh My Zsh Installation Summary:
+      • Framework: {{ '✅ INSTALLED' if oh_my_zsh_verify.stat.exists else '❌ FAILED' }}
+      • Custom plugins: {{ zsh_oh_my_zsh_custom_plugins | length }} installed
+      • Custom themes: {{ zsh_oh_my_zsh_custom_themes | length }} installed
+      • Path: {{ zsh_oh_my_zsh_path }}
+      • Custom path: {{ zsh_oh_my_zsh_custom_path }}
+  tags: ['zsh', 'oh-my-zsh', 'summary']

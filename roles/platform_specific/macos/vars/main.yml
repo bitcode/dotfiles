@@ -13,6 +13,13 @@ homebrew_packages:
   - kubectl
   - python@3.11
   - neovim
+  - node
+  - npm
+  - zsh
+  - fzf
+  - unzip
+  - tree
+  - zoxide
 
 homebrew_casks:
   - visual-studio-code
@@ -64,3 +71,35 @@ npm_global_packages:
   - "@modelcontextprotocol/server-brave-search"
   - "@modelcontextprotocol/server-puppeteer"
   - "firecrawl-mcp"
+
+# Rust packages (cargo)
+cargo_packages:
+  - "lsd"
+  - "starship"
+  - "zellij"
+  - "exa"
+  - "bottom"
+  - "tokei"
+  - "hyperfine"
+  - "ripgrep"
+  - "fd-find"
+  - "bat"
+
+# ZSH and Oh My Zsh configuration
+zsh_packages:
+  - zsh
+  - fzf
+
+# Oh My Zsh plugins to install via git clone
+oh_my_zsh_plugins:
+  - name: zsh-autosuggestions
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+  - name: zsh-fzf-history-search
+    repo: https://github.com/joshskidmore/zsh-fzf-history-search
+  - name: zsh-syntax-highlighting
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+  - name: zsh-history-substring-search
+    repo: https://github.com/zsh-users/zsh-history-substring-search
+
+# FZF configuration
+fzf_install_method: "homebrew"  # homebrew, git, or binary

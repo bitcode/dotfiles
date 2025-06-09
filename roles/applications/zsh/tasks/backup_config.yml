@@ -1,0 +1,90 @@
+---
+# Backup ZSH configuration files
+
+- name: Create backup directory
+  file:
+    path: "{{ ansible_user_dir }}/.zsh_backups"
+    state: directory
+    mode: '0755'
+  tags: ['zsh', 'backup', 'directory']
+
+- name: Generate backup timestamp
+  set_fact:
+    backup_timestamp: "{{ ansible_date_time.epoch }}"
+  tags: ['zsh', 'backup', 'timestamp']
+
+- name: Check for existing ZSH configuration files
+  stat:
+    path: "{{ item }}"
+  register: zsh_config_files
+  loop:
+    - "{{ zsh_config_path }}"
+    - "{{ zsh_profile_path }}"
+    - "{{ zsh_env_path }}"
+    - "{{ zsh_p10k_config_path }}"
+  tags: ['zsh', 'backup', 'check']
+
+- name: Backup existing ZSH configuration files
+  copy:
+    src: "{{ item.item }}"
+    dest: "{{ ansible_user_dir }}/.zsh_backups/{{ item.item | basename }}.{{ backup_timestamp }}.bak"
+    mode: '0644'
+    backup: no
+  loop: "{{ zsh_config_files.results }}"
+  when: item.stat.exists
+  tags: ['zsh', 'backup', 'files']
+
+- name: Backup Oh My Zsh custom directory
+  archive:
+    path: "{{ zsh_oh_my_zsh_custom_path }}"
+    dest: "{{ ansible_user_dir }}/.zsh_backups/oh-my-zsh-custom.{{ backup_timestamp }}.tar.gz"
+    format: gz
+  when: oh_my_zsh_verify is defined and oh_my_zsh_verify.stat.exists
+  tags: ['zsh', 'backup', 'oh-my-zsh']
+
+- name: Create backup manifest
+  copy:
+    content: |
+      ZSH Configuration Backup Manifest
+      =================================
+      Backup Date: {{ ansible_date_time.iso8601 }}
+      Backup Timestamp: {{ backup_timestamp }}
+      Host: {{ inventory_hostname }}
+      User: {{ ansible_user }}
+      
+      Backed Up Files:
+      {% for item in zsh_config_files.results %}
+      {% if item.stat.exists %}
+      - {{ item.item }} -> {{ item.item | basename }}.{{ backup_timestamp }}.bak
+      {% endif %}
+      {% endfor %}
+      
+      {% if oh_my_zsh_verify is defined and oh_my_zsh_verify.stat.exists %}
+      Oh My Zsh Custom Directory:
+      - {{ zsh_oh_my_zsh_custom_path }} -> oh-my-zsh-custom.{{ backup_timestamp }}.tar.gz
+      {% endif %}
+      
+      Restore Instructions:
+      ====================
+      To restore a specific file:
+      cp ~/.zsh_backups/<filename>.{{ backup_timestamp }}.bak ~/<filename>
+      
+      To restore Oh My Zsh custom directory:
+      tar -xzf ~/.zsh_backups/oh-my-zsh-custom.{{ backup_timestamp }}.tar.gz -C ~/
+      
+      To list all backups:
+      ls -la ~/.zsh_backups/
+    dest: "{{ ansible_user_dir }}/.zsh_backups/backup_manifest.{{ backup_timestamp }}.txt"
+    mode: '0644'
+  tags: ['zsh', 'backup', 'manifest']
+
+- name: Display backup information
+  debug:
+    msg: |
+      ZSH Configuration Backup:
+      • Backup directory: ~/.zsh_backups/
+      • Backup timestamp: {{ backup_timestamp }}
+      • Files backed up: {{ zsh_config_files.results | selectattr('stat.exists') | list | length }}
+      • Oh My Zsh custom: {{ 'Backed up' if oh_my_zsh_verify is defined and oh_my_zsh_verify.stat.exists else 'Not found' }}
+      • Manifest: backup_manifest.{{ backup_timestamp }}.txt
+  tags: ['zsh', 'backup', 'info']

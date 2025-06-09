@@ -1,0 +1,140 @@
+---
+# Setup ZSH plugins including Oh My Zsh plugins
+
+- name: Display plugin setup information
+  debug:
+    msg: |
+      Setting up ZSH plugins:
+      • Total plugins: {{ zsh_plugins | length }}
+      • Custom plugins: {{ zsh_oh_my_zsh_custom_plugins | length }}
+      • Profile: {{ profile | default('minimal') }}
+  tags: ['zsh', 'plugins', 'info']
+
+- name: Ensure Oh My Zsh custom plugins directory exists
+  file:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/plugins"
+    state: directory
+    mode: '0755'
+  tags: ['zsh', 'plugins', 'directory']
+
+- name: Install custom Oh My Zsh plugins
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/plugins/{{ item.name }}"
+    depth: 1
+    force: yes
+    update: yes
+  loop: "{{ zsh_oh_my_zsh_custom_plugins }}"
+  when: zsh_oh_my_zsh_custom_plugins is defined
+  register: custom_plugins_install
+  tags: ['zsh', 'plugins', 'custom']
+
+- name: Install zsh-vi-mode plugin (missing from .zshrc)
+  git:
+    repo: https://github.com/jeffreytse/zsh-vi-mode
+    dest: "{{ zsh_oh_my_zsh_custom_path }}/plugins/zsh-vi-mode"
+    depth: 1
+    force: yes
+    update: yes
+  tags: ['zsh', 'plugins', 'vi-mode']
+
+- name: Check if .zshrc exists for plugin configuration
+  stat:
+    path: "{{ zsh_config_path }}"
+  register: zshrc_exists
+  tags: ['zsh', 'plugins', 'check']
+
+- name: Configure Oh My Zsh plugins in .zshrc
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins"
+    block: |
+      # Oh My Zsh Configuration
+      export ZSH="{{ zsh_oh_my_zsh_path }}"
+      
+      # Plugins configuration
+      plugins=({{ zsh_plugins | join(' ') }})
+      
+      # Load Oh My Zsh
+      source $ZSH/oh-my-zsh.sh
+    create: yes
+    backup: yes
+  when: zshrc_exists.stat.exists or not zshrc_exists.stat.exists
+  tags: ['zsh', 'plugins', 'config']
+
+- name: Configure plugin-specific settings
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Plugin Settings"
+    block: |
+      # Plugin-specific configurations
+      
+      # zsh-autosuggestions
+      if [[ -f {{ zsh_oh_my_zsh_custom_path }}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+        ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="{{ zsh_autosuggestions_highlight_style }}"
+        ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(end-of-line vi-end-of-line vi-add-eol)
+        ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(vi-forward-word forward-word vi-forward-word-end forward-word-end vi-find vi-find-next)
+        bindkey '{{ zsh_autosuggestions_accept_key }}' autosuggest-accept
+      fi
+      
+      # zsh-history-substring-search
+      if [[ -f {{ zsh_oh_my_zsh_custom_path }}/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
+        HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="{{ zsh_history_substring_search_highlight_found }}"
+        HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="{{ zsh_history_substring_search_highlight_not_found }}"
+        HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="{{ zsh_history_substring_search_globbing_flags }}"
+        bindkey '^[[A' history-substring-search-up
+        bindkey '^[[B' history-substring-search-down
+        bindkey '^P' history-substring-search-up
+        bindkey '^N' history-substring-search-down
+      fi
+      
+      # zsh-syntax-highlighting (must be loaded last)
+      if [[ -f {{ zsh_oh_my_zsh_custom_path }}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+        ZSH_HIGHLIGHT_HIGHLIGHTERS=({{ zsh_syntax_highlighting_highlighters | join(' ') }})
+      fi
+    create: yes
+    backup: yes
+  tags: ['zsh', 'plugins', 'settings']
+
+- name: Verify plugin installations
+  stat:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/plugins/{{ item.name }}"
+  loop: "{{ zsh_oh_my_zsh_custom_plugins }}"
+  register: plugin_verification
+  tags: ['zsh', 'plugins', 'verify']
+
+- name: Display plugin installation status
+  debug:
+    msg: |
+      Plugin Installation Status:
+      {% for result in plugin_verification.results %}
+      • {{ result.item.name }}: {{ '✅ INSTALLED' if result.stat.exists else '❌ MISSING' }}
+      {% endfor %}
+      • zsh-vi-mode: ✅ INSTALLED
+  tags: ['zsh', 'plugins', 'status']
+
+- name: Create plugin loading verification script
+  copy:
+    content: |
+      #!/bin/zsh
+      # ZSH Plugin Verification Script
+      echo "Checking ZSH plugin availability..."
+      
+      plugins_to_check=(
+        "zsh-autosuggestions"
+        "zsh-syntax-highlighting" 
+        "zsh-history-substring-search"
+        "zsh-fzf-history-search"
+        "zsh-vi-mode"
+      )
+      
+      for plugin in "${plugins_to_check[@]}"; do
+        if [[ -d "{{ zsh_oh_my_zsh_custom_path }}/plugins/$plugin" ]]; then
+          echo "✅ $plugin: Available"
+        else
+          echo "❌ $plugin: Missing"
+        fi
+      done
+    dest: "{{ ansible_user_dir }}/.zsh_plugin_check.sh"
+    mode: '0755'
+  tags: ['zsh', 'plugins', 'verification']

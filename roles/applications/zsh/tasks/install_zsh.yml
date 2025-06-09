@@ -1,0 +1,97 @@
+---
+# Install ZSH across platforms
+
+- name: Install ZSH (Debian/Ubuntu)
+  apt:
+    name: "{{ zsh_packages.debian }}"
+    state: "{{ package_state }}"
+    update_cache: "{{ package_update_cache }}"
+  become: yes
+  when: ansible_os_family == "Debian"
+  register: zsh_install_debian
+  retries: 3
+  delay: 10
+  until: zsh_install_debian is succeeded
+  tags: ['zsh', 'install', 'debian']
+
+- name: Install ZSH (Arch Linux)
+  pacman:
+    name: "{{ zsh_packages.archlinux }}"
+    state: "{{ package_state }}"
+    update_cache: "{{ package_update_cache }}"
+  become: yes
+  when: ansible_os_family == "Archlinux"
+  register: zsh_install_arch
+  retries: 3
+  delay: 10
+  until: zsh_install_arch is succeeded
+  tags: ['zsh', 'install', 'arch']
+
+- name: Install ZSH (macOS)
+  homebrew:
+    name: "{{ zsh_packages.darwin }}"
+    state: "{{ package_state }}"
+    update_homebrew: "{{ homebrew_config.update_homebrew | default(true) }}"
+  when: ansible_os_family == "Darwin"
+  register: zsh_install_macos
+  retries: 3
+  delay: 10
+  until: zsh_install_macos is succeeded
+  tags: ['zsh', 'install', 'macos']
+
+- name: Install ZSH (Windows - WSL/Cygwin)
+  block:
+    - name: Check if WSL is available
+      win_command: wsl --list --quiet
+      register: wsl_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install ZSH in WSL
+      win_command: wsl sudo apt-get update && wsl sudo apt-get install -y zsh
+      when: wsl_check.rc == 0
+      register: zsh_wsl_install
+
+    - name: Display Windows ZSH installation note
+      debug:
+        msg: |
+          ZSH installation on Windows requires WSL or alternative shell environment.
+          Consider using PowerShell with Oh My Posh for similar functionality.
+      when: wsl_check.rc != 0
+  when: ansible_os_family == "Windows"
+  tags: ['zsh', 'install', 'windows']
+
+- name: Get ZSH installation path
+  command: which zsh
+  register: zsh_path_check
+  changed_when: false
+  failed_when: false
+  tags: ['zsh', 'install', 'path']
+
+- name: Set ZSH path fact
+  set_fact:
+    zsh_binary_path: "{{ zsh_path_check.stdout if zsh_path_check.rc == 0 else '/bin/zsh' }}"
+  tags: ['zsh', 'install', 'path']
+
+- name: Verify ZSH installation
+  command: "{{ zsh_binary_path }} --version"
+  register: zsh_version_check
+  changed_when: false
+  failed_when: zsh_version_check.rc != 0
+  tags: ['zsh', 'install', 'verify']
+
+- name: Set ZSH installation facts
+  set_fact:
+    zsh_installed: true
+    zsh_version: "{{ zsh_version_check.stdout | regex_replace('^zsh ', '') }}"
+    zsh_path: "{{ zsh_binary_path }}"
+  tags: ['zsh', 'install', 'facts']
+
+- name: Display ZSH installation status
+  debug:
+    msg: |
+      ZSH Installation Status:
+      • Version: {{ zsh_version | default('Unknown') }}
+      • Path: {{ zsh_binary_path }}
+      • Status: {{ '✅ INSTALLED' if zsh_version_check.rc == 0 else '❌ FAILED' }}
+  tags: ['zsh', 'install', 'status']

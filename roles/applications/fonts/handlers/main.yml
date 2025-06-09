@@ -1,0 +1,31 @@
+---
+# Font management handlers
+
+- name: refresh font cache
+  command: "{{ font_cache_command }}"
+  when: 
+    - font_cache_command is defined
+    - font_cache_command != ""
+    - ansible_os_family != 'Windows'
+  listen: "refresh font cache"
+
+- name: restart font service
+  systemd:
+    name: fontconfig
+    state: restarted
+  when: ansible_os_family == "Archlinux" or ansible_os_family == "Debian"
+  become: yes
+  failed_when: false
+  listen: "restart font service"
+
+- name: update font database
+  command: fc-cache -fv
+  when: ansible_os_family != 'Windows'
+  listen: "update font database"
+
+- name: clear font cache
+  file:
+    path: "{{ ansible_user_dir }}/.cache/fontconfig"
+    state: absent
+  when: ansible_os_family != 'Windows'
+  listen: "clear font cache"

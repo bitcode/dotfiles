@@ -1,29 +1,60 @@
 ---
 # Starship installation and configuration role
+
+- name: "⭐ Starship Configuration"
+  debug:
+    msg: "Configuring Starship cross-shell prompt for {{ ansible_os_family }}"
+  tags: ['starship', 'banner']
+
+# Check if starship is already installed
+- name: Check if Starship is available
+  command: which starship
+  register: starship_check
+  failed_when: false
+  changed_when: false
+  tags: ['starship', 'check']
+
+- name: Display Starship installation status
+  debug:
+    msg: "Starship: {{ '✅ INSTALLED' if starship_check.rc == 0 else '❌ MISSING' }}"
+  tags: ['starship', 'check']
+
 - name: Install Starship on macOS
   homebrew:
     name: starship
     state: present
-  when: ansible_os_family == "Darwin"
+  when:
+    - ansible_os_family == "Darwin"
+    - starship_check.rc != 0
+  tags: ['starship', 'install']
 
 - name: Install Starship on Arch Linux
   pacman:
     name: starship
     state: present
   become: yes
-  when: ansible_distribution == "Archlinux"
+  when:
+    - ansible_distribution == "Archlinux"
+    - starship_check.rc != 0
+  tags: ['starship', 'install']
 
 - name: Install Starship on Ubuntu/Debian via script
   shell: curl -sS https://starship.rs/install.sh | sh -s -- -y
-  when: ansible_os_family == "Debian"
+  when:
+    - ansible_os_family == "Debian"
+    - starship_check.rc != 0
   register: starship_install
   changed_when: "'Starship installed' in starship_install.stdout"
+  tags: ['starship', 'install']
 
 - name: Install Starship on Windows
   win_chocolatey:
     name: starship
     state: present
-  when: ansible_os_family == "Windows"
+  when:
+    - ansible_os_family == "Windows"
+    - starship_check.rc != 0
+  tags: ['starship', 'install']
 
 - name: Create Starship config directory (Unix-like)
   file:
@@ -55,12 +86,59 @@
   when: ansible_os_family == "Windows"
   notify: reload starship
 
+# Configure shell integration
+- name: Check if Starship is configured in .zshrc
+  shell: grep -q "starship init zsh" "{{ ansible_user_dir }}/.zshrc" 2>/dev/null
+  register: starship_zsh_configured
+  failed_when: false
+  changed_when: false
+  tags: ['starship', 'shell', 'zsh']
+
+- name: Add Starship configuration to .zshrc
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Starship Configuration"
+    block: |
+      # Starship - Cross-shell prompt
+      if command -v starship >/dev/null 2>&1; then
+        eval "$(starship init zsh)"
+      fi
+    create: yes
+  when:
+    - starship_check.rc == 0 or starship_install is defined
+    - starship_zsh_configured.rc != 0
+  tags: ['starship', 'shell', 'zsh']
+
+- name: Check if Starship is configured in .bashrc
+  shell: grep -q "starship init bash" "{{ ansible_user_dir }}/.bashrc" 2>/dev/null
+  register: starship_bash_configured
+  failed_when: false
+  changed_when: false
+  tags: ['starship', 'shell', 'bash']
+
+- name: Add Starship configuration to .bashrc
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Starship Configuration"
+    block: |
+      # Starship - Cross-shell prompt
+      if command -v starship >/dev/null 2>&1; then
+        eval "$(starship init bash)"
+      fi
+    create: yes
+  when:
+    - starship_check.rc == 0 or starship_install is defined
+    - starship_bash_configured.rc != 0
+  tags: ['starship', 'shell', 'bash']
+
 - name: Verify Starship installation
   command: starship --version
   register: starship_version
   failed_when: false
   changed_when: false
+  tags: ['starship', 'verify']
 
 - name: Display Starship installation status
   debug:
-    msg: "Starship {{ 'installed successfully' if starship_version.rc == 0 else 'installation failed' }}"
+    msg: "Starship {{ '✅ installed successfully' if starship_version.rc == 0 else '❌ installation failed' }}"
+  tags: ['starship', 'status']

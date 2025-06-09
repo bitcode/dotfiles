@@ -401,7 +401,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when:
     - python_version_check.rc == 0
@@ -436,7 +436,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when:
     - python_version_check.rc == 0
@@ -484,7 +484,7 @@
       • Winget packages: {{ winget_packages | length }}
       • Scoop packages: {{ scoop_packages | length }}
       • NPM global packages: {{ npm_global_packages | length }}
-      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
+      • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
       • PowerShell modules: {{ powershell_modules | length }}
       • Manual installations: {{ manual_installations | length }}
 

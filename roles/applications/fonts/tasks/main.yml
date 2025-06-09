@@ -1,0 +1,115 @@
+---
+# Fonts application role - Cross-platform font management
+# This role installs and manages fonts across different operating systems
+
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  failed_when: false
+  tags: ['fonts', 'variables']
+
+- name: Include profile-specific variables
+  include_vars: "profile_{{ profile | default('minimal') }}.yml"
+  failed_when: false
+  tags: ['fonts', 'variables', 'profile']
+
+- name: "🔤 Font Management"
+  debug:
+    msg: "Installing and configuring fonts for {{ ansible_os_family }}"
+  tags: ['fonts', 'banner']
+
+# Ensure unzip utility is available for font extraction
+- name: Check if unzip is available
+  command: which unzip
+  register: unzip_check
+  failed_when: false
+  changed_when: false
+  tags: ['fonts', 'dependencies']
+
+- name: Display unzip status
+  debug:
+    msg: "Unzip utility: {{ 'INSTALLED' if unzip_check.rc == 0 else 'MISSING' }}"
+  tags: ['fonts', 'dependencies']
+
+# Install unzip if missing (platform-specific)
+- name: Install unzip on macOS
+  homebrew:
+    name: unzip
+    state: present
+  when: 
+    - ansible_os_family == "Darwin"
+    - unzip_check.rc != 0
+  tags: ['fonts', 'dependencies']
+
+- name: Install unzip on Arch Linux
+  pacman:
+    name: unzip
+    state: present
+  become: yes
+  when: 
+    - ansible_distribution == "Archlinux"
+    - unzip_check.rc != 0
+  tags: ['fonts', 'dependencies']
+
+- name: Install unzip on Ubuntu/Debian
+  apt:
+    name: unzip
+    state: present
+    update_cache: yes
+  become: yes
+  when: 
+    - ansible_os_family == "Debian"
+    - unzip_check.rc != 0
+  tags: ['fonts', 'dependencies']
+
+- name: Install unzip on Windows
+  win_chocolatey:
+    name: unzip
+    state: present
+  when: 
+    - ansible_os_family == "Windows"
+    - unzip_check.rc != 0
+  tags: ['fonts', 'dependencies']
+
+# Create font directories
+- name: Create font directories (Unix-like)
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ font_install_path }}"
+    - "{{ ansible_user_dir }}/.local/share/fonts"
+  when: ansible_os_family != 'Windows'
+  tags: ['fonts', 'directories']
+
+- name: Create font directories (Windows)
+  win_file:
+    path: "{{ font_install_path }}"
+    state: directory
+  when: ansible_os_family == 'Windows'
+  tags: ['fonts', 'directories']
+
+# Install Iosevka Nerd Font
+- name: Install Iosevka Nerd Font
+  include_tasks: install_iosevka.yml
+  tags: ['fonts', 'iosevka']
+
+# Refresh font cache
+- name: Refresh font cache (Unix-like)
+  command: fc-cache -fv
+  when: ansible_os_family != 'Windows'
+  register: font_cache_refresh
+  changed_when: false
+  failed_when: false
+  tags: ['fonts', 'cache']
+
+- name: Display font cache refresh status
+  debug:
+    msg: "Font cache: {{ 'REFRESHED' if font_cache_refresh.rc == 0 else 'FAILED' }}"
+  when: ansible_os_family != 'Windows'
+  tags: ['fonts', 'cache']
+
+- name: "✅ Font Management Complete"
+  debug:
+    msg: "Font installation and configuration completed successfully"
+  tags: ['fonts', 'complete']

@@ -1,0 +1,212 @@
+---
+# Zoxide application role - Smart directory navigation
+# This role configures zoxide shell integration across different platforms
+
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  failed_when: false
+  tags: ['zoxide', 'variables']
+
+- name: Include profile-specific variables
+  include_vars: "profile_{{ profile | default('minimal') }}.yml"
+  failed_when: false
+  tags: ['zoxide', 'variables', 'profile']
+
+- name: "🧭 Zoxide Configuration"
+  debug:
+    msg: "Configuring zoxide smart directory navigation for {{ ansible_os_family }}"
+  tags: ['zoxide', 'banner']
+
+# Install zoxide
+- name: Install zoxide on macOS
+  homebrew:
+    name: zoxide
+    state: present
+  when: ansible_os_family == "Darwin"
+  tags: ['zoxide', 'install']
+
+- name: Install zoxide on Arch Linux
+  pacman:
+    name: zoxide
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+  tags: ['zoxide', 'install']
+
+- name: Install zoxide on Ubuntu/Debian via cargo
+  shell: |
+    if ! command -v cargo >/dev/null 2>&1; then
+      echo "Installing Rust and Cargo first..."
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      source ~/.cargo/env
+    fi
+    cargo install zoxide
+  when: ansible_os_family == "Debian"
+  register: zoxide_install_debian
+  changed_when: "'Installing' in zoxide_install_debian.stdout"
+  tags: ['zoxide', 'install']
+
+- name: Install zoxide on Windows
+  win_chocolatey:
+    name: zoxide
+    state: present
+  when: ansible_os_family == "Windows"
+  tags: ['zoxide', 'install']
+
+# Check if zoxide is installed
+- name: Check if zoxide is available
+  command: which zoxide
+  register: zoxide_check
+  failed_when: false
+  changed_when: false
+  tags: ['zoxide', 'check']
+
+- name: Display zoxide installation status
+  debug:
+    msg: "Zoxide: {{ '✅ INSTALLED' if zoxide_check.rc == 0 else '❌ MISSING' }}"
+  tags: ['zoxide', 'check']
+
+# Configure shell integration for zsh
+- name: Check if .zshrc exists
+  stat:
+    path: "{{ ansible_user_dir }}/.zshrc"
+  register: zshrc_exists
+  tags: ['zoxide', 'shell', 'zsh']
+
+- name: Create .zshrc if it doesn't exist
+  file:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    state: touch
+    mode: '0644'
+  when: not zshrc_exists.stat.exists
+  tags: ['zoxide', 'shell', 'zsh']
+
+- name: Check if zoxide is already configured in .zshrc
+  shell: grep -q "zoxide init" "{{ ansible_user_dir }}/.zshrc" 2>/dev/null
+  register: zoxide_zsh_configured
+  failed_when: false
+  changed_when: false
+  tags: ['zoxide', 'shell', 'zsh']
+
+- name: Add zoxide configuration to .zshrc
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Zoxide Configuration"
+    block: |
+      # Zoxide - Smart directory navigation
+      if command -v zoxide >/dev/null 2>&1; then
+        eval "$(zoxide init zsh)"
+      fi
+    create: yes
+  when: 
+    - zoxide_check.rc == 0
+    - zoxide_zsh_configured.rc != 0
+  tags: ['zoxide', 'shell', 'zsh']
+
+# Configure shell integration for bash
+- name: Check if .bashrc exists
+  stat:
+    path: "{{ ansible_user_dir }}/.bashrc"
+  register: bashrc_exists
+  tags: ['zoxide', 'shell', 'bash']
+
+- name: Create .bashrc if it doesn't exist
+  file:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    state: touch
+    mode: '0644'
+  when: not bashrc_exists.stat.exists
+  tags: ['zoxide', 'shell', 'bash']
+
+- name: Check if zoxide is already configured in .bashrc
+  shell: grep -q "zoxide init" "{{ ansible_user_dir }}/.bashrc" 2>/dev/null
+  register: zoxide_bash_configured
+  failed_when: false
+  changed_when: false
+  tags: ['zoxide', 'shell', 'bash']
+
+- name: Add zoxide configuration to .bashrc
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Zoxide Configuration"
+    block: |
+      # Zoxide - Smart directory navigation
+      if command -v zoxide >/dev/null 2>&1; then
+        eval "$(zoxide init bash)"
+      fi
+    create: yes
+  when: 
+    - zoxide_check.rc == 0
+    - zoxide_bash_configured.rc != 0
+  tags: ['zoxide', 'shell', 'bash']
+
+# Configure PowerShell integration (Windows)
+- name: Check PowerShell profile path (Windows)
+  win_shell: echo $PROFILE
+  register: powershell_profile_path
+  when: ansible_os_family == 'Windows'
+  tags: ['zoxide', 'shell', 'powershell']
+
+- name: Create PowerShell profile directory (Windows)
+  win_file:
+    path: "{{ powershell_profile_path.stdout | dirname }}"
+    state: directory
+  when: ansible_os_family == 'Windows'
+  tags: ['zoxide', 'shell', 'powershell']
+
+- name: Check if zoxide is configured in PowerShell profile (Windows)
+  win_shell: |
+    if (Test-Path $PROFILE) {
+      Select-String -Path $PROFILE -Pattern "zoxide init" -Quiet
+    } else {
+      $false
+    }
+  register: zoxide_powershell_configured
+  when: ansible_os_family == 'Windows'
+  tags: ['zoxide', 'shell', 'powershell']
+
+- name: Add zoxide configuration to PowerShell profile (Windows)
+  win_lineinfile:
+    path: "{{ powershell_profile_path.stdout.strip() }}"
+    line: |
+      # Zoxide - Smart directory navigation
+      if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+        Invoke-Expression (& { (zoxide init powershell | Out-String) })
+      }
+    create: yes
+  when: 
+    - ansible_os_family == 'Windows'
+    - zoxide_check.rc == 0
+    - not (zoxide_powershell_configured.stdout | default('false') | bool)
+  tags: ['zoxide', 'shell', 'powershell']
+
+# Test zoxide functionality
+- name: Test zoxide functionality
+  shell: |
+    if command -v zoxide >/dev/null 2>&1; then
+      zoxide --version
+    else
+      echo "zoxide not found"
+      exit 1
+    fi
+  register: zoxide_test
+  failed_when: false
+  changed_when: false
+  tags: ['zoxide', 'test']
+
+- name: Display zoxide test results
+  debug:
+    msg: "Zoxide test: {{ 'PASSED (' + zoxide_test.stdout.strip() + ')' if zoxide_test.rc == 0 else 'FAILED' }}"
+  tags: ['zoxide', 'test']
+
+- name: "✅ Zoxide Configuration Complete"
+  debug:
+    msg: "Zoxide smart directory navigation is now configured and ready to use"
+  when: zoxide_check.rc == 0
+  tags: ['zoxide', 'complete']
+
+- name: "⚠️ Zoxide Not Available"
+  debug:
+    msg: "Zoxide is not installed. Install it via your platform's package manager first."
+  when: zoxide_check.rc != 0
+  tags: ['zoxide', 'warning']

@@ -1,0 +1,24 @@
+---
+# macOS-specific zoxide variables
+
+# Installation method
+zoxide_install_method: "homebrew"
+zoxide_package_name: "zoxide"
+
+# Shell configuration
+default_shell: "zsh"
+shell_config_file: "{{ ansible_user_dir }}/.zshrc"
+
+# Data directory
+zoxide_data_dir: "{{ ansible_user_dir }}/Library/Application Support"
+
+# macOS-specific configuration
+macos_zoxide_config:
+  use_homebrew: true
+  integrate_with_finder: false
+  
+# Shell integration priority (order of preference)
+shell_priority:
+  - zsh
+  - bash
+  - fish

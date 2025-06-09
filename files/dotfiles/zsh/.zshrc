@@ -22,11 +22,7 @@ export MANPATH="/home/bit/.local/share/man:/usr/local/share/man:/home/bit/man/ma
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:/home/bit/go/bin
 export GO111MODULE=on
-export PATH=$PATH:/Users/$USER/Library/Python/3.9/bin
-# export PYENV_ROOT="$HOME/.pyenv"
-# [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-# eval "$(pyenv init -)"
-# eval "$(pyenv virtualenv-init -)"
+
 
 # History Configuration
 HISTFILE="$HOME/.zsh_history"
@@ -42,11 +38,6 @@ ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
 ZVM_VISUAL_MODE_CURSOR=$ZVM_CURSOR_UNDERLINE
 ZVM_VISUAL_LINE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_UNDERLINE
 ZVM_REPLACE_MODE_CURSOR=$ZVM_CURSOR_BLINKING_BLOCK
-
-# Synergy Environment Variables
-export SYNERGY_LOGGER="/home/bit/.local/state/Synergy/synergy.log"
-export SYNERGY_FORCE_CORE_LOG_LEVEL="INFO"
-export SYNERGY_FORCE_SERVICE_LOG_LEVEL="INFO"
 
 # Aliases
 alias cp_staged_diff='git diff --cached | xclip -selection clipboard'
@@ -67,8 +58,6 @@ alias lt='ls --tree'
 alias lz='ls -alZ | more'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
 alias lg='lazygit'
-alias python='pyenv exec python'
-alias python3='pyenv exec python3'
 
 # Initialize zoxide normally
 eval "$(zoxide init zsh)"
@@ -101,6 +90,9 @@ source ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 # Theme
 eval "$(starship init zsh)"
 
+# FZF Configuration
+source <(fzf --zsh)
+
 # Ensure compinit is run only once with caching
 setopt local_options extendedglob
 autoload -Uz compinit
@@ -117,3 +109,23 @@ fi
 #end_time=$(date +%s%N)
 #echo "Shell startup time: $((($end_time - $start_time) / 1000000)) ms"
 #zprof
+
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# End Python PATH
+
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# End Python PATH
+
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# End Python PATH
+
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# End Python PATH

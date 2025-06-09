@@ -1,0 +1,85 @@
+---
+# Font management variables - Cross-platform font configuration
+
+# Iosevka Nerd Font download configuration
+iosevka_version: "v3.4.0"
+iosevka_download_url: "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ iosevka_version }}/Iosevka.zip"
+
+# Platform-specific font installation paths
+# This will be set dynamically in OS-specific variable files
+
+# System font paths (for reference)
+system_font_paths:
+  darwin: "/Library/Fonts"
+  windows: "C:\\Windows\\Fonts"
+  archlinux: "/usr/share/fonts"
+  debian: "/usr/share/fonts"
+
+# Font file patterns for detection
+font_patterns:
+  iosevka:
+    - "*Iosevka*Nerd*Font*.ttf"
+    - "*Iosevka*Nerd*Font*.otf"
+    - "*IosevkaNerdFont*.ttf"
+    - "*IosevkaNerdFont*.otf"
+
+# Font cache commands by platform
+font_cache_commands:
+  darwin: "fc-cache -fv"
+  archlinux: "fc-cache -fv"
+  debian: "fc-cache -fv"
+  windows: ""  # Windows handles font cache automatically
+
+# Dependencies required for font installation
+font_dependencies:
+  darwin:
+    - unzip
+  windows:
+    - unzip
+  archlinux:
+    - unzip
+    - fontconfig
+  debian:
+    - unzip
+    - fontconfig
+
+# Font installation validation
+font_validation:
+  enabled: true
+  timeout: 30
+  retry_count: 3
+
+# Backup configuration
+font_backup:
+  enabled: false
+  backup_dir: "{{ ansible_user_dir }}/.dotsible/backups/fonts"
+  timestamp_format: "%Y%m%d_%H%M%S"
+
+# Additional Nerd Fonts (for future expansion)
+additional_nerd_fonts:
+  jetbrains_mono:
+    name: "JetBrains Mono"
+    url: "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ iosevka_version }}/JetBrainsMono.zip"
+    enabled: false
+  
+  fira_code:
+    name: "Fira Code"
+    url: "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ iosevka_version }}/FiraCode.zip"
+    enabled: false
+  
+  hack:
+    name: "Hack"
+    url: "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ iosevka_version }}/Hack.zip"
+    enabled: false
+
+# Profile-specific font configurations
+profile_fonts:
+  minimal:
+    - iosevka
+  developer:
+    - iosevka
+    - jetbrains_mono
+  enterprise:
+    - iosevka
+    - jetbrains_mono
+    - fira_code

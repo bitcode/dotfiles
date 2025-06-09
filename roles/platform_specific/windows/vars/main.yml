@@ -13,11 +13,14 @@ chocolatey_packages:
   - golang
   - rustup.install
   - 7zip
+  - unzip
   - curl
   - wget
   - vim
   - tmux
   - ranger
+  - tree
+  - zoxide
 
 chocolatey_gui_packages:
   - vscode
@@ -80,6 +83,19 @@ npm_global_packages:
   - "@modelcontextprotocol/server-brave-search"
   - "@modelcontextprotocol/server-puppeteer"
   - "firecrawl-mcp"
+
+# Rust packages (cargo)
+cargo_packages:
+  - "lsd"
+  - "starship"
+  - "zellij"
+  - "exa"
+  - "bottom"
+  - "tokei"
+  - "hyperfine"
+  - "ripgrep"
+  - "fd-find"
+  - "bat"
 
 # PowerShell modules
 powershell_modules:

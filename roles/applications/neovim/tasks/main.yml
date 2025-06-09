@@ -113,8 +113,8 @@
     path: "{{ neovim_config_dir[ansible_os_family | lower] }}"
     state: directory
     mode: '0755'
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ 'staff' if ansible_os_family == 'Darwin' else ansible_user_id }}"
   when: ansible_os_family != 'Windows'
   tags: ['neovim', 'config', 'directories']
 
@@ -130,8 +130,8 @@
     src: "{{ playbook_dir }}/files/dotfiles/nvim"
     dest: "{{ neovim_config_dir[ansible_os_family | lower] }}"
     state: link
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ 'staff' if ansible_os_family == 'Darwin' else ansible_user_id }}"
     force: yes
   when:
     - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
@@ -256,17 +256,19 @@
     - node_neovim_package_check.results is defined
 
 - name: Install missing Node.js packages for Neovim (Unix-like)
-  npm:
-    name: "{{ item.item }}"
-    global: yes
-    state: present
+  shell: |
+    # Source nvm if available
+    if [ -f ~/.nvm/nvm.sh ]; then
+      source ~/.nvm/nvm.sh
+    fi
+    # Install package globally
+    npm install -g {{ item.item }}
   when:
     - ansible_os_family in ['Darwin', 'RedHat', 'Debian', 'Archlinux']
     - neovim_version_check.rc == 0
     - node_neovim_package_check.results is defined
     - item.rc != 0
   loop: "{{ node_neovim_package_check.results }}"
-
 - name: Check which Node.js packages for Neovim are already installed (Windows)
   win_shell: npm list -g --depth=0 | findstr /i "{{ item }}"
   register: node_neovim_package_check_win

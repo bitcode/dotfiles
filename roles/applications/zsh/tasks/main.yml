@@ -1,59 +1,77 @@
 ---
-# ZSH installation and configuration role
-- name: Install ZSH on macOS
-  homebrew:
-    name: zsh
-    state: present
-  when: ansible_os_family == "Darwin"
+# ZSH application role - Cross-platform shell setup with Oh My Zsh
+# This role installs and configures ZSH with Oh My Zsh across different operating systems
 
-- name: Install ZSH on Arch Linux
-  pacman:
-    name: zsh
-    state: present
-  become: yes
-  when: ansible_distribution == "Archlinux"
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  failed_when: false
+  tags: ['zsh', 'variables']
 
-- name: Install ZSH on Ubuntu/Debian
-  apt:
-    name: zsh
-    state: present
-  become: yes
-  when: ansible_os_family == "Debian"
+- name: Include profile-specific variables
+  include_vars: "profile_{{ profile | default('minimal') }}.yml"
+  failed_when: false
+  tags: ['zsh', 'variables', 'profile']
 
-- name: Check if ZSH config directory exists
-  stat:
-    path: "{{ playbook_dir }}/files/dotfiles/zsh"
-  register: zsh_config_source
+- name: Display ZSH configuration info
+  debug:
+    msg: |
+      Configuring ZSH for {{ inventory_hostname }}
+      OS Family: {{ ansible_os_family }}
+      Profile: {{ profile | default('minimal') }}
+      Theme: {{ zsh_theme | default('robbyrussell') }}
+      Oh My Zsh: {{ 'Enabled' if zsh_oh_my_zsh_enabled else 'Disabled' }}
+  tags: ['zsh', 'info']
 
-- name: Deploy ZSH configuration files
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/zsh/"
-    dest: "{{ ansible_user_dir }}/"
-    mode: '0644'
-    backup: yes
-  notify: reload zsh
-  when: zsh_config_source.stat.exists
+- name: Install ZSH
+  include_tasks: install_zsh.yml
+  tags: ['zsh', 'install']
+
+- name: Install Oh My Zsh
+  include_tasks: install_oh_my_zsh.yml
+  when: zsh_oh_my_zsh_enabled | default(true)
+  tags: ['zsh', 'oh-my-zsh']
+
+- name: Configure ZSH settings
+  include_tasks: configure_zsh.yml
+  tags: ['zsh', 'config']
+
+- name: Setup ZSH plugins
+  include_tasks: setup_plugins.yml
+  when: zsh_plugins is defined and zsh_plugins | length > 0
+  tags: ['zsh', 'plugins']
+
+- name: Setup FZF integration
+  include_tasks: setup_fzf_integration.yml
+  when: zsh_fzf_enabled | default(true)
+  tags: ['zsh', 'fzf']
+
+- name: Setup ZSH theme
+  include_tasks: setup_theme.yml
+  tags: ['zsh', 'theme']
+
+- name: Configure ZSH aliases
+  include_tasks: setup_aliases.yml
+  tags: ['zsh', 'aliases']
+
+- name: Setup ZSH functions
+  include_tasks: setup_functions.yml
+  when: zsh_custom_functions_enabled | default(false)
+  tags: ['zsh', 'functions']
+
+- name: Configure ZSH environment
+  include_tasks: setup_environment.yml
+  tags: ['zsh', 'environment']
 
 - name: Set ZSH as default shell
-  user:
-    name: "{{ ansible_user }}"
-    shell: /bin/zsh
-  become: yes
-  when: ansible_os_family != "Darwin"
-
-- name: Set ZSH as default shell on macOS
-  shell: chsh -s /bin/zsh
-  when: ansible_os_family == "Darwin"
-  register: chsh_result
-  failed_when: false
-  changed_when: chsh_result.rc == 0
+  include_tasks: set_default_shell.yml
+  when: zsh_set_as_default | default(true)
+  tags: ['zsh', 'default']
 
 - name: Verify ZSH installation
-  command: zsh --version
-  register: zsh_version
-  failed_when: false
-  changed_when: false
+  include_tasks: verify_zsh.yml
+  tags: ['zsh', 'verify']
 
-- name: Display ZSH installation status
-  debug:
-    msg: "ZSH {{ 'installed successfully' if zsh_version.rc == 0 else 'installation failed' }}"
+- name: Create ZSH configuration backup
+  include_tasks: backup_config.yml
+  when: zsh_backup_enabled | default(true)
+  tags: ['zsh', 'backup']

@@ -14,6 +14,7 @@
 - [Quick Start Guide](#-quick-start-guide)
 - [Bootstrap Commands](#-bootstrap-commands)
 - [Ansible Playbook Commands](#-ansible-playbook-commands)
+- [Font Management](#-font-management)
 - [Testing Commands](#-testing-commands)
 - [Supported Platforms](#-supported-platforms)
 - [Development Tools Integration](#-development-tools-integration)
@@ -31,7 +32,8 @@ Dotsible provides a comprehensive solution for:
 - **Idempotent Package Management**: Check-before-install patterns ensuring safe repeated execution
 - **Environment-Aware Deployment**: Conditional configurations based on personal vs enterprise environments
 - **Window Manager Integration**: Support for i3, Hyprland, Sway, Waybar, Polybar, and more
-- **Development Tools**: Integrated Python development toolkit with pipx, ansible-dev-tools, and ansible-lint
+- **Font Management**: Cross-platform Nerd Font installation with automatic cache refresh
+- **Development Tools**: Integrated Python development toolkit with pipx, community-ansible-dev-tools, and ansible-lint
 - **MCP Integration**: Model Context Protocol packages for AI-enhanced development workflows
 - **Automation Friendly**: Full backward compatibility with CI/CD systems and scripted deployments
 
@@ -62,6 +64,7 @@ dotsible/
 │   │   ├── 📁 archlinux/             # Arch Linux-specific tasks and packages
 │   │   └── 📁 ubuntu/                # Ubuntu-specific tasks and packages
 │   ├── 📁 applications/              # Cross-platform application roles
+│   │   ├── 📁 fonts/                 # Font management (Iosevka Nerd Font)
 │   │   ├── 📁 neovim/                # Neovim configuration
 │   │   ├── 📁 tmux/                  # Tmux setup
 │   │   ├── 📁 zsh/                   # ZSH with Oh My Zsh
@@ -186,7 +189,7 @@ Bootstrap scripts prepare your system to run Ansible playbooks by installing ess
 # - Python 3.8+ via Homebrew
 # - Ansible via pip
 # - pipx for Python package isolation
-# - ansible-dev-tools and ansible-lint
+# - community-ansible-dev-tools and ansible-lint
 ```
 
 #### Windows
@@ -199,7 +202,7 @@ Bootstrap scripts prepare your system to run Ansible playbooks by installing ess
 # - Python 3.8+ via Chocolatey
 # - Ansible via pip
 # - pipx for Python package isolation
-# - ansible-dev-tools and ansible-lint
+# - community-ansible-dev-tools and ansible-lint
 ```
 
 #### Arch Linux
@@ -239,7 +242,7 @@ Installed components:
   - Python: Python 3.x.x
   - Ansible: ansible [core 2.x.x]
   - pipx: x.x.x
-  - ansible-dev-tools: installed
+  - community-ansible-dev-tools: installed
   - ansible-lint: installed
 
 Next steps:
@@ -343,11 +346,17 @@ EXAMPLES:
     # Install only platform-specific packages
     ./run-dotsible.sh --tags platform_specific
 
+    # Install fonts only
+    ./run-dotsible.sh --tags fonts
+
     # Verbose output for debugging
     ./run-dotsible.sh --verbose
 
     # Install specific applications
     ./run-dotsible.sh --tags neovim,git,tmux
+
+    # Install fonts and applications together
+    ./run-dotsible.sh --tags fonts,applications
 
 PROFILES:
     minimal     - Basic system setup with essential tools
@@ -359,12 +368,15 @@ ENVIRONMENT TYPES:
     enterprise  - Enterprise/corporate environment settings
 
 COMMON TAGS:
-    platform_specific  - Platform-specific package installation
+    platform_specific  - Platform-specific package installation and configuration
     applications       - Application installation and configuration
-    neovim            - Neovim editor setup
-    git               - Git configuration
-    tmux              - Terminal multiplexer setup
-    zsh               - Zsh shell configuration
+    fonts             - Font installation and management (Iosevka Nerd Font)
+    dotfiles          - Dotfiles deployment with conditional logic
+    neovim            - Neovim editor setup with dotfiles
+    git               - Git configuration and dotfiles
+    tmux              - Terminal multiplexer setup with dotfiles
+    zsh               - Zsh shell configuration with oh-my-zsh and plugins
+    window_manager    - Window manager configurations (Linux only)
 ```
 
 ### Usage Modes
@@ -429,6 +441,20 @@ The enhanced script provides clean, readable output with:
 - 🔇 **Reduced verbose debug messages** (unless --verbose specified)
 - 🎨 **Professional formatting** suitable for enterprise environments
 
+#### Font Management Output Example
+```
+🔤 Font Management
+Installing and configuring fonts for Darwin
+
+Unzip utility: INSTALLED
+Iosevka Nerd Font: MISSING
+Iosevka download: COMPLETED
+Iosevka extraction: COMPLETED
+Iosevka installation: COMPLETED
+Font cache: REFRESHED
+✅ Font Management Complete
+```
+
 ## 📚 Ansible Playbook Commands
 
 After successful bootstrap, you can use either the enhanced `run-dotsible.sh` script (recommended) or direct Ansible commands for system configuration.
@@ -477,14 +503,20 @@ ansible-playbook -i inventories/local/hosts.yml site.yml --limit "macos_workstat
 # Install only platform-specific packages
 ./run-dotsible.sh --tags platform_specific
 
+# Install fonts only
+./run-dotsible.sh --tags fonts
+
 # Configure applications only
 ./run-dotsible.sh --tags applications
 
 # Specific applications
 ./run-dotsible.sh --tags "git,zsh,tmux"
 
+# Fonts and applications together
+./run-dotsible.sh --tags "fonts,applications"
+
 # Multiple tags with profile
-./run-dotsible.sh --profile developer --tags "platform_specific,applications"
+./run-dotsible.sh --profile developer --tags "platform_specific,applications,fonts"
 
 # Interactive mode with specific tags
 ./run-dotsible.sh --tags neovim
@@ -495,6 +527,9 @@ ansible-playbook -i inventories/local/hosts.yml site.yml --limit "macos_workstat
 # Install only platform-specific packages
 ansible-playbook -i inventories/local/hosts.yml site.yml --tags platform_specific
 
+# Install fonts only
+ansible-playbook -i inventories/local/hosts.yml site.yml --tags fonts
+
 # Configure applications only
 ansible-playbook -i inventories/local/hosts.yml site.yml --tags applications
 
@@ -504,8 +539,11 @@ ansible-playbook -i inventories/local/hosts.yml site.yml --tags profiles
 # Specific applications
 ansible-playbook -i inventories/local/hosts.yml site.yml --tags "git,zsh,tmux"
 
+# Fonts and applications together
+ansible-playbook -i inventories/local/hosts.yml site.yml --tags "fonts,applications"
+
 # Multiple tags
-ansible-playbook -i inventories/local/hosts.yml site.yml --tags "platform_specific,applications"
+ansible-playbook -i inventories/local/hosts.yml site.yml --tags "platform_specific,applications,fonts"
 ```
 
 ### Environment-Specific Deployment
@@ -693,12 +731,12 @@ Comprehensive testing framework to validate installations and configurations.
 
 ### Platform Matrix
 
-| Platform | Package Managers | Window Managers | Status |
-|----------|-----------------|-----------------|---------|
-| **macOS** | Homebrew, pip, npm | Native (Aqua) | ✅ Full Support |
-| **Windows** | Chocolatey, Scoop, winget, pip | Native (DWM) | ✅ Full Support |
-| **Arch Linux** | pacman, AUR (yay), pip | i3, Hyprland, Sway | ✅ Full Support |
-| **Ubuntu** | apt, snap, flatpak, pip | i3, Hyprland, Sway, GNOME | ✅ Full Support |
+| Platform | Package Managers | Window Managers | Font Support | Status |
+|----------|-----------------|-----------------|--------------|---------|
+| **macOS** | Homebrew, pip, npm | Native (Aqua) | ✅ ~/Library/Fonts | ✅ Full Support |
+| **Windows** | Chocolatey, Scoop, winget, pip | Native (DWM) | ✅ %LOCALAPPDATA%\Fonts | ✅ Full Support |
+| **Arch Linux** | pacman, AUR (yay), pip | i3, Hyprland, Sway | ✅ ~/.local/share/fonts | ✅ Full Support |
+| **Ubuntu** | apt, snap, flatpak, pip | i3, Hyprland, Sway, GNOME | ✅ ~/.local/share/fonts | ✅ Full Support |
 
 ### Package Manager Features
 
@@ -706,6 +744,7 @@ Comprehensive testing framework to validate installations and configurations.
 - ✅ Homebrew packages (CLI tools)
 - ✅ Homebrew casks (GUI applications)
 - ✅ Mac App Store apps (via `mas`)
+- ✅ Nerd Fonts (Iosevka) via direct download
 - ✅ NPM global packages
 - ✅ Python packages via pipx
 
@@ -714,6 +753,7 @@ Comprehensive testing framework to validate installations and configurations.
 - ✅ Scoop packages
 - ✅ Winget packages
 - ✅ PowerShell modules
+- ✅ Nerd Fonts (Iosevka) via direct download
 - ✅ NPM global packages
 - ✅ Python packages via pipx
 
@@ -722,7 +762,7 @@ Comprehensive testing framework to validate installations and configurations.
 - ✅ AUR packages via yay
 - ✅ Development packages
 - ✅ Window manager packages
-- ✅ Font packages
+- ✅ Font packages (system + Nerd Fonts)
 - ✅ NPM global packages
 - ✅ Python packages via pipx
 
@@ -731,6 +771,7 @@ Comprehensive testing framework to validate installations and configurations.
 - ✅ Snap packages
 - ✅ Flatpak packages
 - ✅ Development packages
+- ✅ Font packages (system + Nerd Fonts)
 - ✅ NPM global packages
 - ✅ Python packages via pipx
 
@@ -742,14 +783,14 @@ Dotsible integrates a comprehensive Python development toolkit managed through p
 
 #### Core Tools
 - **pipx** - Python package isolation tool
-- **ansible-dev-tools** - Ansible development toolkit
+- **community-ansible-dev-tools** - Ansible development toolkit
 - **ansible-lint** - Ansible linting and best practices
 
 #### Installation Sequence
 1. **Python 3.8+** validation
 2. **pip** functionality check
 3. **pipx** installation via pip
-4. **ansible-dev-tools** installation via pipx
+4. **community-ansible-dev-tools** installation via pipx
 5. **ansible-lint** installation via pipx
 
 #### Usage Examples
@@ -758,14 +799,14 @@ Dotsible integrates a comprehensive Python development toolkit managed through p
 pipx list
 
 # Verify development tools
-ansible-dev-tools --version
+community-ansible-dev-tools --version
 ansible-lint --version
 
 # Lint Ansible playbooks
 ansible-lint site.yml
 
 # Use development tools
-ansible-dev-tools --help
+community-ansible-dev-tools --help
 ```
 
 ### MCP (Model Context Protocol) Integration
@@ -778,8 +819,161 @@ npm list -g | grep mcp
 
 # Available MCP packages:
 # - @modelcontextprotocol/server-brave-search
-# - @modelcontextprotocol/server-puppeteer  
+# - @modelcontextprotocol/server-puppeteer
 # - firecrawl-mcp
+```
+
+## 🔤 Font Management
+
+Dotsible provides comprehensive cross-platform font management with automatic installation of Nerd Fonts for enhanced terminal and development experiences.
+
+### Supported Fonts
+
+#### Iosevka Nerd Font (Primary)
+- **Full Unicode Support**: Complete Unicode coverage with programming ligatures
+- **Cross-Platform**: Consistent appearance across all supported platforms
+- **Developer Optimized**: Designed specifically for programming and terminal use
+- **Multiple Weights**: Regular, Bold, Italic, and BoldItalic variants
+
+#### Future Font Support
+- JetBrains Mono Nerd Font (planned)
+- Fira Code Nerd Font (planned)
+- Hack Nerd Font (planned)
+
+### Platform-Specific Installation Paths
+
+| Platform | User Font Directory | System Font Directory |
+|----------|-------------------|----------------------|
+| **macOS** | `~/Library/Fonts/` | `/Library/Fonts/` |
+| **Windows** | `%LOCALAPPDATA%\Microsoft\Windows\Fonts\` | `C:\Windows\Fonts\` |
+| **Arch Linux** | `~/.local/share/fonts/` | `/usr/share/fonts/` |
+| **Ubuntu/Debian** | `~/.local/share/fonts/` | `/usr/share/fonts/` |
+
+### Font Installation Features
+
+#### Idempotent Installation
+- **Check-Before-Install**: Automatically detects existing font installations
+- **Skip Redundant Downloads**: Avoids re-downloading fonts that are already present
+- **Status Reporting**: Clear indicators (✅ INSTALLED, ❌ MISSING, ⏭️ SKIPPED)
+
+#### Automatic Dependency Management
+- **Unzip Utility**: Automatically installs unzip if not present
+- **Font Cache**: Refreshes system font cache after installation (Unix-like systems)
+- **Platform Detection**: Uses appropriate package managers for dependencies
+
+#### Profile-Based Selection
+```yaml
+# Font installation varies by profile
+minimal:     # Iosevka only
+  - iosevka
+
+developer:   # Programming fonts
+  - iosevka
+  - jetbrains_mono
+
+enterprise:  # Comprehensive font set
+  - iosevka
+  - jetbrains_mono
+  - fira_code
+```
+
+### Usage Examples
+
+#### Install Fonts Only
+```bash
+# Using enhanced run script (recommended)
+./run-dotsible.sh --tags fonts
+
+# Using direct Ansible command
+ansible-playbook -i inventories/local/hosts.yml site.yml --tags fonts
+```
+
+#### Install Fonts with Specific Profile
+```bash
+# Developer profile with fonts
+./run-dotsible.sh --profile developer --tags fonts
+
+# Enterprise profile with comprehensive font set
+./run-dotsible.sh --profile enterprise --tags fonts
+```
+
+#### Combined Installation
+```bash
+# Install fonts along with applications
+./run-dotsible.sh --tags "fonts,applications"
+
+# Complete setup including fonts
+./run-dotsible.sh --profile developer --environment personal
+```
+
+#### Dry Run Font Installation
+```bash
+# Preview font installation without changes
+./run-dotsible.sh --tags fonts --dry-run
+
+# Verbose output for debugging
+./run-dotsible.sh --tags fonts --verbose
+```
+
+### Font Installation Process
+
+1. **Dependency Check**: Verifies unzip utility availability
+2. **Font Detection**: Scans for existing Iosevka Nerd Font files
+3. **Download**: Downloads font archive from GitHub releases (if needed)
+4. **Extraction**: Extracts font files to temporary directory
+5. **Installation**: Copies fonts to platform-specific directory
+6. **Cache Refresh**: Updates system font cache (Unix-like systems)
+7. **Cleanup**: Removes temporary files
+
+### Verification
+
+#### Check Font Installation
+```bash
+# Unix-like systems (macOS, Linux)
+fc-list | grep -i iosevka
+
+# List fonts in user directory
+ls -la ~/Library/Fonts/*Iosevka*        # macOS
+ls -la ~/.local/share/fonts/*Iosevka*   # Linux
+
+# Windows PowerShell
+Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Windows\Fonts" -Filter "*Iosevka*"
+```
+
+#### Test Font in Terminal
+```bash
+# Test font rendering with special characters
+echo "→ ← ↑ ↓ ≠ ≤ ≥ ∞ ∅ ∈ ∉ ∩ ∪ ⊂ ⊃ ⊆ ⊇"
+echo "λ α β γ δ ε ζ η θ ι κ μ ν ξ π ρ σ τ υ φ χ ψ ω"
+echo "Ligatures: -> => != <= >= === !== && ||"
+```
+
+### Troubleshooting Font Issues
+
+#### Font Not Appearing in Applications
+```bash
+# Refresh font cache (Unix-like)
+fc-cache -fv
+
+# Restart applications to reload fonts
+# Terminal applications may need restart
+```
+
+#### Download Failures
+```bash
+# Check internet connectivity
+curl -I https://github.com/ryanoasis/nerd-fonts/releases/
+
+# Manual font installation
+wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Iosevka.zip
+unzip Iosevka.zip -d ~/.local/share/fonts/  # Linux
+```
+
+#### Permission Issues
+```bash
+# Ensure font directory exists and is writable
+mkdir -p ~/.local/share/fonts  # Linux
+chmod 755 ~/.local/share/fonts
 ```
 
 ## 🔧 Troubleshooting

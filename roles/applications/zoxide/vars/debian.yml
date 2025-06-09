@@ -1,0 +1,25 @@
+---
+# Ubuntu/Debian-specific zoxide variables
+
+# Installation method (via cargo since not in apt)
+zoxide_install_method: "cargo"
+zoxide_package_name: "zoxide"
+
+# Shell configuration
+default_shell: "bash"
+shell_config_file: "{{ ansible_user_dir }}/.bashrc"
+
+# Data directory
+zoxide_data_dir: "{{ ansible_user_dir }}/.local/share"
+
+# Ubuntu/Debian-specific configuration
+debian_zoxide_config:
+  use_cargo: true
+  apt_alternative: false  # Not available in standard repos
+  requires_rust: true
+  
+# Shell integration priority (order of preference)
+shell_priority:
+  - bash
+  - zsh
+  - fish

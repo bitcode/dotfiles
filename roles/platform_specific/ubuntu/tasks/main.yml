@@ -390,7 +390,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when:
     - python3_version_check.rc == 0
@@ -425,7 +425,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when:
     - python3_version_check.rc == 0
@@ -517,7 +517,7 @@
       • Font packages: {{ font_packages | length }}
       • System packages: {{ system_packages | length }}
       • NPM global packages: {{ npm_global_packages | length }}
-      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
+      • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
       • Python packages: {{ python_packages | length }}
       • Cargo packages: {{ cargo_packages | length }}
       • Flatpak packages: {{ flatpak_packages | length }}

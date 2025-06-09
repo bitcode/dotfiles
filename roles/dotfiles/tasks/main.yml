@@ -1,0 +1,133 @@
+---
+# Simplified Dotfiles role for immediate ZSH ecosystem fix
+# This role deploys essential dotfiles to support the ZSH configuration
+
+- name: "📁 DOTFILES DEPLOYMENT"
+  debug:
+    msg: "Deploying essential dotfiles for {{ ansible_os_family }}"
+  tags: ['dotfiles', 'banner']
+
+- name: Check if dotfiles source directory exists
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles"
+  register: dotfiles_source_check
+  tags: ['dotfiles', 'check']
+
+- name: Display dotfiles source status
+  debug:
+    msg: "Dotfiles source: {{ '✅ FOUND' if dotfiles_source_check.stat.exists else '❌ MISSING' }}: {{ playbook_dir }}/files/dotfiles"
+  tags: ['dotfiles', 'status']
+
+- name: Create backup directory
+  file:
+    path: "{{ ansible_user_dir }}/.dotsible/backups"
+    state: directory
+    mode: '0755'
+  when: dotfiles_source_check.stat.exists
+  tags: ['dotfiles', 'backup']
+
+- name: Backup existing .zshrc if it exists
+  copy:
+    src: "{{ ansible_user_dir }}/.zshrc"
+    dest: "{{ ansible_user_dir }}/.dotsible/backups/.zshrc.{{ ansible_date_time.epoch }}.bak"
+    backup: no
+  when: 
+    - dotfiles_source_check.stat.exists
+    - ansible_user_dir + '/.zshrc' is file
+  failed_when: false
+  tags: ['dotfiles', 'backup']
+
+- name: Deploy ZSH configuration file
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/zsh/.zshrc"
+    dest: "{{ ansible_user_dir }}/.zshrc"
+    mode: '0644'
+    backup: yes
+  when: dotfiles_source_check.stat.exists
+  register: zshrc_deployed
+  tags: ['dotfiles', 'zsh']
+
+- name: Check for other dotfiles to deploy
+  find:
+    paths: "{{ playbook_dir }}/files/dotfiles"
+    file_type: directory
+    depth: 1
+  register: available_dotfiles
+  when: dotfiles_source_check.stat.exists
+  tags: ['dotfiles', 'discovery']
+
+- name: Deploy starship configuration
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/starship/"
+    dest: "{{ ansible_user_dir }}/.config/"
+    mode: '0644'
+    backup: yes
+  when: 
+    - dotfiles_source_check.stat.exists
+    - "'starship' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
+  failed_when: false
+  tags: ['dotfiles', 'starship']
+
+- name: Deploy git configuration
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/git/.gitconfig"
+    dest: "{{ ansible_user_dir }}/.gitconfig"
+    mode: '0644'
+    backup: yes
+  when: 
+    - dotfiles_source_check.stat.exists
+    - "'git' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
+  failed_when: false
+  tags: ['dotfiles', 'git']
+
+- name: Deploy tmux configuration
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/tmux/.tmux.conf"
+    dest: "{{ ansible_user_dir }}/.tmux.conf"
+    mode: '0644'
+    backup: yes
+  when: 
+    - dotfiles_source_check.stat.exists
+    - "'tmux' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
+  failed_when: false
+  tags: ['dotfiles', 'tmux']
+
+- name: Create .config directory if it doesn't exist
+  file:
+    path: "{{ ansible_user_dir }}/.config"
+    state: directory
+    mode: '0755'
+  when: dotfiles_source_check.stat.exists
+  tags: ['dotfiles', 'config']
+
+- name: Deploy neovim configuration
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/nvim/"
+    dest: "{{ ansible_user_dir }}/.config/nvim/"
+    mode: '0644'
+    backup: yes
+  when: 
+    - dotfiles_source_check.stat.exists
+    - "'nvim' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
+  failed_when: false
+  tags: ['dotfiles', 'nvim']
+
+- name: Verify dotfiles deployment
+  stat:
+    path: "{{ ansible_user_dir }}/.zshrc"
+  register: zshrc_verify
+  tags: ['dotfiles', 'verify']
+
+- name: Display dotfiles deployment summary
+  debug:
+    msg: |
+      Dotfiles Deployment Summary:
+      • Source: {{ playbook_dir }}/files/dotfiles
+      • .zshrc: {{ '✅ DEPLOYED' if zshrc_verify.stat.exists else '❌ MISSING' }}
+      • Available applications: {{ available_dotfiles.files | length if available_dotfiles is defined else 0 }}
+      • Backup directory: ~/.dotsible/backups/
+      
+      {% if zshrc_deployed is defined and zshrc_deployed.changed %}
+      🔄 .zshrc was updated - restart your shell to apply changes
+      {% endif %}
+  tags: ['dotfiles', 'summary']

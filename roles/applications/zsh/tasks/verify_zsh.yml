@@ -1,0 +1,165 @@
+---
+# Verify ZSH installation and configuration
+
+- name: Verify ZSH binary installation
+  command: "{{ zsh_binary_path | default('/bin/zsh') }} --version"
+  register: zsh_version_verify
+  changed_when: false
+  failed_when: zsh_version_verify.rc != 0
+  tags: ['zsh', 'verify', 'binary']
+
+- name: Verify Oh My Zsh installation
+  stat:
+    path: "{{ zsh_oh_my_zsh_path }}/oh-my-zsh.sh"
+  register: oh_my_zsh_verify
+  tags: ['zsh', 'verify', 'oh-my-zsh']
+
+- name: Verify .zshrc configuration file
+  stat:
+    path: "{{ zsh_config_path }}"
+  register: zshrc_verify
+  tags: ['zsh', 'verify', 'config']
+
+- name: Verify custom plugins installation
+  stat:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/plugins/{{ item.name }}"
+  loop: "{{ zsh_oh_my_zsh_custom_plugins }}"
+  register: plugins_verify
+  tags: ['zsh', 'verify', 'plugins']
+
+- name: Verify zsh-vi-mode plugin
+  stat:
+    path: "{{ zsh_oh_my_zsh_custom_path }}/plugins/zsh-vi-mode"
+  register: vi_mode_verify
+  tags: ['zsh', 'verify', 'vi-mode']
+
+- name: Check ZSH configuration syntax
+  shell: "{{ zsh_binary_path | default('/bin/zsh') }} -n {{ zsh_config_path }}"
+  register: zsh_syntax_check
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'verify', 'syntax']
+
+- name: Test ZSH plugin loading
+  shell: |
+    {{ zsh_binary_path | default('/bin/zsh') }} -c "
+    source {{ zsh_config_path }}
+    # Test if plugins are loaded
+    if [[ -n \$ZSH ]]; then
+      echo 'oh-my-zsh:loaded'
+    fi
+    if command -v _zsh_autosuggest_start >/dev/null 2>&1; then
+      echo 'autosuggestions:loaded'
+    fi
+    if [[ -n \$ZSH_HIGHLIGHT_HIGHLIGHTERS ]]; then
+      echo 'syntax-highlighting:loaded'
+    fi
+    "
+  register: plugin_loading_test
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'verify', 'plugin-loading']
+
+- name: Create comprehensive verification report
+  copy:
+    content: |
+      ZSH Installation Verification Report
+      ===================================
+      Generated: {{ ansible_date_time.iso8601 }}
+      Host: {{ inventory_hostname }}
+      User: {{ ansible_user }}
+      Profile: {{ profile | default('minimal') }}
+      
+      Binary Installation
+      ------------------
+      ZSH Version: {{ zsh_version_verify.stdout if zsh_version_verify.rc == 0 else 'FAILED' }}
+      ZSH Path: {{ zsh_binary_path | default('/bin/zsh') }}
+      Status: {{ '✅ INSTALLED' if zsh_version_verify.rc == 0 else '❌ FAILED' }}
+      
+      Oh My Zsh Framework
+      ------------------
+      Installation Path: {{ zsh_oh_my_zsh_path }}
+      Status: {{ '✅ INSTALLED' if oh_my_zsh_verify.stat.exists else '❌ MISSING' }}
+      
+      Configuration File
+      -----------------
+      .zshrc Path: {{ zsh_config_path }}
+      Status: {{ '✅ EXISTS' if zshrc_verify.stat.exists else '❌ MISSING' }}
+      Syntax Check: {{ '✅ VALID' if zsh_syntax_check.rc == 0 else '❌ INVALID' }}
+      
+      Custom Plugins
+      -------------
+      {% for result in plugins_verify.results %}
+      {{ result.item.name }}: {{ '✅ INSTALLED' if result.stat.exists else '❌ MISSING' }}
+      {% endfor %}
+      zsh-vi-mode: {{ '✅ INSTALLED' if vi_mode_verify.stat.exists else '❌ MISSING' }}
+      
+      Plugin Loading Test
+      ------------------
+      {% for line in plugin_loading_test.stdout_lines | default([]) %}
+      {{ line | replace(':', ': ') | title }}
+      {% endfor %}
+      
+      Summary
+      -------
+      ZSH Binary: {{ '✅' if zsh_version_verify.rc == 0 else '❌' }}
+      Oh My Zsh: {{ '✅' if oh_my_zsh_verify.stat.exists else '❌' }}
+      Configuration: {{ '✅' if zshrc_verify.stat.exists and zsh_syntax_check.rc == 0 else '❌' }}
+      Plugins: {{ '✅' if plugins_verify.results | selectattr('stat.exists') | list | length == plugins_verify.results | length else '❌' }}
+      
+      {% if zsh_version_verify.rc == 0 and oh_my_zsh_verify.stat.exists and zshrc_verify.stat.exists %}
+      🎉 ZSH installation and configuration completed successfully!
+      
+      Next Steps:
+      1. Restart your terminal or run: exec zsh
+      2. Verify plugins are working in a new shell session
+      3. Run the plugin check script: ~/.zsh_plugin_check.sh
+      {% else %}
+      ⚠️  Some components failed verification. Please check the details above.
+      {% endif %}
+      
+      Troubleshooting
+      --------------
+      If you encounter issues:
+      1. Check the syntax: zsh -n ~/.zshrc
+      2. Test configuration: zsh -c "source ~/.zshrc"
+      3. Verify plugin paths exist
+      4. Check permissions on ZSH directories
+      
+      Manual Commands
+      --------------
+      Test ZSH: {{ zsh_binary_path | default('/bin/zsh') }} --version
+      Check config: zsh -n {{ zsh_config_path }}
+      Plugin check: ~/.zsh_plugin_check.sh
+      Reload config: source {{ zsh_config_path }}
+    dest: "{{ ansible_user_dir }}/.zsh_verification_report.txt"
+    mode: '0644'
+  tags: ['zsh', 'verify', 'report']
+
+- name: Display verification summary
+  debug:
+    msg: |
+      ZSH Verification Summary:
+      ========================
+      
+      ✅ Components Verified:
+      • ZSH Binary: {{ '✅ v' + zsh_version_verify.stdout.split()[-1] if zsh_version_verify.rc == 0 else '❌ FAILED' }}
+      • Oh My Zsh: {{ '✅ INSTALLED' if oh_my_zsh_verify.stat.exists else '❌ MISSING' }}
+      • Configuration: {{ '✅ VALID' if zshrc_verify.stat.exists and zsh_syntax_check.rc == 0 else '❌ INVALID' }}
+      • Custom Plugins: {{ plugins_verify.results | selectattr('stat.exists') | list | length }}/{{ plugins_verify.results | length }} installed
+      • Vi Mode Plugin: {{ '✅ INSTALLED' if vi_mode_verify.stat.exists else '❌ MISSING' }}
+      
+      📊 Plugin Loading Test:
+      {% for line in plugin_loading_test.stdout_lines | default(['No plugins detected']) %}
+      • {{ line | replace(':', ': ') | title }}
+      {% endfor %}
+      
+      📋 Full Report: ~/.zsh_verification_report.txt
+      🔧 Plugin Check: ~/.zsh_plugin_check.sh
+      
+      {% if zsh_version_verify.rc == 0 and oh_my_zsh_verify.stat.exists and zshrc_verify.stat.exists %}
+      🎉 ZSH setup completed successfully! Restart your terminal to use ZSH.
+      {% else %}
+      ⚠️  Some issues detected. Check the full report for details.
+      {% endif %}
+  tags: ['zsh', 'verify', 'summary']

@@ -1,0 +1,164 @@
+---
+# Setup ZSH aliases based on profile
+
+- name: Display alias configuration information
+  debug:
+    msg: |
+      Configuring ZSH aliases:
+      • Profile: {{ profile | default('minimal') }}
+      • Basic aliases: {{ zsh_basic_aliases | length }}
+      • Profile aliases: {{ zsh_profile_aliases.get(profile | default('minimal'), {}) | length }}
+  tags: ['zsh', 'aliases', 'info']
+
+- name: Configure basic aliases
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Basic Aliases"
+    block: |
+      # Basic Aliases
+      {% for alias, command in zsh_basic_aliases.items() %}
+      alias {{ alias }}="{{ command }}"
+      {% endfor %}
+    create: yes
+    backup: yes
+  tags: ['zsh', 'aliases', 'basic']
+
+- name: Configure profile-specific aliases
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Profile Aliases"
+    block: |
+      # Profile-specific Aliases ({{ profile | default('minimal') }})
+      {% for alias, command in zsh_profile_aliases.get(profile | default('minimal'), {}).items() %}
+      alias {{ alias }}="{{ command }}"
+      {% endfor %}
+    create: yes
+    backup: yes
+  when: zsh_profile_aliases.get(profile | default('minimal'), {}) | length > 0
+  tags: ['zsh', 'aliases', 'profile']
+
+- name: Configure conditional aliases based on available commands
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Conditional Aliases"
+    block: |
+      # Conditional Aliases (only if commands exist)
+      
+      # Enhanced ls aliases (if exa/lsd available)
+      if command -v lsd >/dev/null 2>&1; then
+        alias ls='lsd'
+        alias ll='lsd -l'
+        alias la='lsd -la'
+        alias lt='lsd --tree'
+      elif command -v exa >/dev/null 2>&1; then
+        alias ls='exa'
+        alias ll='exa -l'
+        alias la='exa -la'
+        alias lt='exa --tree'
+      else
+        alias ll='ls -l'
+        alias la='ls -la'
+      fi
+      
+      # Enhanced cat (if bat available)
+      if command -v bat >/dev/null 2>&1; then
+        alias cat='bat'
+        alias catn='bat --style=plain'
+      fi
+      
+      # Enhanced find (if fd available)
+      if command -v fd >/dev/null 2>&1; then
+        alias find='fd'
+      fi
+      
+      # Enhanced grep (if ripgrep available)
+      if command -v rg >/dev/null 2>&1; then
+        alias grep='rg'
+      fi
+      
+      # Enhanced top (if htop available)
+      if command -v htop >/dev/null 2>&1; then
+        alias top='htop'
+      fi
+      
+      # Enhanced du (if dust available)
+      if command -v dust >/dev/null 2>&1; then
+        alias du='dust'
+      fi
+      
+      # Enhanced ps (if procs available)
+      if command -v procs >/dev/null 2>&1; then
+        alias ps='procs'
+      fi
+    create: yes
+    backup: yes
+  tags: ['zsh', 'aliases', 'conditional']
+
+- name: Configure utility aliases
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Utility Aliases"
+    block: |
+      # Utility Aliases
+      
+      # Safety aliases
+      alias rm='rm -i'
+      alias cp='cp -i'
+      alias mv='mv -i'
+      
+      # Directory navigation
+      alias ..='cd ..'
+      alias ...='cd ../..'
+      alias ....='cd ../../..'
+      alias .....='cd ../../../..'
+      
+      # Quick directory listing
+      alias l='ls -CF'
+      alias dir='ls -la'
+      
+      # Network utilities
+      alias ping='ping -c 5'
+      alias ports='netstat -tulanp'
+      alias myip='curl -s ifconfig.me'
+      
+      # System information
+      alias df='df -h'
+      alias free='free -h'
+      alias psg='ps aux | grep -v grep | grep -i -e VSZ -e'
+      
+      # File operations
+      alias mkdir='mkdir -pv'
+      alias wget='wget -c'
+      alias path='echo -e ${PATH//:/\\n}'
+      
+      # History
+      alias h='history'
+      alias hgrep='history | grep'
+      
+      # Process management
+      alias j='jobs -l'
+      
+      # Quick edits
+      alias zshconfig='${EDITOR:-vim} ~/.zshrc'
+      alias zshreload='source ~/.zshrc'
+    create: yes
+    backup: yes
+  tags: ['zsh', 'aliases', 'utility']
+
+- name: Verify alias configuration
+  shell: grep -c "alias" {{ zsh_config_path }}
+  register: alias_count
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'aliases', 'verify']
+
+- name: Display alias configuration status
+  debug:
+    msg: |
+      Alias Configuration Status:
+      • Total aliases configured: {{ alias_count.stdout | default('0') }}
+      • Basic aliases: {{ zsh_basic_aliases | length }}
+      • Profile aliases: {{ zsh_profile_aliases.get(profile | default('minimal'), {}) | length }}
+      • Conditional aliases: Available based on installed tools
+      • Utility aliases: Standard set configured
+  tags: ['zsh', 'aliases', 'status']

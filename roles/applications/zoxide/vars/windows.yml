@@ -1,0 +1,25 @@
+---
+# Windows-specific zoxide variables
+
+# Installation method
+zoxide_install_method: "chocolatey"
+zoxide_package_name: "zoxide"
+
+# Shell configuration
+default_shell: "powershell"
+shell_config_file: "{{ ansible_env.USERPROFILE }}\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"
+
+# Data directory
+zoxide_data_dir: "{{ ansible_env.LOCALAPPDATA }}"
+
+# Windows-specific configuration
+windows_zoxide_config:
+  use_chocolatey: true
+  integrate_with_explorer: false
+  support_wsl: true
+  
+# Shell integration priority (order of preference)
+shell_priority:
+  - powershell
+  - bash  # Git Bash, WSL
+  - cmd

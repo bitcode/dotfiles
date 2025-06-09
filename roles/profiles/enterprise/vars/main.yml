@@ -1,0 +1,32 @@
+---
+# Enterprise Profile Variables
+# Security-focused configuration variables
+
+enterprise_profile:
+  name: "enterprise"
+  description: "Enterprise security and compliance configuration"
+  security_focused: true
+  
+enterprise_applications:
+  required:
+    - git
+    - neovim
+    - tmux
+    - zsh
+  optional:
+    - starship
+    - alacritty
+  excluded:
+    - discord
+    - steam
+    - gaming_apps
+    - social_media_tools
+
+enterprise_security:
+  audit_logging: true
+  restricted_network: true
+  compliance_mode: true
+  security_hardened: true
+  custom_themes: false
+  social_integrations: false
+  external_plugins: false

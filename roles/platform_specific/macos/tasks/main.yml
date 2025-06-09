@@ -321,7 +321,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when: pipx_verify.rc == 0
 
@@ -353,7 +353,7 @@
   failed_when: false
   changed_when: false
   loop:
-    - ansible-dev-tools
+    - community-ansible-dev-tools
     - ansible-lint
   when: pipx_verify.rc == 0
 
@@ -361,7 +361,7 @@
   debug:
     msg: |
       🔧 Pipx Development Tools Summary:
-      • ansible-dev-tools: {{ 'ACCESSIBLE' if pipx_tools_verify.results[0].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[0].stdout else 'NOT_IN_PATH' }}
+      • community-ansible-dev-tools: {{ 'ACCESSIBLE' if pipx_tools_verify.results[0].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[0].stdout else 'NOT_IN_PATH' }}
       • ansible-lint: {{ 'ACCESSIBLE' if pipx_tools_verify.results[1].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[1].stdout else 'NOT_IN_PATH' }}
   when: pipx_verify.rc == 0 and pipx_tools_verify.results is defined
 
@@ -449,7 +449,7 @@
       • Homebrew packages: {{ homebrew_packages | length }}
       • Homebrew casks: {{ homebrew_casks | length }}
       • NPM global packages: {{ npm_global_packages | length }}
-      • Python dev tools: pipx, ansible-dev-tools, ansible-lint
+      • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
       • Mac App Store apps: {{ mac_app_store_apps | length }}
       • Manual installations: {{ manual_installations | length }}
 

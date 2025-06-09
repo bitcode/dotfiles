@@ -1,0 +1,188 @@
+---
+# Setup ZSH environment variables and PATH
+
+- name: Display environment setup information
+  debug:
+    msg: |
+      Configuring ZSH environment:
+      • Environment variables: {{ zsh_environment_vars | length }}
+      • PATH additions: {{ zsh_path_additions | length }}
+      • Profile: {{ profile | default('minimal') }}
+  tags: ['zsh', 'environment', 'info']
+
+- name: Configure environment variables
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Environment Variables"
+    block: |
+      # Environment Variables
+      {% for var, value in zsh_environment_vars.items() %}
+      export {{ var }}="{{ value }}"
+      {% endfor %}
+      
+      # Additional environment variables
+      export HISTFILE="{{ zsh_history_file }}"
+      export HISTSIZE="{{ zsh_history_size }}"
+      export SAVEHIST="{{ zsh_save_history }}"
+      
+      # ZSH-specific environment
+      export ZSH_CACHE_DIR="{{ zsh_home_path }}/.cache/zsh"
+      export ZSH_COMPDUMP="{{ zsh_home_path }}/.zcompdump"
+      
+      # Create cache directory if it doesn't exist
+      [[ ! -d "$ZSH_CACHE_DIR" ]] && mkdir -p "$ZSH_CACHE_DIR"
+    create: yes
+    backup: yes
+  tags: ['zsh', 'environment', 'variables']
+
+- name: Configure PATH additions
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - PATH Configuration"
+    block: |
+      # PATH Configuration
+      {% for path in zsh_path_additions %}
+      [[ -d "{{ path }}" ]] && export PATH="{{ path }}:$PATH"
+      {% endfor %}
+      
+      # Remove duplicate PATH entries
+      export PATH=$(echo "$PATH" | awk -v RS=':' -v ORS=":" '!a[$1]++{if (NR > 1) printf ORS; printf $a[$1]}')
+    create: yes
+    backup: yes
+  tags: ['zsh', 'environment', 'path']
+
+- name: Configure locale settings
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Locale Settings"
+    block: |
+      # Locale Settings
+      export LANG="{{ zsh_environment_vars.LANG | default('en_US.UTF-8') }}"
+      export LC_ALL="{{ zsh_environment_vars.LC_ALL | default('en_US.UTF-8') }}"
+      export LC_CTYPE="en_US.UTF-8"
+      
+      # Terminal settings
+      export TERM="{{ zsh_environment_vars.TERM | default('xterm-256color') }}"
+      export COLORTERM="truecolor"
+    create: yes
+    backup: yes
+  tags: ['zsh', 'environment', 'locale']
+
+- name: Configure development environment (developer profile)
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Development Environment"
+    block: |
+      # Development Environment
+      
+      # Node.js/npm configuration
+      export NPM_CONFIG_PREFIX="$HOME/.npm-global"
+      [[ -d "$NPM_CONFIG_PREFIX/bin" ]] && export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+      
+      # Python configuration
+      export PYTHONDONTWRITEBYTECODE=1
+      export PYTHONUNBUFFERED=1
+      
+      # Go configuration
+      export GOPATH="$HOME/go"
+      [[ -d "$GOPATH/bin" ]] && export PATH="$GOPATH/bin:$PATH"
+      
+      # Rust configuration
+      [[ -d "$HOME/.cargo/bin" ]] && export PATH="$HOME/.cargo/bin:$PATH"
+      
+      # Ruby configuration
+      [[ -d "$HOME/.gem/ruby" ]] && export PATH="$HOME/.gem/ruby/*/bin:$PATH"
+      
+      # Java configuration
+      [[ -d "/usr/lib/jvm/default" ]] && export JAVA_HOME="/usr/lib/jvm/default"
+      [[ -d "/Library/Java/JavaVirtualMachines" ]] && export JAVA_HOME="/Library/Java/JavaVirtualMachines/*/Contents/Home"
+      
+      # Docker configuration
+      export DOCKER_BUILDKIT=1
+      export COMPOSE_DOCKER_CLI_BUILD=1
+    create: yes
+    backup: yes
+  when: profile in ['developer', 'enterprise']
+  tags: ['zsh', 'environment', 'development']
+
+- name: Configure XDG directories
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - XDG Directories"
+    block: |
+      # XDG Base Directory Specification
+      export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+      export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+      export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+      export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+      
+      # Create XDG directories if they don't exist
+      for dir in "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"; do
+        [[ ! -d "$dir" ]] && mkdir -p "$dir"
+      done
+    create: yes
+    backup: yes
+  tags: ['zsh', 'environment', 'xdg']
+
+- name: Configure shell options and behavior
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Shell Behavior"
+    block: |
+      # Shell Behavior Configuration
+      
+      # Case sensitivity
+      {% if not zsh_case_sensitive %}
+      CASE_SENSITIVE="false"
+      {% endif %}
+      
+      # Hyphen insensitive completion
+      {% if zsh_hyphen_insensitive %}
+      HYPHEN_INSENSITIVE="true"
+      {% endif %}
+      
+      # Auto-update behavior
+      {% if zsh_disable_auto_update %}
+      DISABLE_AUTO_UPDATE="true"
+      {% else %}
+      export UPDATE_ZSH_DAYS={{ zsh_update_days }}
+      {% endif %}
+      
+      # Completion behavior
+      {% if zsh_completion_waiting_dots %}
+      COMPLETION_WAITING_DOTS="true"
+      {% endif %}
+      
+      # Git status in untracked files
+      {% if zsh_disable_untracked_files_dirty %}
+      DISABLE_UNTRACKED_FILES_DIRTY="true"
+      {% endif %}
+      
+      # Auto-correction
+      {% if zsh_enable_correction %}
+      ENABLE_CORRECTION="true"
+      {% endif %}
+    create: yes
+    backup: yes
+  tags: ['zsh', 'environment', 'behavior']
+
+- name: Verify environment configuration
+  shell: |
+    source {{ zsh_config_path }}
+    echo "PATH entries: $(echo $PATH | tr ':' '\n' | wc -l)"
+    echo "Environment variables: $(env | wc -l)"
+  register: env_verification
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'environment', 'verify']
+
+- name: Display environment configuration status
+  debug:
+    msg: |
+      Environment Configuration Status:
+      • Environment variables: {{ zsh_environment_vars | length }} configured
+      • PATH additions: {{ zsh_path_additions | length }} configured
+      • XDG directories: Configured
+      • Development environment: {{ 'Configured' if profile in ['developer', 'enterprise'] else 'Skipped' }}
+      • Shell behavior: Configured
+  tags: ['zsh', 'environment', 'status']

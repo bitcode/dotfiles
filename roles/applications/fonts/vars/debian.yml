@@ -1,0 +1,49 @@
+---
+# Ubuntu/Debian-specific font variables
+
+# Font installation paths
+font_install_path: "{{ ansible_user_dir }}/.local/share/fonts"
+system_font_path: "/usr/share/fonts"
+
+# Font cache command
+font_cache_command: "fc-cache -fv"
+
+# Dependencies
+font_dependencies:
+  - unzip
+  - fontconfig
+
+# Ubuntu/Debian-specific font management
+debian_font_config:
+  user_fonts_dir: "{{ ansible_user_dir }}/.local/share/fonts"
+  system_fonts_dir: "/usr/share/fonts"
+  font_config_dir: "{{ ansible_user_dir }}/.config/fontconfig"
+  
+# Font validation commands
+font_validation_commands:
+  list_fonts: "fc-list"
+  check_iosevka: "fc-list | grep -i iosevka"
+  font_info: "fc-query"
+
+# APT font packages (alternative installation method)
+apt_font_packages:
+  - fonts-jetbrains-mono
+  - fonts-firacode
+  - fonts-hack
+
+# Snap font packages
+snap_font_packages: []
+
+# Font configuration
+fontconfig_settings:
+  enable_antialiasing: true
+  enable_hinting: true
+  hinting_style: "slight"
+  subpixel_rendering: "rgb"
+
+# Ubuntu-specific font directories
+ubuntu_font_dirs:
+  - "/usr/share/fonts/truetype"
+  - "/usr/share/fonts/opentype"
+  - "{{ ansible_user_dir }}/.fonts"  # Legacy location
+  - "{{ ansible_user_dir }}/.local/share/fonts"

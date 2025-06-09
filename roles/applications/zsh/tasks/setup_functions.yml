@@ -1,0 +1,197 @@
+---
+# Setup ZSH custom functions
+
+- name: Display function setup information
+  debug:
+    msg: |
+      Setting up ZSH custom functions:
+      • Functions enabled: {{ zsh_custom_functions_enabled | default(false) }}
+      • Profile: {{ profile | default('minimal') }}
+  tags: ['zsh', 'functions', 'info']
+
+- name: Configure utility functions
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Utility Functions"
+    block: |
+      # Utility Functions
+      
+      # Extract function for various archive formats
+      extract() {
+        if [ -f $1 ] ; then
+          case $1 in
+            *.tar.bz2)   tar xjf $1     ;;
+            *.tar.gz)    tar xzf $1     ;;
+            *.bz2)       bunzip2 $1     ;;
+            *.rar)       unrar e $1     ;;
+            *.gz)        gunzip $1      ;;
+            *.tar)       tar xf $1      ;;
+            *.tbz2)      tar xjf $1     ;;
+            *.tgz)       tar xzf $1     ;;
+            *.zip)       unzip $1       ;;
+            *.Z)         uncompress $1  ;;
+            *.7z)        7z x $1        ;;
+            *)     echo "'$1' cannot be extracted via extract()" ;;
+          esac
+        else
+          echo "'$1' is not a valid file"
+        fi
+      }
+      
+      # Create directory and cd into it
+      mkcd() {
+        mkdir -p "$1" && cd "$1"
+      }
+      
+      # Find and kill process by name
+      killp() {
+        ps aux | grep -i $1 | grep -v grep | awk '{print $2}' | xargs kill -9
+      }
+      
+      # Quick backup function
+      backup() {
+        cp "$1"{,.bak-$(date +%Y%m%d-%H%M%S)}
+      }
+      
+      # Weather function (requires curl)
+      weather() {
+        curl -s "wttr.in/${1:-}"
+      }
+      
+      # Quick note function
+      note() {
+        echo "$(date): $*" >> "$HOME/notes.txt"
+      }
+      
+      # Show notes
+      notes() {
+        if [ -f "$HOME/notes.txt" ]; then
+          cat "$HOME/notes.txt"
+        else
+          echo "No notes found. Use 'note <text>' to create one."
+        fi
+      }
+    create: yes
+    backup: yes
+  tags: ['zsh', 'functions', 'utility']
+
+- name: Configure development functions
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Development Functions"
+    block: |
+      # Development Functions
+      
+      # Git functions
+      gclone() {
+        git clone "$1" && cd "$(basename "$1" .git)"
+      }
+      
+      gcommit() {
+        git add . && git commit -m "$1"
+      }
+      
+      gpush() {
+        git add . && git commit -m "$1" && git push
+      }
+      
+      # Python virtual environment functions
+      venv() {
+        if [ "$1" = "create" ]; then
+          python3 -m venv "${2:-venv}"
+        elif [ "$1" = "activate" ]; then
+          source "${2:-venv}/bin/activate"
+        elif [ "$1" = "deactivate" ]; then
+          deactivate
+        else
+          echo "Usage: venv {create|activate|deactivate} [name]"
+        fi
+      }
+      
+      # Docker functions
+      dps() {
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      }
+      
+      dexec() {
+        docker exec -it "$1" /bin/bash
+      }
+      
+      # Node.js functions
+      npmg() {
+        npm list -g --depth=0
+      }
+      
+      # Quick server function
+      serve() {
+        local port="${1:-8000}"
+        python3 -m http.server "$port"
+      }
+    create: yes
+    backup: yes
+  when: profile in ['developer', 'enterprise']
+  tags: ['zsh', 'functions', 'development']
+
+- name: Configure system functions
+  blockinfile:
+    path: "{{ zsh_config_path }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - System Functions"
+    block: |
+      # System Functions
+      
+      # System information
+      sysinfo() {
+        echo "System Information:"
+        echo "=================="
+        echo "Hostname: $(hostname)"
+        echo "OS: $(uname -s)"
+        echo "Kernel: $(uname -r)"
+        echo "Architecture: $(uname -m)"
+        echo "Uptime: $(uptime)"
+        echo "Memory: $(free -h | grep '^Mem:' | awk '{print $3 "/" $2}')"
+        echo "Disk: $(df -h / | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')"
+      }
+      
+      # Process monitoring
+      psmem() {
+        ps aux --sort=-%mem | head -n "${1:-10}"
+      }
+      
+      pscpu() {
+        ps aux --sort=-%cpu | head -n "${1:-10}"
+      }
+      
+      # Network functions
+      myports() {
+        netstat -tulanp | grep LISTEN
+      }
+      
+      # File search functions
+      ff() {
+        find . -type f -name "*$1*"
+      }
+      
+      fd() {
+        find . -type d -name "*$1*"
+      }
+    create: yes
+    backup: yes
+  tags: ['zsh', 'functions', 'system']
+
+- name: Verify function configuration
+  shell: grep -c "^[a-zA-Z_][a-zA-Z0-9_]*() {" {{ zsh_config_path }}
+  register: function_count
+  failed_when: false
+  changed_when: false
+  tags: ['zsh', 'functions', 'verify']
+
+- name: Display function configuration status
+  debug:
+    msg: |
+      Function Configuration Status:
+      • Functions enabled: {{ zsh_custom_functions_enabled | default(false) }}
+      • Total functions configured: {{ function_count.stdout | default('0') }}
+      • Utility functions: Always included
+      • Development functions: {{ 'Included' if profile in ['developer', 'enterprise'] else 'Skipped' }}
+      • System functions: Always included
+  tags: ['zsh', 'functions', 'status']

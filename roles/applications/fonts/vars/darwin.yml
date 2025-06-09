@@ -1,0 +1,31 @@
+---
+# macOS-specific font variables
+
+# Font installation paths
+font_install_path: "{{ ansible_user_dir }}/Library/Fonts"
+system_font_path: "/Library/Fonts"
+
+# Font cache command
+font_cache_command: "fc-cache -fv"
+
+# Dependencies
+font_dependencies:
+  - unzip
+
+# macOS-specific font management
+macos_font_config:
+  user_fonts_dir: "{{ ansible_user_dir }}/Library/Fonts"
+  system_fonts_dir: "/Library/Fonts"
+  font_book_cache: "{{ ansible_user_dir }}/Library/Caches/com.apple.FontBook"
+  
+# Font validation commands
+font_validation_commands:
+  list_fonts: "fc-list"
+  check_iosevka: "fc-list | grep -i iosevka"
+
+# Homebrew font packages (alternative installation method)
+homebrew_font_casks:
+  - font-iosevka-nerd-font
+  - font-jetbrains-mono-nerd-font
+  - font-fira-code-nerd-font
+  - font-hack-nerd-font

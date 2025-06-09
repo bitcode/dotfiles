@@ -1,0 +1,172 @@
+---
+# Iosevka Nerd Font installation tasks
+# Downloads, extracts, and installs Iosevka Nerd Font from GitHub releases
+
+- name: Check if Iosevka Nerd Font is already installed (Unix-like)
+  find:
+    paths: 
+      - "{{ font_install_path }}"
+      - "{{ ansible_user_dir }}/.local/share/fonts"
+    patterns: "*Iosevka*Nerd*Font*.ttf"
+    recurse: yes
+  register: iosevka_font_check
+  when: ansible_os_family != 'Windows'
+  tags: ['fonts', 'iosevka', 'check']
+
+- name: Check if Iosevka Nerd Font is already installed (Windows)
+  win_find:
+    paths: "{{ font_install_path }}"
+    patterns: "*Iosevka*Nerd*Font*.ttf"
+    recurse: yes
+  register: iosevka_font_check_win
+  when: ansible_os_family == 'Windows'
+  tags: ['fonts', 'iosevka', 'check']
+
+- name: Set Iosevka installation status
+  set_fact:
+    iosevka_installed: >-
+      {{
+        (ansible_os_family != 'Windows' and iosevka_font_check.matched > 0) or
+        (ansible_os_family == 'Windows' and iosevka_font_check_win.matched > 0)
+      }}
+  tags: ['fonts', 'iosevka', 'check']
+
+- name: Display Iosevka Nerd Font status
+  debug:
+    msg: "Iosevka Nerd Font: {{ 'INSTALLED' if iosevka_installed else 'MISSING' }}"
+  tags: ['fonts', 'iosevka', 'status']
+
+- name: Download Iosevka Nerd Font (Unix-like)
+  get_url:
+    url: "{{ iosevka_download_url }}"
+    dest: "/tmp/Iosevka.zip"
+    mode: '0644'
+    timeout: 300
+  when:
+    - ansible_os_family != 'Windows'
+    - not iosevka_installed
+    - not ansible_check_mode
+  register: iosevka_download
+  tags: ['fonts', 'iosevka', 'download']
+
+- name: Download Iosevka Nerd Font (Windows)
+  win_get_url:
+    url: "{{ iosevka_download_url }}"
+    dest: "{{ ansible_env.TEMP }}\\Iosevka.zip"
+    timeout: 300
+  when: 
+    - ansible_os_family == 'Windows'
+    - not iosevka_installed
+  register: iosevka_download_win
+  tags: ['fonts', 'iosevka', 'download']
+
+- name: Display download status
+  debug:
+    msg: "Iosevka download: {{ 'COMPLETED' if (iosevka_download is defined and iosevka_download.changed) or (iosevka_download_win is defined and iosevka_download_win.changed) else 'SKIPPED' }}"
+  when: not iosevka_installed
+  tags: ['fonts', 'iosevka', 'download']
+
+- name: Create temporary extraction directory (Unix-like)
+  file:
+    path: "/tmp/iosevka_extract"
+    state: directory
+    mode: '0755'
+  when: 
+    - ansible_os_family != 'Windows'
+    - not iosevka_installed
+  tags: ['fonts', 'iosevka', 'extract']
+
+- name: Create temporary extraction directory (Windows)
+  win_file:
+    path: "{{ ansible_env.TEMP }}\\iosevka_extract"
+    state: directory
+  when: 
+    - ansible_os_family == 'Windows'
+    - not iosevka_installed
+  tags: ['fonts', 'iosevka', 'extract']
+
+- name: Extract Iosevka Nerd Font (Unix-like)
+  shell: |
+    cd /tmp
+    unzip -o Iosevka.zip -d iosevka_extract/
+  when:
+    - ansible_os_family != 'Windows'
+    - not iosevka_installed
+    - not ansible_check_mode
+  register: iosevka_extract
+  tags: ['fonts', 'iosevka', 'extract']
+
+- name: Extract Iosevka Nerd Font (Windows)
+  win_unzip:
+    src: "{{ ansible_env.TEMP }}\\Iosevka.zip"
+    dest: "{{ ansible_env.TEMP }}\\iosevka_extract"
+    creates: "{{ ansible_env.TEMP }}\\iosevka_extract\\IosevkaNerdFont-Regular.ttf"
+  when: 
+    - ansible_os_family == 'Windows'
+    - not iosevka_installed
+  register: iosevka_extract_win
+  tags: ['fonts', 'iosevka', 'extract']
+
+- name: Display extraction status
+  debug:
+    msg: "Iosevka extraction: {{ 'COMPLETED' if (iosevka_extract is defined and iosevka_extract.changed) or (iosevka_extract_win is defined and iosevka_extract_win.changed) else 'SKIPPED' }}"
+  when: not iosevka_installed
+  tags: ['fonts', 'iosevka', 'extract']
+
+- name: Install Iosevka font files (Unix-like)
+  copy:
+    src: "/tmp/iosevka_extract/"
+    dest: "{{ font_install_path }}/"
+    mode: '0644'
+    remote_src: yes
+  when:
+    - ansible_os_family != 'Windows'
+    - not iosevka_installed
+    - not ansible_check_mode
+  register: iosevka_install
+  tags: ['fonts', 'iosevka', 'install']
+
+- name: Install Iosevka font files (Windows)
+  win_copy:
+    src: "{{ ansible_env.TEMP }}\\iosevka_extract\\"
+    dest: "{{ font_install_path }}\\"
+    remote_src: yes
+  when: 
+    - ansible_os_family == 'Windows'
+    - not iosevka_installed
+  register: iosevka_install_win
+  tags: ['fonts', 'iosevka', 'install']
+
+- name: Display installation status
+  debug:
+    msg: "Iosevka installation: {{ 'COMPLETED' if (iosevka_install is defined and iosevka_install.changed) or (iosevka_install_win is defined and iosevka_install_win.changed) else 'ALREADY INSTALLED' }}"
+  tags: ['fonts', 'iosevka', 'install']
+
+- name: Clean up temporary files (Unix-like)
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/Iosevka.zip"
+    - "/tmp/iosevka_extract"
+  when: 
+    - ansible_os_family != 'Windows'
+    - not iosevka_installed
+  tags: ['fonts', 'iosevka', 'cleanup']
+
+- name: Clean up temporary files (Windows)
+  win_file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ ansible_env.TEMP }}\\Iosevka.zip"
+    - "{{ ansible_env.TEMP }}\\iosevka_extract"
+  when: 
+    - ansible_os_family == 'Windows'
+    - not iosevka_installed
+  tags: ['fonts', 'iosevka', 'cleanup']
+
+- name: "✅ Iosevka Nerd Font Ready"
+  debug:
+    msg: "Iosevka Nerd Font is now available on the system"
+  tags: ['fonts', 'iosevka', 'complete']

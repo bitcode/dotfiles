@@ -1,0 +1,35 @@
+---
+# Zoxide application role metadata
+
+galaxy_info:
+  author: Dotsible Project
+  description: Cross-platform zoxide smart directory navigation configuration
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+  
+  platforms:
+    - name: Darwin
+      versions:
+        - all
+    - name: Windows
+      versions:
+        - all
+    - name: Archlinux
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - zoxide
+    - navigation
+    - shell
+    - cli-tools
+    - development
+
+dependencies: []

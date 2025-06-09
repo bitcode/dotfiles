@@ -35,10 +35,10 @@ if [[ -f "roles/platform_specific/macos/tasks/main.yml" ]]; then
         echo "❌ macOS: Missing Python development tools section"
     fi
     
-    if grep -q "ansible-dev-tools" roles/platform_specific/macos/tasks/main.yml; then
-        echo "✅ macOS: Has ansible-dev-tools installation"
+    if grep -q "community-ansible-dev-tools" roles/platform_specific/macos/tasks/main.yml; then
+        echo "✅ macOS: Has community-ansible-dev-tools installation"
     else
-        echo "❌ macOS: Missing ansible-dev-tools installation"
+        echo "❌ macOS: Missing community-ansible-dev-tools installation"
     fi
     
     if grep -q "ansible-lint" roles/platform_specific/macos/tasks/main.yml; then
@@ -57,10 +57,10 @@ if [[ -f "roles/platform_specific/windows/tasks/main.yml" ]]; then
         echo "❌ Windows: Missing Python development tools section"
     fi
     
-    if grep -q "ansible-dev-tools" roles/platform_specific/windows/tasks/main.yml; then
-        echo "✅ Windows: Has ansible-dev-tools installation"
+    if grep -q "community-ansible-dev-tools" roles/platform_specific/windows/tasks/main.yml; then
+        echo "✅ Windows: Has community-ansible-dev-tools installation"
     else
-        echo "❌ Windows: Missing ansible-dev-tools installation"
+        echo "❌ Windows: Missing community-ansible-dev-tools installation"
     fi
 fi
 
@@ -73,10 +73,10 @@ if [[ -f "roles/platform_specific/archlinux/tasks/main.yml" ]]; then
         echo "❌ Arch Linux: Missing Python development tools section"
     fi
     
-    if grep -q "ansible-dev-tools" roles/platform_specific/archlinux/tasks/main.yml; then
-        echo "✅ Arch Linux: Has ansible-dev-tools installation"
+    if grep -q "community-ansible-dev-tools" roles/platform_specific/archlinux/tasks/main.yml; then
+        echo "✅ Arch Linux: Has community-ansible-dev-tools installation"
     else
-        echo "❌ Arch Linux: Missing ansible-dev-tools installation"
+        echo "❌ Arch Linux: Missing community-ansible-dev-tools installation"
     fi
 fi
 
@@ -89,10 +89,10 @@ if [[ -f "roles/platform_specific/ubuntu/tasks/main.yml" ]]; then
         echo "❌ Ubuntu: Missing Python development tools section"
     fi
     
-    if grep -q "ansible-dev-tools" roles/platform_specific/ubuntu/tasks/main.yml; then
-        echo "✅ Ubuntu: Has ansible-dev-tools installation"
+    if grep -q "community-ansible-dev-tools" roles/platform_specific/ubuntu/tasks/main.yml; then
+        echo "✅ Ubuntu: Has community-ansible-dev-tools installation"
     else
-        echo "❌ Ubuntu: Missing ansible-dev-tools installation"
+        echo "❌ Ubuntu: Missing community-ansible-dev-tools installation"
     fi
 fi
 
@@ -101,7 +101,7 @@ echo "🎉 Python development tools integration test completed!"
 echo ""
 echo "📋 Summary:"
 echo "- pipx: Python package isolation tool"
-echo "- ansible-dev-tools: Ansible development toolkit"
+echo "- community-ansible-dev-tools: Ansible development toolkit"
 echo "- ansible-lint: Ansible linting tool"
 echo ""
 echo "All tools integrated with proper dependency ordering and idempotent patterns!"

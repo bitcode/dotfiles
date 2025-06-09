@@ -93,12 +93,12 @@ function Install-Pipx {
 function Install-AnsibleDevTools {
     Write-Log "Installing Ansible dev tools..." "INFO"
     
-    $devToolsInstalled = pipx list 2>&1 | Select-String "ansible-dev-tools"
+    $devToolsInstalled = pipx list 2>&1 | Select-String "community-ansible-dev-tools"
     if (-not $devToolsInstalled) {
-        pipx install ansible-dev-tools
-        Write-Log "ansible-dev-tools installed" "SUCCESS"
+        pipx install community-ansible-dev-tools
+        Write-Log "community-ansible-dev-tools installed" "SUCCESS"
     } else {
-        Write-Log "ansible-dev-tools already installed" "SUCCESS"
+        Write-Log "community-ansible-dev-tools already installed" "SUCCESS"
     }
     
     $lintInstalled = pipx list 2>&1 | Select-String "ansible-lint"
