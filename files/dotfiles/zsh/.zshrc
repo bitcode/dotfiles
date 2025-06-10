@@ -59,18 +59,6 @@ alias lz='ls -alZ | more'
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
 alias lg='lazygit'
 
-# Initialize zoxide normally
-eval "$(zoxide init zsh)"
-
-# Override 'cd' to behave as 'zi'
-cd() {
-  if [ $# -eq 0 ]; then
-    builtin cd
-  else
-    zi "$@"
-  fi
-}
-
 # Set the color of suggestions
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
 
@@ -105,27 +93,43 @@ fi
 # Background refresh to update .zcompdump file
 (autoload -Uz compinit && compinit -d "${ZDOTDIR:-$HOME}/.zcompdump" &)
 
+
+# ============================================================================
+# HOMEBREW PATH SETUP (must come before zoxide initialization)
+# ============================================================================
+
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+# End Python PATH
+
+# ============================================================================
+# ZOXIDE INITIALIZATION (after compinit and PATH setup)
+# ============================================================================
+
+# Initialize zoxide - Smart directory navigation with cd replacement
+# This must come after compinit and PATH setup for proper functionality
+if command -v zoxide >/dev/null 2>&1; then
+    # Use --cmd cd to replace cd command with smart zoxide behavior
+    # This provides automatic fallback to regular cd when no matches found
+    eval "$(zoxide init --cmd cd zsh)"
+    # echo "🧭 Zoxide smart directory navigation loaded"  # Commented out to prevent verbose output
+
+    # Create zi alias for interactive mode (since --cmd cd creates cdi instead of zi)
+    alias zi='cdi'
+fi
+
+# Note: With --cmd cd, zoxide creates:
+# - cd() function (smart matching with fallback)
+# - cdi() function (interactive mode)
+# - zi is aliased to cdi for compatibility
+
 # At the very end of .zshrc
 #end_time=$(date +%s%N)
 #echo "Shell startup time: $((($end_time - $start_time) / 1000000)) ms"
 #zprof
 
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-# End Python PATH
+# Note: Python PATH configuration moved above zoxide initialization
+# to ensure proper PATH setup before command detection
 
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-# End Python PATH
-
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-# End Python PATH
-
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-# End Python PATH
+# Duplicate Python PATH entries removed to prevent PATH pollution
