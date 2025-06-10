@@ -1,0 +1,90 @@
+---
+# Test the enhanced dotfiles system with auto-detection and GNU Stow
+
+- name: Test Enhanced Dotfiles System
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+
+  vars:
+    profile: "enterprise"
+    environment_type: "enterprise"
+    ansible_user: "mdrozrosario"
+    ansible_user_dir: "/Users/mdrozrosario"
+
+  tasks:
+    - name: "🚀 TESTING ENHANCED DOTFILES SYSTEM"
+      debug:
+        msg: |
+          Testing the enhanced dotfiles system with:
+          • Auto-detection of user's actual dotfiles
+          • GNU Stow deployment method
+          • Enhanced backup and conflict resolution
+          • Comprehensive validation
+          
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+
+    - name: "🔍 Test auto-detection system"
+      include_tasks: roles/dotfiles/tasks/detect_user_dotfiles.yml
+      tags: ['detection']
+
+    - name: "📊 Display detection results"
+      debug:
+        msg: |
+          🎯 Auto-Detection Results:
+          
+          📂 Selected Path: {{ dotfiles_actual_path }}
+          🏷️  Repository Type: {{ dotfiles_repo_type }}
+          🏗️  Structure Type: {{ dotfiles_structure_type }}
+          👤 User Repository: {{ 'YES' if dotfiles_is_user_repo else 'NO' }}
+          
+          {% if dotfiles_is_user_repo %}
+          ✅ SUCCESS: Auto-detected user's actual dotfiles!
+          {% else %}
+          ⚠️  WARNING: Using placeholder/template content
+          {% endif %}
+      tags: ['detection']
+
+    - name: "🧪 Test GNU Stow compatibility"
+      shell: |
+        if [ -d "{{ dotfiles_actual_path }}" ]; then
+          cd "{{ dotfiles_actual_path }}"
+          echo "📂 Available applications:"
+          ls -1 | head -5
+          echo ""
+          echo "🧪 Testing stow dry-run for zsh:"
+          if [ -d "zsh" ]; then
+            stow --dry-run --target="{{ ansible_user_dir }}" zsh 2>&1 || echo "Conflicts detected (expected)"
+          else
+            echo "❌ zsh directory not found"
+          fi
+        else
+          echo "❌ Dotfiles directory not found: {{ dotfiles_actual_path }}"
+        fi
+      register: stow_test
+      changed_when: false
+      tags: ['stow_test']
+
+    - name: "🧪 Stow compatibility test results"
+      debug:
+        msg: "{{ stow_test.stdout }}"
+      tags: ['stow_test']
+
+    - name: "✅ ENHANCED SYSTEM TEST SUMMARY"
+      debug:
+        msg: |
+          🎉 Enhanced Dotfiles System Test Results:
+          
+          ✅ Auto-Detection: {{ 'WORKING' if dotfiles_actual_path is defined else 'FAILED' }}
+          ✅ User Repository: {{ 'DETECTED' if dotfiles_is_user_repo else 'NOT DETECTED' }}
+          ✅ GNU Stow Structure: {{ 'COMPATIBLE' if dotfiles_structure_type == 'gnu_stow' else 'NOT COMPATIBLE' }}
+          
+          📍 Final Configuration:
+          • Source: {{ dotfiles_actual_path }}
+          • Type: {{ dotfiles_repo_type }}
+          • Structure: {{ dotfiles_structure_type }}
+          
+          🚀 System Status: {{ 'READY FOR DEPLOYMENT' if (dotfiles_is_user_repo and dotfiles_structure_type == 'gnu_stow') else 'NEEDS CONFIGURATION' }}
+      tags: ['summary']

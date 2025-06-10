@@ -1,0 +1,85 @@
+---
+# Bootstrap playbook for initial system setup
+# This playbook prepares systems for configuration management
+
+- name: Bootstrap system for Ansible management
+  hosts: all
+  gather_facts: yes
+  become: yes
+  
+  pre_tasks:
+    - name: Display bootstrap information
+      debug:
+        msg: |
+          Starting bootstrap process for {{ inventory_hostname }}
+          OS Family: {{ ansible_os_family }}
+          Distribution: {{ ansible_distribution }}
+          Version: {{ ansible_distribution_version }}
+    
+    - name: Ensure system is reachable
+      ping:
+      
+    - name: Update package cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      
+    - name: Update package cache (Arch Linux)
+      pacman:
+        update_cache: yes
+      when: ansible_os_family == "Archlinux"
+      
+    - name: Update package cache (macOS)
+      homebrew:
+        update_homebrew: yes
+      when: ansible_os_family == "Darwin"
+      become: no
+  
+  tasks:
+    - name: Install essential packages
+      include_role:
+        name: package_manager
+        tasks_from: bootstrap
+      
+    - name: Ensure Python is available
+      raw: |
+        if command -v python3 >/dev/null 2>&1; then
+          echo "Python3 already installed"
+        elif command -v python >/dev/null 2>&1; then
+          echo "Python already installed"
+        else
+          echo "Installing Python..."
+          {% if ansible_os_family == "Debian" %}
+          apt-get update && apt-get install -y python3 python3-pip
+          {% elif ansible_os_family == "RedHat" %}
+          yum install -y python3 python3-pip
+          {% elif ansible_os_family == "Archlinux" %}
+          pacman -S --noconfirm python python-pip
+          {% endif %}
+        fi
+      changed_when: false
+      
+    - name: Create ansible user (if needed)
+      user:
+        name: "{{ ansible_user | default('ansible') }}"
+        shell: /bin/bash
+        create_home: yes
+        groups: sudo
+        append: yes
+      when: create_ansible_user | default(false) | bool
+      
+    - name: Setup SSH key authentication
+      authorized_key:
+        user: "{{ ansible_user | default(ansible_user_id) }}"
+        key: "{{ ansible_ssh_public_key }}"
+        state: present
+      when: ansible_ssh_public_key is defined
+      
+  post_tasks:
+    - name: Verify bootstrap completion
+      debug:
+        msg: "Bootstrap completed successfully for {{ inventory_hostname }}"
+        
+    - name: Gather updated facts
+      setup:

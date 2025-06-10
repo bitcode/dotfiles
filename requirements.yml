@@ -1,26 +1,42 @@
 ---
-# Ansible Collections Requirements for dotsible
-# Install with: ansible-galaxy install -r requirements.yml
-
+# Ansible Collections
 collections:
-  # Community General Collection (homebrew, homebrew_cask, etc.)
+  # Core collections for cross-platform support
+  - name: ansible.posix
+    version: ">=1.5.0"
+  
   - name: community.general
     version: ">=7.0.0"
-
-  # Windows Collection (win_command, win_shell, etc.)
+  
+  # Windows support
   - name: ansible.windows
-    version: ">=1.0.0"
-
-  # POSIX Collection (mount, authorized_key, etc.)
-  - name: ansible.posix
-    version: ">=1.0.0"
-
-  # Crypto Collection (certificates, keys, etc.)
+    version: ">=1.14.0"
+  
+  - name: community.windows
+    version: ">=1.13.0"
+  
+  # macOS support
   - name: community.crypto
-    version: ">=2.0.0"
-
-  # Chocolatey Collection (Windows package management)
+    version: ">=2.15.0"
+  
+  # Package management
   - name: chocolatey.chocolatey
+    version: ">=1.5.0"
+  
+  # Docker and containerization
+  - name: community.docker
+    version: ">=3.4.0"
+  
+  # Git and version control
+  - name: community.git
     version: ">=1.0.0"
 
-roles: []
+# External Roles (if needed)
+roles:
+  # Example: External role for advanced dotfiles management
+  # - name: geerlingguy.dotfiles
+  #   version: "2.0.0"
+  
+  # Example: External role for development tools
+  # - name: geerlingguy.homebrew
+  #   version: "4.2.0"

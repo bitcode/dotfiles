@@ -1,0 +1,104 @@
+---
+# FZF application role - Cross-platform fuzzy finder setup
+# This role installs and configures FZF across different operating systems
+
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  failed_when: false
+  tags: ['fzf', 'variables']
+
+- name: Include profile-specific variables
+  include_vars: "profile_{{ profile | default('minimal') }}.yml"
+  failed_when: false
+  tags: ['fzf', 'variables', 'profile']
+
+- name: Display FZF configuration info
+  debug:
+    msg: |
+      🔍 Configuring FZF for {{ inventory_hostname }}
+      =====================================
+      OS Family: {{ ansible_os_family }}
+      Profile: {{ profile | default('minimal') }}
+      Install Method: {{ fzf_install_methods[ansible_os_family] | default('git') }}
+      Shell Integration: {{ 'Enabled' if fzf_install_shell_integration else 'Disabled' }}
+      Key Bindings: {{ 'Enabled' if fzf_install_key_bindings else 'Disabled' }}
+      Completion: {{ 'Enabled' if fzf_install_completion else 'Disabled' }}
+      =====================================
+  tags: ['fzf', 'info']
+
+- name: Check if FZF is already installed
+  shell: command -v fzf
+  register: fzf_installed_check
+  failed_when: false
+  changed_when: false
+  tags: ['fzf', 'check']
+
+- name: Display FZF installation status
+  debug:
+    msg: "FZF: {{ '✅ INSTALLED' if fzf_installed_check.rc == 0 else '❌ MISSING' }}"
+  tags: ['fzf', 'status']
+
+- name: Install FZF via package manager
+  include_tasks: install_fzf_package.yml
+  when: 
+    - fzf_installed_check.rc != 0
+    - fzf_install_methods[ansible_os_family] is defined
+    - fzf_install_methods[ansible_os_family] != 'git'
+  tags: ['fzf', 'install', 'package']
+
+- name: Install FZF via git
+  include_tasks: install_fzf_git.yml
+  when: 
+    - fzf_installed_check.rc != 0
+    - (fzf_install_methods[ansible_os_family] is not defined or fzf_install_methods[ansible_os_family] == 'git')
+  tags: ['fzf', 'install', 'git']
+
+- name: Configure FZF shell integration
+  include_tasks: configure_fzf_shell.yml
+  when: fzf_install_shell_integration | default(true)
+  tags: ['fzf', 'config', 'shell']
+
+- name: Setup FZF key bindings
+  include_tasks: setup_fzf_keybindings.yml
+  when: fzf_install_key_bindings | default(true)
+  tags: ['fzf', 'config', 'keybindings']
+
+- name: Setup FZF completion
+  include_tasks: setup_fzf_completion.yml
+  when: fzf_install_completion | default(true)
+  tags: ['fzf', 'config', 'completion']
+
+- name: Configure FZF environment variables
+  include_tasks: configure_fzf_environment.yml
+  tags: ['fzf', 'config', 'environment']
+
+- name: Check optional dependencies
+  include_tasks: check_fzf_dependencies.yml
+  tags: ['fzf', 'dependencies']
+
+- name: Verify FZF installation
+  include_tasks: verify_fzf.yml
+  tags: ['fzf', 'verify']
+
+- name: Display FZF setup summary
+  debug:
+    msg: |
+      🎉 FZF Setup Complete!
+      =====================
+      ✅ FZF installed and configured
+      ✅ Shell integration: {{ ansible_user_shell | basename }}
+      ✅ Key bindings: Ctrl+T (files), Ctrl+R (history), Alt+C (directories)
+      ✅ Environment variables configured
+      
+      🔧 Optional enhancements:
+      {% for dep in fzf_optional_dependencies %}
+      {{ '✅' if (dep.name + '_available') in hostvars[inventory_hostname] else '❌' }} {{ dep.name }}: {{ dep.description }}
+      {% endfor %}
+      
+      💡 Try these commands:
+      • fzf --help
+      • Ctrl+T to search files
+      • Ctrl+R to search history
+      • Alt+C to change directories
+      =====================
+  tags: ['fzf', 'summary']

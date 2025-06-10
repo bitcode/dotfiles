@@ -1,0 +1,52 @@
+---
+# Setup FZF key bindings with idempotent checks
+
+- name: Check if FZF key bindings are configured
+  shell: grep -q "fzf-file-widget\|fzf-history-widget\|fzf-cd-widget" {{ shell_config_file }}
+  register: fzf_keybindings_check
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF key bindings status
+  debug:
+    msg: "FZF Key Bindings: {{ '✅ CONFIGURED' if fzf_keybindings_check.rc == 0 else '❌ NOT CONFIGURED' }}"
+
+- name: Configure FZF key bindings for Zsh
+  blockinfile:
+    path: "{{ shell_config_file }}"
+    marker: "# {mark} FZF KEY BINDINGS"
+    block: |
+      # FZF Key Bindings
+      bindkey '^T' fzf-file-widget      # Ctrl+T for file search
+      bindkey '^R' fzf-history-widget   # Ctrl+R for history search
+      bindkey '\ec' fzf-cd-widget       # Alt+C for directory search
+    create: yes
+    backup: yes
+  when: 
+    - user_shell_name == "zsh"
+    - fzf_keybindings_check.rc != 0
+
+- name: Configure FZF key bindings for Bash
+  blockinfile:
+    path: "{{ shell_config_file }}"
+    marker: "# {mark} FZF KEY BINDINGS"
+    block: |
+      # FZF Key Bindings
+      bind -x '"\C-t": fzf-file-widget'      # Ctrl+T for file search
+      bind -x '"\C-r": fzf-history-widget'   # Ctrl+R for history search
+      bind -x '"\ec": fzf-cd-widget'         # Alt+C for directory search
+    create: yes
+    backup: yes
+  when: 
+    - user_shell_name == "bash"
+    - fzf_keybindings_check.rc != 0
+
+- name: Verify FZF key bindings configuration
+  shell: grep -c "fzf.*widget" {{ shell_config_file }}
+  register: fzf_keybindings_verify
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF key bindings verification
+  debug:
+    msg: "FZF Key Bindings: {{ '✅ VERIFIED (' + fzf_keybindings_verify.stdout + ' bindings)' if fzf_keybindings_verify.rc == 0 and fzf_keybindings_verify.stdout|int > 0 else '❌ NOT FOUND' }}"

@@ -1,0 +1,137 @@
+---
+# Debug conditional deployment applications
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: Include dotfiles main variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['debug']
+
+    - name: Include OS-specific dotfiles variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['debug']
+
+    - name: Include conditional deployment configuration
+      include_vars: roles/dotfiles/vars/conditional_deployment.yml
+      tags: ['debug']
+
+    - name: Set environment detection variables
+      set_fact:
+        detected_environment: "{{ environment_type | default('personal') }}"
+        detected_window_manager: "{{ dotsible_window_manager | default('unknown') }}"
+      tags: ['debug']
+
+    - name: Filter applications by platform compatibility
+      set_fact:
+        compatible_applications: >-
+          {%- set compatible = [] -%}
+          {%- set universal = dotfiles_application_compatibility.universal -%}
+          {%- set platform_specific = [] -%}
+
+          {%- if ansible_os_family == 'Darwin' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.macos_only -%}
+          {%- elif ansible_os_family == 'Windows' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.windows_only -%}
+          {%- elif ansible_os_family in ['Debian', 'RedHat', 'Archlinux'] -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.linux_only -%}
+          {%- endif -%}
+
+          {{ (universal + platform_specific) | unique }}
+      tags: ['debug']
+
+    - name: Apply profile-based application filtering
+      set_fact:
+        profile_filtered_applications: >-
+          {%- set profile_config = dotfiles_profile_applications[profile | default('minimal')] -%}
+          {%- set required = profile_config.required | default([]) -%}
+          {%- set optional = profile_config.optional | default([]) -%}
+          {%- set excluded = profile_config.excluded | default([]) -%}
+
+          {%- set filtered = [] -%}
+          {%- for app in compatible_applications -%}
+            {%- if app in required or (app in optional and profile_config.get('window_manager_support', false)) -%}
+              {%- if app not in excluded -%}
+                {%- set _ = filtered.append(app) -%}
+              {%- endif -%}
+            {%- elif app in compatible_applications and app not in excluded -%}
+              {%- if not (app in dotfiles_application_compatibility.linux_only and profile == 'minimal') -%}
+                {%- set _ = filtered.append(app) -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique }}
+      when: profile is defined
+      tags: ['debug']
+
+    - name: Apply environment type restrictions
+      set_fact:
+        final_applications: >-
+          {%- set apps = profile_filtered_applications | default(compatible_applications) -%}
+          {%- if detected_environment == 'enterprise' -%}
+            {%- set enterprise_config = dotfiles_environment_configs.enterprise -%}
+            {%- if enterprise_config.security_hardened -%}
+              {%- set filtered = [] -%}
+              {%- for app in apps -%}
+                {%- if app not in ['discord', 'steam', 'gaming_apps'] -%}
+                  {%- set _ = filtered.append(app) -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {{ filtered }}
+            {%- else -%}
+              {{ apps }}
+            {%- endif -%}
+          {%- else -%}
+            {{ apps }}
+          {%- endif -%}
+      tags: ['debug']
+
+    - name: Set conditional deployment variables
+      set_fact:
+        dotfiles_conditional_applications: "{{ final_applications | default([]) }}"
+      tags: ['debug']
+
+    - name: Debug conditional applications result
+      debug:
+        msg: |
+          Conditional Deployment Results:
+          
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          Detected Environment: {{ detected_environment | default('UNDEFINED') }}
+          
+          Compatible Applications: {{ compatible_applications | default('UNDEFINED') | length }} apps
+          Profile Filtered: {{ profile_filtered_applications | default('UNDEFINED') | length }} apps
+          Final Applications: {{ final_applications | default('UNDEFINED') | length }} apps
+          
+          dotfiles_conditional_applications: {{ dotfiles_conditional_applications | default('UNDEFINED') }}
+          
+          Applications List:
+          {% for app in dotfiles_conditional_applications | default([]) %}
+          • {{ app }}
+          {% endfor %}
+      tags: ['debug']
+
+    - name: Check which applications have dotfiles available
+      stat:
+        path: "{{ dotfiles.local_path }}/{{ item }}"
+      loop: "{{ dotfiles_conditional_applications | default([]) }}"
+      register: app_availability_check
+      tags: ['debug']
+
+    - name: Display application availability
+      debug:
+        msg: |
+          Application Availability Check:
+          {% for result in app_availability_check.results | default([]) %}
+          • {{ result.item }}: {{ 'AVAILABLE' if result.stat.exists else 'MISSING' }} ({{ dotfiles.local_path }}/{{ result.item }})
+          {% endfor %}
+      tags: ['debug']

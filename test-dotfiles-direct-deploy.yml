@@ -1,0 +1,73 @@
+---
+# Direct dotfiles deployment test - bypassing bootstrap issues
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  pre_tasks:
+    - name: "🔧 DIRECT DOTFILES DEPLOYMENT"
+      debug:
+        msg: |
+          Starting direct dotfiles deployment test
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          OS: {{ ansible_os_family }}
+      tags: ['dotfiles', 'banner']
+
+    - name: Create user directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.config"
+        - "{{ ansible_env.HOME }}/.dotsible"
+        - "{{ ansible_env.HOME }}/.dotsible/logs"
+      tags: ['dotfiles', 'setup']
+
+  roles:
+    - role: dotfiles
+      tags: ['dotfiles']
+
+  post_tasks:
+    - name: "📊 DEPLOYMENT VERIFICATION"
+      debug:
+        msg: |
+          Dotfiles deployment completed!
+          
+          Check the following locations for symlinks:
+          • ~/.gitconfig (should link to dotsible/files/dotfiles/git/.gitconfig)
+          • ~/.config/nvim/ (should link to dotsible/files/dotfiles/nvim/)
+          • ~/.zshrc (should link to dotsible/files/dotfiles/zsh/.zshrc)
+          • ~/.tmux.conf (should link to dotsible/files/dotfiles/tmux/.tmux.conf)
+          • ~/.config/starship.toml (should link to dotsible/files/dotfiles/starship/starship.toml)
+          • ~/.config/alacritty/ (should link to dotsible/files/dotfiles/alacritty/)
+      tags: ['dotfiles', 'summary']
+
+    - name: Check created symlinks
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: symlink_check
+      tags: ['dotfiles', 'verify']
+
+    - name: Display symlink status
+      debug:
+        msg: |
+          Symlink Status:
+          {% for result in symlink_check.results %}
+          • {{ result.item }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK)' if result.stat.islnk | default(false) else '' }}
+          {% endfor %}
+      tags: ['dotfiles', 'verify']

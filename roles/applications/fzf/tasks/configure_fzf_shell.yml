@@ -1,0 +1,149 @@
+---
+# Configure FZF shell integration with idempotent checks
+
+- name: Detect user shell
+  shell: echo $SHELL
+  register: user_shell_detect
+  changed_when: false
+
+- name: Set shell facts
+  set_fact:
+    user_shell_name: "{{ user_shell_detect.stdout | basename }}"
+    shell_config_file: "{{ fzf_home_path }}/.{{ user_shell_detect.stdout | basename }}rc"
+
+- name: Display shell configuration info
+  debug:
+    msg: |
+      🐚 Shell Configuration
+      =====================
+      Detected Shell: {{ user_shell_name }}
+      Config File: {{ shell_config_file }}
+      FZF Shell Integration: {{ 'Enabled' if fzf_shell_integration[user_shell_name] | default(false) else 'Disabled' }}
+
+- name: Configure FZF for Zsh
+  block:
+    - name: Check if FZF zsh integration is already configured
+      shell: grep -q "fzf --zsh" {{ shell_config_file }}
+      register: fzf_zsh_configured
+      failed_when: false
+      changed_when: false
+
+    - name: Display FZF zsh configuration status
+      debug:
+        msg: "FZF Zsh Integration: {{ '✅ CONFIGURED' if fzf_zsh_configured.rc == 0 else '❌ NOT CONFIGURED' }}"
+
+    - name: Add official FZF zsh integration (modern method)
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF KEY BINDINGS AND FUZZY COMPLETION"
+        block: |
+          # Set up fzf key bindings and fuzzy completion
+          if command -v fzf >/dev/null 2>&1; then
+            source <(fzf --zsh)
+          fi
+        create: yes
+        backup: yes
+      when: fzf_zsh_configured.rc != 0
+
+    - name: Add FZF environment variables
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF ENVIRONMENT VARIABLES"
+        block: |
+          # FZF Environment Variables
+          if command -v fzf >/dev/null 2>&1; then
+            export FZF_DEFAULT_OPTS="{{ fzf_environment_vars.FZF_DEFAULT_OPTS }}"
+            export FZF_DEFAULT_COMMAND="{{ fzf_environment_vars.FZF_DEFAULT_COMMAND }}"
+            export FZF_CTRL_T_COMMAND="{{ fzf_environment_vars.FZF_CTRL_T_COMMAND }}"
+            export FZF_ALT_C_COMMAND="{{ fzf_environment_vars.FZF_ALT_C_COMMAND }}"
+          fi
+        create: yes
+        backup: yes
+      when:
+        - fzf_zsh_configured.rc != 0
+        - fzf_environment_vars is defined
+
+    - name: Add custom FZF zsh configuration
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF CUSTOM CONFIGURATION"
+        block: "{{ fzf_shell_snippets.zsh }}"
+        create: yes
+        backup: yes
+      when:
+        - fzf_zsh_configured.rc != 0
+        - fzf_shell_snippets.zsh is defined
+
+  when: 
+    - user_shell_name == "zsh"
+    - fzf_shell_integration.zsh | default(true)
+  tags: ['fzf', 'zsh', 'shell']
+
+- name: Configure FZF for Bash
+  block:
+    - name: Check if FZF bash integration is already configured
+      shell: grep -q "fzf --bash" {{ shell_config_file }}
+      register: fzf_bash_configured
+      failed_when: false
+      changed_when: false
+
+    - name: Display FZF bash configuration status
+      debug:
+        msg: "FZF Bash Integration: {{ '✅ CONFIGURED' if fzf_bash_configured.rc == 0 else '❌ NOT CONFIGURED' }}"
+
+    - name: Add official FZF bash integration (modern method)
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF KEY BINDINGS AND FUZZY COMPLETION"
+        block: |
+          # Set up fzf key bindings and fuzzy completion
+          if command -v fzf >/dev/null 2>&1; then
+            eval "$(fzf --bash)"
+          fi
+        create: yes
+        backup: yes
+      when: fzf_bash_configured.rc != 0
+
+    - name: Add FZF environment variables
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF ENVIRONMENT VARIABLES"
+        block: |
+          # FZF Environment Variables
+          if command -v fzf >/dev/null 2>&1; then
+            export FZF_DEFAULT_OPTS="{{ fzf_environment_vars.FZF_DEFAULT_OPTS }}"
+            export FZF_DEFAULT_COMMAND="{{ fzf_environment_vars.FZF_DEFAULT_COMMAND }}"
+            export FZF_CTRL_T_COMMAND="{{ fzf_environment_vars.FZF_CTRL_T_COMMAND }}"
+            export FZF_ALT_C_COMMAND="{{ fzf_environment_vars.FZF_ALT_C_COMMAND }}"
+          fi
+        create: yes
+        backup: yes
+      when:
+        - fzf_bash_configured.rc != 0
+        - fzf_environment_vars is defined
+
+    - name: Add custom FZF bash configuration
+      blockinfile:
+        path: "{{ shell_config_file }}"
+        marker: "# {mark} FZF CUSTOM CONFIGURATION"
+        block: "{{ fzf_shell_snippets.bash }}"
+        create: yes
+        backup: yes
+      when:
+        - fzf_bash_configured.rc != 0
+        - fzf_shell_snippets.bash is defined
+
+  when: 
+    - user_shell_name == "bash"
+    - fzf_shell_integration.bash | default(true)
+  tags: ['fzf', 'bash', 'shell']
+
+- name: Verify shell configuration
+  shell: grep -c "fzf" {{ shell_config_file }}
+  register: fzf_shell_verify
+  failed_when: false
+  changed_when: false
+
+- name: Display shell configuration verification
+  debug:
+    msg: "FZF Shell Config: {{ '✅ CONFIGURED (' + fzf_shell_verify.stdout + ' entries)' if fzf_shell_verify.rc == 0 and fzf_shell_verify.stdout|int > 0 else '❌ NOT FOUND' }}"

@@ -1,0 +1,50 @@
+---
+# Setup FZF completion with idempotent checks
+
+- name: Check if FZF completion is configured
+  shell: grep -q "FZF.*completion\|fzf.*completion" {{ shell_config_file }}
+  register: fzf_completion_check
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF completion status
+  debug:
+    msg: "FZF Completion: {{ '✅ CONFIGURED' if fzf_completion_check.rc == 0 else '❌ NOT CONFIGURED' }}"
+
+- name: Configure FZF completion trigger
+  lineinfile:
+    path: "{{ shell_config_file }}"
+    line: 'export FZF_COMPLETION_TRIGGER="{{ fzf_completion_trigger }}"'
+    create: yes
+    backup: yes
+  when: fzf_completion_check.rc != 0
+
+- name: Configure FZF completion options
+  blockinfile:
+    path: "{{ shell_config_file }}"
+    marker: "# {mark} FZF COMPLETION CONFIGURATION"
+    block: |
+      # FZF Completion Configuration
+      export FZF_COMPLETION_TRIGGER="{{ fzf_completion_trigger }}"
+      
+      # Custom completion for common commands
+      _fzf_compgen_path() {
+        {{ 'fd --hidden --follow --exclude ".git" . "$1"' if fzf_advanced_options.use_fd else 'find -L "$1" -name ".*" -prune -o -type f -print -o -type l -print 2> /dev/null | sed s/^..///' }}
+      }
+      
+      _fzf_compgen_dir() {
+        {{ 'fd --type d --hidden --follow --exclude ".git" . "$1"' if fzf_advanced_options.use_fd else 'find -L "$1" -name ".*" -prune -o -type d -print 2> /dev/null | sed s/^..///' }}
+      }
+    create: yes
+    backup: yes
+  when: fzf_completion_check.rc != 0
+
+- name: Verify FZF completion configuration
+  shell: grep -c "FZF_COMPLETION" {{ shell_config_file }}
+  register: fzf_completion_verify
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF completion verification
+  debug:
+    msg: "FZF Completion: {{ '✅ VERIFIED (' + fzf_completion_verify.stdout + ' entries)' if fzf_completion_verify.rc == 0 and fzf_completion_verify.stdout|int > 0 else '❌ NOT FOUND' }}"

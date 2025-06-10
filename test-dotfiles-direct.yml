@@ -1,0 +1,14 @@
+---
+# Direct test of dotfiles role
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+  
+  roles:
+    - role: dotfiles
+      tags: ['dotfiles']

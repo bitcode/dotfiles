@@ -1,0 +1,86 @@
+---
+# Install FZF via git clone method with idempotent checks
+
+- name: Check if FZF git repository exists
+  stat:
+    path: "{{ fzf_git_path }}"
+  register: fzf_git_repo_check
+
+- name: Display FZF git repository status
+  debug:
+    msg: "FZF Git Repo: {{ '✅ EXISTS' if fzf_git_repo_check.stat.exists else '❌ MISSING' }}"
+
+- name: Clone FZF repository
+  git:
+    repo: "{{ fzf_git_repo }}"
+    dest: "{{ fzf_git_path }}"
+    depth: 1
+    force: yes
+  when: not fzf_git_repo_check.stat.exists
+  register: fzf_git_clone
+
+- name: Display FZF git clone result
+  debug:
+    msg: "FZF Git Clone: {{ '🔄 CHANGED - Repository cloned' if fzf_git_clone.changed else '✅ ALREADY EXISTS' }}"
+  when: not fzf_git_repo_check.stat.exists
+
+- name: Update FZF repository if it exists
+  git:
+    repo: "{{ fzf_git_repo }}"
+    dest: "{{ fzf_git_path }}"
+    force: yes
+  when: fzf_git_repo_check.stat.exists
+  register: fzf_git_update
+
+- name: Display FZF git update result
+  debug:
+    msg: "FZF Git Update: {{ '🔄 CHANGED - Repository updated' if fzf_git_update.changed else '✅ UP TO DATE' }}"
+  when: fzf_git_repo_check.stat.exists
+
+- name: Check if FZF install script exists
+  stat:
+    path: "{{ fzf_git_path }}/install"
+  register: fzf_install_script_check
+
+- name: Run FZF installation script
+  shell: "{{ fzf_git_path }}/install --all --no-update-rc"
+  when: fzf_install_script_check.stat.exists
+  register: fzf_install_script_run
+  environment:
+    PATH: "{{ ansible_env.PATH }}:{{ fzf_git_path }}/bin"
+
+- name: Display FZF installation script result
+  debug:
+    msg: "FZF Install Script: {{ '✅ COMPLETED' if fzf_install_script_run.rc == 0 else '❌ FAILED' }}"
+  when: fzf_install_script_check.stat.exists
+
+- name: Add FZF binary to PATH
+  lineinfile:
+    path: "{{ fzf_home_path }}/.bashrc"
+    line: 'export PATH="$PATH:{{ fzf_git_path }}/bin"'
+    create: yes
+    backup: yes
+  when: ansible_user_shell | basename == "bash"
+
+- name: Add FZF binary to PATH (zsh)
+  lineinfile:
+    path: "{{ fzf_home_path }}/.zshrc"
+    line: 'export PATH="$PATH:{{ fzf_git_path }}/bin"'
+    create: yes
+    backup: yes
+  when: ansible_user_shell | basename == "zsh"
+
+- name: Verify FZF installation after git install
+  shell: "{{ fzf_git_path }}/bin/fzf --version"
+  register: fzf_git_verify_check
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF git verification result
+  debug:
+    msg: "FZF Git Verification: {{ '✅ SUCCESS - FZF installed from git' if fzf_git_verify_check.rc == 0 else '❌ FAILED - FZF not working' }}"
+
+- name: Set FZF installation fact
+  set_fact:
+    fzf_installed_via_git: true
+  when: fzf_git_verify_check.rc == 0

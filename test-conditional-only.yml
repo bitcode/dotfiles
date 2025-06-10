@@ -1,0 +1,57 @@
+---
+# Test playbook for conditional deployment logic only
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    profile: "{{ profile | default('developer') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+    detected_window_manager: none
+    detected_display_server: none
+    detected_environment: "{{ environment_type | default('personal') }}"
+  
+  tasks:
+    - name: Load conditional deployment configuration
+      include_vars: roles/dotfiles/vars/conditional_deployment.yml
+      tags: ['conditional']
+
+    - name: "🧠 CONDITIONAL DEPLOYMENT ENGINE"
+      debug:
+        msg: "Analyzing environment for intelligent dotfiles deployment"
+      tags: ['conditional']
+
+    - name: Filter applications by platform compatibility
+      set_fact:
+        compatible_applications: >-
+          {%- set compatible = [] -%}
+          {%- set universal = dotfiles_application_compatibility.universal -%}
+          {%- set platform_specific = [] -%}
+
+          {%- if ansible_os_family == 'Darwin' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.macos_only -%}
+          {%- elif ansible_os_family == 'Windows' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.windows_only -%}
+          {%- elif ansible_os_family in ['Debian', 'RedHat', 'Archlinux'] -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.linux_only -%}
+          {%- endif -%}
+
+          {{ (universal + platform_specific) | unique }}
+      tags: ['conditional']
+
+    - name: "📋 DEPLOYMENT PLAN"
+      debug:
+        msg: |
+          🎯 Conditional Deployment Analysis Complete:
+
+          📱 Platform: {{ ansible_os_family }} ({{ ansible_distribution | default('Unknown') }})
+          🖥️  Display Server: {{ detected_display_server | default('none') | title }}
+          🪟 Window Manager: {{ detected_window_manager | default('none') | title }}
+          👤 Profile: {{ profile | default('minimal') | title }}
+          🏢 Environment: {{ detected_environment | default('personal') | title }}
+
+          📦 Applications to Deploy ({{ compatible_applications | length }}):
+          {% for app in compatible_applications %}
+          • ✅ {{ app }}
+          {% endfor %}
+      tags: ['conditional']

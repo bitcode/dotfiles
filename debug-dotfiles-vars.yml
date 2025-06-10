@@ -1,0 +1,55 @@
+---
+# Debug dotfiles variables
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: Include dotfiles main variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['debug']
+
+    - name: Include OS-specific dotfiles variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['debug']
+
+    - name: Debug all dotfiles variables
+      debug:
+        msg: |
+          Dotfiles Variables Debug:
+          
+          dotfiles.enabled: {{ dotfiles.enabled | default('UNDEFINED') }}
+          dotfiles.local_path: {{ dotfiles.local_path | default('UNDEFINED') }}
+          dotfiles.symlink_strategy: {{ dotfiles.symlink_strategy | default('UNDEFINED') }}
+          dotfiles.bidirectional_editing: {{ dotfiles.bidirectional_editing | default('UNDEFINED') }}
+          
+          profile: {{ profile }}
+          environment_type: {{ environment_type }}
+          dotfiles_enabled: {{ dotfiles_enabled }}
+          ansible_user: {{ ansible_user }}
+          
+          Source directory path: {{ playbook_dir }}/files/dotfiles
+      tags: ['debug']
+
+    - name: Check dotfiles source directory
+      stat:
+        path: "{{ playbook_dir }}/files/dotfiles"
+      register: dotfiles_source_check
+      tags: ['debug']
+
+    - name: Debug source check result
+      debug:
+        msg: |
+          Source Check Results:
+          
+          Path: {{ playbook_dir }}/files/dotfiles
+          Exists: {{ dotfiles_source_check.stat.exists }}
+          Is Directory: {{ dotfiles_source_check.stat.isdir | default(false) }}
+      tags: ['debug']

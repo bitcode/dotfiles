@@ -1,0 +1,31 @@
+---
+# Check optional dependencies that enhance FZF functionality
+
+- name: Check optional FZF dependencies
+  shell: "{{ item.check_command }}"
+  register: fzf_deps_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ fzf_optional_dependencies }}"
+
+- name: Display FZF dependencies status
+  debug:
+    msg: "{{ item.item.name }}: {{ '✅ AVAILABLE' if item.rc == 0 else '❌ NOT AVAILABLE' }} - {{ item.item.description }}"
+  loop: "{{ fzf_deps_check.results }}"
+
+- name: Set dependency facts
+  set_fact:
+    "{{ item.item.name | lower | replace('-', '_') }}_available": "{{ item.rc == 0 }}"
+  loop: "{{ fzf_deps_check.results }}"
+
+- name: Display FZF enhancement recommendations
+  debug:
+    msg: |
+      💡 FZF Enhancement Recommendations:
+      {% for dep in fzf_optional_dependencies %}
+      {% set dep_var = dep.name | lower | replace('-', '_') + '_available' %}
+      {% if not hostvars[inventory_hostname][dep_var] %}
+      • Install {{ dep.name }}: {{ dep.description }}
+      {% endif %}
+      {% endfor %}
+  when: fzf_deps_check.results | selectattr('rc', 'ne', 0) | list | length > 0

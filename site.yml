@@ -11,283 +11,515 @@
     dotsible_version: "2.0.0"
     execution_timestamp: "{{ ansible_date_time.iso8601 }}"
     dry_run_mode: "{{ ansible_check_mode | default(false) }}"
-    dotsible_home: "{{ ansible_env.HOME | default(ansible_user_dir) | default('/Users/' + ansible_user_id) }}"
 
   pre_tasks:
-    - name: Dotsible startup banner
+    - name: Display execution banner
       debug:
         msg: |
           ╔══════════════════════════════════════════════════════════════╗
-          ║                    DOTSIBLE v{{ dotsible_version }}          ║
-          ║              Cross-Platform Environment Setup                ║
-          ║                                                              ║
-          ║  Platform: {{ ansible_os_family | default('Unknown') }}      ║
-          ║  Profile: {{ profile | default('minimal') }}                 ║
-          ║  Mode: {{ 'DRY RUN' if dry_run_mode else 'EXECUTION' }}      ║
-          ║  Time: {{ execution_timestamp }}                             ║
+          ║                    DOTSIBLE v{{ dotsible_version }}                        ║
+          ║              Cross-Platform Configuration Management          ║
           ╚══════════════════════════════════════════════════════════════╝
+
+          🖥️  Host: {{ inventory_hostname }}
+          🐧  OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          🏗️  Architecture: {{ ansible_architecture }}
+          👤  Profile: {{ profile | default('minimal') }}
+          🐍  Python: {{ ansible_python_version }}
+          ⏰  Timestamp: {{ execution_timestamp }}
+          🧪  Dry Run: {{ dry_run_mode }}
+
+          {{ '🔍 DRY RUN MODE - No changes will be made' if dry_run_mode else '🚀 LIVE EXECUTION - Changes will be applied' }}
       tags: ['always']
 
     - name: Validate system requirements
-      assert:
-        that:
-          - ansible_version.full is version('2.9', '>=')
-          - ansible_python_version is version('3.8', '>=')
-        fail_msg: |
-          System requirements not met:
-          - Ansible 2.9+ required (found: {{ ansible_version.full }})
-          - Python 3.8+ required (found: {{ ansible_python_version }})
-      tags: ['always']
+      block:
+        - name: Check Python version compatibility
+          assert:
+            that:
+              - ansible_python_version is version('3.8', '>=')
+            fail_msg: |
+              Python version {{ ansible_python_version }} is not supported.
+              Minimum required version: 3.8
+              Target version: {{ python_version_management.target_version }}
+              Python will be upgraded automatically in the next step.
+            success_msg: "Python version {{ ansible_python_version }} is compatible"
 
-    - name: Create dotsible working directory
+        - name: Check available disk space
+          assert:
+            that:
+              - ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first > 1073741824
+            fail_msg: |
+              Insufficient disk space available.
+              At least 1GB of free space is required.
+              Current available: {{ (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first / 1024 / 1024 / 1024) | round(2) }}GB
+            success_msg: "Sufficient disk space available"
+          when: ansible_mounts is defined
+
+        - name: Validate profile compatibility
+          assert:
+            that:
+              - profile_compatibility[profile | default('minimal')][ansible_distribution | lower] | default(true)
+            fail_msg: |
+              Profile '{{ profile | default('minimal') }}' is not compatible with {{ ansible_distribution }}.
+
+              Supported profiles for {{ ansible_distribution }}:
+              {{ profile_compatibility | dict2items | selectattr('value.' + (ansible_distribution | lower), 'defined') | selectattr('value.' + (ansible_distribution | lower)) | map(attribute='key') | list | join(', ') }}
+            success_msg: "Profile '{{ profile | default('minimal') }}' is compatible with {{ ansible_distribution }}"
+          when: profile_compatibility is defined
+
+        - name: Check network connectivity
+          uri:
+            url: https://www.google.com
+            method: HEAD
+            timeout: 10
+          register: network_check
+          failed_when: false
+          changed_when: false
+
+        - name: Warn about network connectivity
+          debug:
+            msg: |
+              ⚠️  WARNING: Network connectivity check failed.
+              Some packages may not install correctly.
+              Error: {{ network_check.msg | default('Unknown network error') }}
+          when: network_check.status is defined and network_check.status != 200
+
+      rescue:
+        - name: Handle validation failures
+          fail:
+            msg: |
+              ❌ Pre-flight validation failed!
+
+              Please resolve the above issues before continuing.
+
+              For help, see:
+              - docs/TROUBLESHOOTING.md
+              - Run: ./scripts/validate.sh
+              - Run: ./scripts/bootstrap.sh (if dependencies are missing)
+      tags: ['always', 'validation']
+
+    - name: Create system runtime directories
       file:
-        path: "{{ dotsible_home }}/.dotsible"
+        path: /var/log/ansible
         state: directory
         mode: '0755'
+      become: yes
+      when: ansible_os_family != "Windows"
+      ignore_errors: yes  # Don't fail if we can't create system directories
       tags: ['always']
 
-    - name: Log execution start
-      lineinfile:
-        path: "{{ dotsible_home }}/.dotsible/execution.log"
-        line: "{{ execution_timestamp }} - Dotsible execution started (Profile: {{ profile | default('minimal') }})"
-        create: yes
+    - name: Create user runtime directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.dotsible"
+        - "{{ ansible_env.HOME }}/.dotsible/backups"
+        - "{{ ansible_env.HOME }}/.dotsible/logs"
+      when: ansible_os_family != "Windows"
       tags: ['always']
 
-  tasks:
-    - name: Display detected platform information
-      debug:
-        msg: |
-          Detected Platform Information:
-          • OS Family: {{ ansible_os_family }}
-          • Distribution: {{ ansible_distribution | default('N/A') }}
-          • Version: {{ ansible_distribution_version | default('N/A') }}
-          • Architecture: {{ ansible_architecture }}
-          • Python: {{ ansible_python_version }}
-          • User: {{ ansible_user_id }}
-          • Home: {{ dotsible_home }}
+    - name: Initialize execution log
+      copy:
+        content: |
+          Dotsible Execution Log
+          =====================
+
+          Execution ID: {{ execution_timestamp }}
+          Host: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Profile: {{ profile | default('minimal') }}
+          Dry Run: {{ dry_run_mode }}
+          Started: {{ ansible_date_time.iso8601 }}
+
+        dest: "{{ ansible_env.HOME }}/.dotsible/logs/execution_{{ execution_timestamp | regex_replace('[^0-9]', '') }}.log"
+        mode: '0644'
       tags: ['always']
 
-- name: Platform-Specific Configuration
+- name: Bootstrap System
   hosts: all
   gather_facts: no
-  become: no
+  become: yes
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
   pre_tasks:
-    - name: Platform configuration banner
+    - name: Bootstrap phase banner
       debug:
         msg: |
-          🔧 PLATFORM-SPECIFIC CONFIGURATION
-          ===================================
-          Applying {{ ansible_os_family }}-specific configurations...
+          🔧 BOOTSTRAP PHASE
+          ==================
+          Installing essential packages and configuring package managers...
       tags: ['always']
 
+    - name: Create backup before bootstrap (if enabled)
+      command: "{{ playbook_dir }}/scripts/backup.sh --dotfiles-only"
+      delegate_to: localhost
+      run_once: true
+      when:
+        - backup_before_run | default(false)
+        - not ansible_check_mode
+      tags: ['backup']
+
   roles:
+    - role: common
+      tags: ['common', 'bootstrap']
+
+    - role: package_manager
+      tags: ['package_manager', 'packages']
+
+    # Platform-specific setup
     - role: platform_specific/macos
-      tags: ['platform_specific', 'macos']
       when: ansible_os_family == "Darwin"
+      tags: ['platform', 'macos']
 
     - role: platform_specific/windows
-      tags: ['platform_specific', 'windows']
       when: ansible_os_family == "Windows"
+      tags: ['platform', 'windows']
 
     - role: platform_specific/archlinux
-      tags: ['platform_specific', 'archlinux']
       when: ansible_distribution == "Archlinux"
+      tags: ['platform', 'archlinux']
 
     - role: platform_specific/ubuntu
-      tags: ['platform_specific', 'ubuntu']
-      when: ansible_distribution in ["Ubuntu", "Debian"]
+      when: ansible_os_family == "Debian"
+      tags: ['platform', 'ubuntu']
 
   post_tasks:
-    - name: Platform configuration completed
-      debug:
-        msg: "✅ Platform-specific configuration completed for {{ ansible_os_family }}"
+    - name: Verify bootstrap completion
+      block:
+        - name: Check package manager functionality
+          package:
+            name: curl
+            state: present
+          register: package_test
+          failed_when: false
+          changed_when: false
+
+        - name: Bootstrap verification
+          assert:
+            that:
+              - package_test is not failed
+            fail_msg: |
+              ❌ Bootstrap verification failed!
+              Package manager is not functioning correctly.
+              Please check the bootstrap logs and try again.
+            success_msg: "✅ Bootstrap completed successfully"
+
+        - name: Log bootstrap completion
+          copy:
+            content: |
+              Bootstrap Phase Completed
+              ========================
+
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              Host: {{ inventory_hostname }}
+              OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+              Profile: {{ profile | default('minimal') }}
+              Package Manager: {{ package_manager | default('auto-detected') }}
+
+              Status: SUCCESS
+
+            dest: "{{ ansible_env.HOME }}/.dotsible/logs/bootstrap.log"
+            mode: '0644'
+          become: no
+          when: ansible_os_family != "Windows"
+
+      rescue:
+        - name: Handle bootstrap failure
+          fail:
+            msg: |
+              ❌ Bootstrap phase failed!
+
+              This is a critical error that prevents further execution.
+              Please check:
+              1. Internet connectivity
+              2. Package manager configuration
+              3. System permissions
+
+              For troubleshooting, see docs/TROUBLESHOOTING.md
       tags: ['always']
 
-- name: Application Configuration
+- name: Python Version Management
+  hosts: all
+  gather_facts: no
+  become: no
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+  pre_tasks:
+    - name: Python management phase banner
+      debug:
+        msg: |
+          🐍 PYTHON VERSION MANAGEMENT
+          ============================
+          Target Python version: {{ python_version_management.target_version }}
+          Current Python version: {{ dotsible_python_version | default('Unknown') }}
+          Upgrade needed: {{ 'YES' if dotsible_python_needs_upgrade | default(true) else 'NO' }}
+      tags: ['always']
+
+  roles:
+    - role: python_management
+      tags: ['python', 'python_management']
+      when: python_version_management.auto_upgrade | default(true)
+
+  post_tasks:
+    - name: Python management completion
+      debug:
+        msg: |
+          🐍 Python Version Management Complete
+          ====================================
+          • Python version: {{ detected_python_version | default('Unknown') }}
+          • pip available: {{ 'YES' if detected_pip_version is defined else 'NO' }}
+          • pipx available: {{ 'YES' if pipx_available | default(false) else 'NO' }}
+
+          {% if python_packages_backup is defined %}
+          • Package backup: {{ python_packages_backup.backup_path }}
+          {% endif %}
+      tags: ['always']
+
+- name: Configure Applications
   hosts: all
   gather_facts: no
   become: no
 
   pre_tasks:
-    - name: Application configuration banner
+    - name: Applications phase banner
       debug:
         msg: |
-          📱 APPLICATION CONFIGURATION
-          ============================
-          Installing and configuring applications...
+          📱 APPLICATIONS PHASE
+          ====================
+          Installing and configuring applications for profile: {{ profile | default('minimal') }}
+          Applications: {{ profiles[profile | default('minimal')].applications | default([]) | join(', ') }}
+      tags: ['always']
+
+    - name: Validate application requirements
+      block:
+        - name: Check if applications are defined for profile
+          assert:
+            that:
+              - profiles[profile | default('minimal')].applications is defined
+              - profiles[profile | default('minimal')].applications | length > 0
+            fail_msg: |
+              No applications defined for profile '{{ profile | default('minimal') }}'.
+              Please check your profile configuration in group_vars/all/profiles.yml
+            success_msg: "Applications defined for profile '{{ profile | default('minimal') }}'"
+
+        - name: Display application installation plan
+          debug:
+            msg: |
+              📋 Application Installation Plan:
+              {% for app in profiles[profile | default('minimal')].applications %}
+              - {{ app }}
+              {% endfor %}
+          when: not ansible_check_mode
+
+      rescue:
+        - name: Handle application validation failure
+          debug:
+            msg: |
+              ⚠️  Application validation failed, but continuing with available applications.
+              Some applications may not be installed.
       tags: ['always']
 
   roles:
-    # Core applications (always installed)
-    - role: applications/git
-      tags: ['applications', 'git']
-      when: profile in ['minimal', 'developer', 'enterprise']
-
     - role: applications/fonts
       tags: ['applications', 'fonts']
       when: profile in ['minimal', 'developer', 'enterprise']
 
+    - role: applications/zoxide
+      tags: ['applications', 'zoxide', 'cli-tools']
+      when: profile in ['minimal', 'developer', 'enterprise']
+
+    - role: applications/git
+      tags: ['applications', 'git']
+      when: "'git' in profiles[profile | default('minimal')].applications | default([])"
+
+    # FZF must be installed before shell configurations that depend on it
+    - role: applications/fzf
+      tags: ['applications', 'fzf']
+      when: "'fzf' in profiles[profile | default('minimal')].applications | default([])"
+
     - role: applications/zsh
       tags: ['applications', 'zsh']
-      when: profile in ['developer', 'enterprise']
-
-    - role: applications/zoxide
-      tags: ['applications', 'zoxide']
-      when: profile in ['developer', 'enterprise']
-
-    - role: applications/starship
-      tags: ['applications', 'starship']
-      when: profile in ['developer', 'enterprise']
+      when: "'zsh' in profiles[profile | default('minimal')].applications | default([])"
 
     - role: applications/tmux
       tags: ['applications', 'tmux']
-      when: profile in ['developer', 'enterprise']
+      when: "'tmux' in profiles[profile | default('minimal')].applications | default([])"
 
-    # Development applications
-    - role: applications/neovim
-      tags: ['applications', 'neovim']
-      when: profile in ['developer', 'enterprise']
+    - role: applications/alacritty
+      tags: ['applications', 'alacritty']
+      when: "'alacritty' in profiles[profile | default('minimal')].applications | default([])"
 
-    # Window managers (Linux only)
+    - role: applications/starship
+      tags: ['applications', 'starship']
+      when: "'starship' in profiles[profile | default('minimal')].applications | default([])"
+
+    # Window manager specific configurations (Linux only)
     - role: applications/i3
-      tags: ['applications', 'i3', 'window_manager']
-      when: 
-        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
-        - dotsible_window_manager | default('') == 'i3'
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "i3"
+        - "'i3' in profiles[profile | default('minimal')].applications | default([])"
+      tags: ['applications', 'i3', 'window-manager']
 
     - role: applications/hyprland
-      tags: ['applications', 'hyprland', 'window_manager']
-      when: 
-        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
-        - dotsible_window_manager | default('') == 'hyprland'
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "hyprland"
+        - "'hyprland' in profiles[profile | default('minimal')].applications | default([])"
+      tags: ['applications', 'hyprland', 'window-manager']
 
     - role: applications/sway
-      tags: ['applications', 'sway', 'window_manager']
-      when: 
-        - ansible_os_family == "Archlinux" or ansible_distribution in ["Ubuntu", "Debian"]
-        - dotsible_window_manager | default('') == 'sway'
+      when:
+        - dotsible_window_manager is defined
+        - dotsible_window_manager == "sway"
+        - "'sway' in profiles[profile | default('minimal')].applications | default([])"
+      tags: ['applications', 'sway', 'window-manager']
+
+    # macOS Enterprise Management
+    - role: macos_enterprise
+      tags: ['macos_enterprise', 'enterprise', 'mdm', 'desktop', 'macos']
+      when: ansible_os_family == "Darwin"
 
   post_tasks:
-    - name: Application configuration completed
-      debug:
-        msg: "✅ Application configuration completed"
+    - name: Verify application installations
+      block:
+        - name: Test installed applications
+          command: "{{ item.command }}"
+          loop: "{{ application_verification | default([]) }}"
+          register: app_verification_results
+          failed_when: false
+          changed_when: false
+          when: item.name in profiles[profile | default('minimal')].applications | default([])
+
+        - name: Log application configuration completion
+          copy:
+            content: |
+              Application Configuration Completed
+              ==================================
+
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              Host: {{ inventory_hostname }}
+              Profile: {{ profile | default('minimal') }}
+              Applications: {{ profiles[profile | default('minimal')].applications | default([]) | join(', ') }}
+
+              Verification Results:
+              {% for result in app_verification_results.results | default([]) %}
+              - {{ result.item.name }}: {{ 'SUCCESS' if result.rc == 0 else 'FAILED' }}
+              {% endfor %}
+
+            dest: "{{ ansible_env.HOME }}/.dotsible/logs/applications.log"
+            mode: '0644'
+          become: no
+          when: ansible_os_family != "Windows"
+
+      rescue:
+        - name: Handle application verification failure
+          debug:
+            msg: |
+              ⚠️  Some application verifications failed.
+              Applications may still be functional.
+              Check the application logs for details.
       tags: ['always']
 
-- name: Dotfiles Configuration
+- name: Apply Profile Configuration
   hosts: all
   gather_facts: no
   become: no
 
-  pre_tasks:
-    - name: Dotfiles configuration banner
-      debug:
-        msg: |
-          📁 DOTFILES CONFIGURATION
-          =========================
-          Deploying dotfiles and configurations...
-      tags: ['always']
-
   roles:
-    - role: dotfiles
-      tags: ['dotfiles']
-      when: profile in ['minimal', 'developer', 'enterprise']
-
-  post_tasks:
-    - name: Dotfiles configuration completed
-      debug:
-        msg: "✅ Dotfiles configuration completed"
-      tags: ['always']
-
-- name: Profile-Specific Configuration
-  hosts: all
-  gather_facts: no
-  become: no
-
-  pre_tasks:
-    - name: Profile configuration banner
-      debug:
-        msg: |
-          👤 PROFILE CONFIGURATION
-          ========================
-          Applying {{ profile | default('minimal') }} profile configurations...
-      tags: ['always']
-
-  roles:
-    - role: profiles/minimal
-      tags: ['profiles', 'minimal']
-      when: profile | default('minimal') == 'minimal'
-
     - role: profiles/developer
       tags: ['profiles', 'developer']
-      when: profile | default('minimal') == 'developer'
+      when: profile == "developer"
 
+    # Environment-specific configurations
     - role: profiles/enterprise
       tags: ['profiles', 'enterprise']
-      when: profile | default('minimal') == 'enterprise'
+      when:
+        - profile is defined
+        - profile == "enterprise" or environment_type == "enterprise"
+
+    - role: dotfiles
+      tags: ['dotfiles', 'configuration', 'conditional']
+      when: dotfiles_enabled | default(true)
 
   post_tasks:
-    - name: Profile configuration completed
-      debug:
-        msg: "✅ Profile configuration completed for {{ profile | default('minimal') }}"
+    - name: Create profile summary
+      template:
+        src: profile_summary.j2
+        dest: "{{ ansible_env.HOME }}/.ansible_profile_summary"
+        mode: '0644'
+      vars:
+        profile_name: "{{ profile | default('minimal') }}"
+        profile_config: "{{ profiles[profile | default('minimal')] }}"
+        installation_date: "{{ ansible_date_time.iso8601 }}"
       tags: ['always']
 
-- name: Final System Configuration
+    - name: Display completion message
+      debug:
+        msg: |
+          ========================================
+          Configuration Complete!
+          ========================================
+          Host: {{ inventory_hostname }}
+          Profile: {{ profile | default('minimal') }}
+          Applications: {{ profiles[profile | default('minimal')].applications | join(', ') }}
+          Features: {{ profiles[profile | default('minimal')].features | join(', ') }}
+
+          Summary saved to: ~/.ansible_profile_summary
+          Logs available in: ~/.dotsible/logs/
+
+          You may need to restart your shell or reboot to apply all changes.
+      tags: ['always']
+
+- name: Verification and Cleanup
   hosts: all
   gather_facts: no
   become: no
 
-  vars:
-    dotsible_home: "{{ ansible_env.HOME | default(ansible_user_dir) | default('/Users/' + ansible_user_id) }}"
-
-  pre_tasks:
-    - name: Final configuration banner
-      debug:
-        msg: |
-          🏁 FINAL SYSTEM CONFIGURATION
-          ==============================
-          Applying final configurations and validations...
-      tags: ['always']
-
   tasks:
-    - name: Create dotsible completion marker
+    - name: Verify critical applications
+      command: "{{ item.command }}"
+      loop: "{{ application_verification | default([]) }}"
+      register: verification_results
+      failed_when: false
+      changed_when: false
+      tags: ['verify']
+
+    - name: Create verification report
+      template:
+        src: verification_report.j2
+        dest: "{{ ansible_env.HOME }}/.ansible_verification_report"
+        mode: '0644'
+      vars:
+        verification_results: "{{ verification_results }}"
+      when: verification_results is defined
+      tags: ['verify']
+
+    - name: Cleanup temporary files
       file:
-        path: "{{ dotsible_home }}/.dotsible/last_run"
-        state: touch
-        modification_time: preserve
-        access_time: preserve
-      tags: ['always']
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/ansible_temp
+        - /tmp/install_oh_my_zsh.sh
+        - /tmp/homebrew_install.sh
+      when: cleanup_temp_files | default(true)
+      tags: ['cleanup']
 
-    - name: Log execution completion
-      lineinfile:
-        path: "{{ dotsible_home }}/.dotsible/execution.log"
-        line: "{{ ansible_date_time.iso8601 }} - Dotsible execution completed successfully (Profile: {{ profile | default('minimal') }})"
-      tags: ['always']
-
-    - name: Display completion summary
+    - name: Final system status
       debug:
         msg: |
-          
-          ╔══════════════════════════════════════════════════════════════╗
-          ║                  DOTSIBLE EXECUTION COMPLETE                ║
-          ╠══════════════════════════════════════════════════════════════╣
-          ║ Platform: {{ ansible_os_family | default('Unknown') }}                                      ║
-          ║ Profile: {{ profile | default('minimal') }}                                       ║
-          ║ Execution Time: {{ ansible_date_time.iso8601 }}            ║
-          ║                                                              ║
-          ║ ✅ Platform-specific configuration applied                  ║
-          ║ ✅ Applications installed and configured                    ║
-          ║ ✅ Profile settings applied                                 ║
-          ║ ✅ System ready for use                                     ║
-          ║                                                              ║
-          ║ Next Steps:                                                  ║
-          ║ • Restart your shell or source your profile                 ║
-          ║ • Run validation: ./tests/scripts/run_all_tests.sh          ║
-          ║ • Check logs: ~/.dotsible/execution.log                     ║
-          ╚══════════════════════════════════════════════════════════════╝
-      tags: ['always']
+          System configuration completed successfully!
+          Profile: {{ profile | default('minimal') }}
+          Verification report: ~/.ansible_verification_report
 
-  handlers:
-    - name: restart shell
-      debug:
-        msg: "Please restart your shell or run: source ~/.zshrc (or ~/.bashrc)"
+          Next steps:
+          1. Restart your shell: exec $SHELL
+          2. Review configuration: cat ~/.ansible_profile_summary
+          3. Check logs: ls -la ~/.dotsible/logs/
+      tags: ['always']

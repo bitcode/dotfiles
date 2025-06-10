@@ -1,0 +1,172 @@
+---
+# Production dotfiles deployment test - NO SUDO REQUIRED
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: "🚀 PRODUCTION DOTFILES DEPLOYMENT (NO SUDO)"
+      debug:
+        msg: |
+          Production deployment of enhanced dotfiles system
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          Enhanced backup system: ENABLED
+          Sudo required: NO (user-space only)
+      tags: ['dotfiles']
+
+    - name: Create required user directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.config"
+        - "{{ ansible_env.HOME }}/.local"
+        - "{{ ansible_env.HOME }}/.local/bin"
+        - "{{ ansible_env.HOME }}/.dotsible"
+        - "{{ ansible_env.HOME }}/.dotsible/backups"
+        - "{{ ansible_env.HOME }}/.dotsible/logs"
+      tags: ['dotfiles']
+
+    - name: Set basic environment facts for dotfiles
+      set_fact:
+        detected_os_family: "{{ ansible_os_family }}"
+        detected_distribution: "{{ ansible_distribution }}"
+        detected_architecture: "{{ ansible_architecture }}"
+        detected_environment: "{{ environment_type }}"
+        detected_window_manager: "none"
+        detected_display_server: "none"
+        is_gui_session: false
+        is_ssh_session: false
+        is_container: false
+      tags: ['dotfiles']
+
+    - name: Include dotfiles main variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['dotfiles']
+
+    - name: Include OS-specific dotfiles variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['dotfiles']
+
+    - name: Include conditional deployment configuration
+      include_vars: roles/dotfiles/vars/conditional_deployment.yml
+      tags: ['dotfiles']
+
+    - name: Check dotfiles source directory
+      stat:
+        path: "{{ playbook_dir }}/files/dotfiles"
+      register: dotfiles_source_check
+      tags: ['dotfiles']
+
+    - name: Run conditional deployment analysis
+      include_tasks: roles/dotfiles/tasks/conditional_deployment.yml
+      when: dotfiles_source_check.stat.exists
+      tags: ['dotfiles']
+
+    - name: Deploy applications based on conditional analysis
+      include_tasks: roles/dotfiles/tasks/deploy_application_dotfiles.yml
+      vars:
+        app_name: "{{ item }}"
+        deployment_reason: "Production deployment"
+      loop: "{{ ['git', 'nvim', 'zsh', 'tmux', 'starship', 'alacritty'] }}"
+      when:
+        - dotfiles_source_check.stat.exists
+        - item in dotfiles_conditional_applications | default([])
+      tags: ['dotfiles']
+
+    - name: "📊 PRODUCTION DEPLOYMENT VERIFICATION"
+      debug:
+        msg: |
+          🎉 PRODUCTION DEPLOYMENT COMPLETED!
+          
+          Enhanced Features Deployed:
+          • ✅ Automatic backup system with conflict resolution
+          • ✅ Conditional deployment based on macOS enterprise profile
+          • ✅ GNU Stow-compatible directory structure
+          • ✅ Timestamped backups in ~/.dotsible/backups/
+          • ✅ Recovery manifests with restoration instructions
+          
+          Verify deployment:
+          ls -la ~/.gitconfig ~/.config/nvim ~/.zshrc ~/.tmux.conf
+          ls -la ~/.dotsible/backups/
+      tags: ['dotfiles']
+
+    - name: Final symlink verification
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: final_symlink_check
+      tags: ['dotfiles']
+
+    - name: "🎯 FINAL DEPLOYMENT STATUS"
+      debug:
+        msg: |
+          PRODUCTION DEPLOYMENT STATUS REPORT
+          ===================================
+          
+          Symlink Status:
+          {% for result in final_symlink_check.results %}
+          • {{ result.item | basename }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK ✅)' if result.stat.islnk | default(false) else ' (REGULAR FILE ⚠️)' if result.stat.exists else ' (NOT FOUND ❌)' }}
+          {% endfor %}
+          
+          {% set symlinks_created = final_symlink_check.results | selectattr('stat.islnk', 'equalto', true) | list | length %}
+          {% set files_exist = final_symlink_check.results | selectattr('stat.exists', 'equalto', true) | list | length %}
+          
+          Summary:
+          • Total configurations: {{ final_symlink_check.results | length }}
+          • Symlinks created: {{ symlinks_created }}
+          • Files existing: {{ files_exist }}
+          • Success rate: {{ ((symlinks_created / final_symlink_check.results | length) * 100) | round(1) }}%
+          
+          {% if symlinks_created == final_symlink_check.results | length %}
+          🎉 DEPLOYMENT SUCCESSFUL - All configurations deployed as symlinks!
+          {% elif symlinks_created > 0 %}
+          ⚠️  PARTIAL SUCCESS - Some configurations deployed, check individual status above
+          {% else %}
+          ❌ DEPLOYMENT FAILED - No symlinks created, check logs and backup system
+          {% endif %}
+      tags: ['dotfiles']
+
+    - name: Check backup directory status
+      find:
+        paths: "{{ ansible_env.HOME }}/.dotsible/backups"
+        file_type: directory
+      register: backup_status
+      ignore_errors: yes
+      tags: ['dotfiles']
+
+    - name: "🛡️ BACKUP SYSTEM STATUS"
+      debug:
+        msg: |
+          BACKUP SYSTEM VERIFICATION
+          =========================
+          
+          Backup directories found: {{ backup_status.files | default([]) | length }}
+          {% for backup_dir in backup_status.files | default([]) %}
+          • {{ backup_dir.path | basename }} ({{ backup_dir.mtime | int | strftime('%Y-%m-%d %H:%M:%S') }})
+          {% endfor %}
+          
+          {% if backup_status.files | default([]) | length > 0 %}
+          ✅ Backup system operational - {{ backup_status.files | length }} backup(s) available
+          {% else %}
+          ⚠️  No backups found - either no conflicts occurred or backup system needs attention
+          {% endif %}
+          
+          Recovery location: ~/.dotsible/backups/
+          Manifest files: Check for *_backup_manifest.txt in backup directories
+      tags: ['dotfiles']

@@ -1,0 +1,103 @@
+---
+# Debug dotfiles role execution
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+
+  tasks:
+    - name: "🔍 DEBUG: Check variables"
+      debug:
+        msg: |
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          Dotfiles enabled: {{ dotfiles_enabled }}
+          Ansible user: {{ ansible_user | default('unknown') }}
+          Home directory: {{ ansible_env.HOME }}
+
+    - name: "🔍 DEBUG: Check dotfiles role path"
+      stat:
+        path: "{{ playbook_dir }}/roles/dotfiles"
+      register: dotfiles_role_check
+
+    - name: "🔍 DEBUG: Dotfiles role status"
+      debug:
+        msg: |
+          Dotfiles role exists: {{ dotfiles_role_check.stat.exists }}
+          Role path: {{ playbook_dir }}/roles/dotfiles
+
+    - name: "🔍 DEBUG: Check dotfiles source directory"
+      stat:
+        path: "{{ playbook_dir }}/files/dotfiles"
+      register: dotfiles_source_check
+
+    - name: "🔍 DEBUG: Dotfiles source status"
+      debug:
+        msg: |
+          Dotfiles source exists: {{ dotfiles_source_check.stat.exists }}
+          Source path: {{ playbook_dir }}/files/dotfiles
+
+    - name: "🔍 DEBUG: List available dotfiles"
+      find:
+        paths: "{{ playbook_dir }}/files/dotfiles"
+        file_type: directory
+      register: available_dotfiles
+      when: dotfiles_source_check.stat.exists
+
+    - name: "🔍 DEBUG: Available applications"
+      debug:
+        msg: |
+          Available dotfiles applications:
+          {% for app in available_dotfiles.files | default([]) %}
+          • {{ app.path | basename }}
+          {% endfor %}
+      when: dotfiles_source_check.stat.exists
+
+    - name: "🚀 EXECUTE: Include dotfiles role"
+      include_role:
+        name: dotfiles
+      when: 
+        - dotfiles_enabled | default(true)
+        - dotfiles_role_check.stat.exists
+
+    - name: "📊 RESULT: Check created symlinks"
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: symlink_results
+
+    - name: "📊 RESULT: Symlink status report"
+      debug:
+        msg: |
+          SYMLINK STATUS REPORT
+          ====================
+          {% for result in symlink_results.results %}
+          • {{ result.item | basename }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK ✅)' if result.stat.islnk | default(false) else ' (REGULAR FILE/DIR ⚠️)' if result.stat.exists else ' (NOT FOUND ❌)' }}
+          {% endfor %}
+
+    - name: "🔍 DEBUG: Check backup directory"
+      find:
+        paths: "{{ ansible_env.HOME }}/.dotsible/backups"
+        file_type: directory
+      register: backup_dirs
+      ignore_errors: yes
+
+    - name: "📊 RESULT: Backup status"
+      debug:
+        msg: |
+          BACKUP SYSTEM STATUS
+          ===================
+          Backup directories: {{ backup_dirs.files | default([]) | length }}
+          {% for backup in backup_dirs.files | default([]) %}
+          • {{ backup.path | basename }}
+          {% endfor %}

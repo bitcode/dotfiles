@@ -1,0 +1,157 @@
+---
+# Dotfiles Management Playbook
+# This playbook focuses specifically on dotfiles installation and management
+# It can be run standalone or as part of the main workstation setup
+
+- name: Dotfiles Management
+  hosts: all
+  become: false
+  gather_facts: true
+  
+  vars:
+    # Override dotfiles repository if needed
+    # dotfiles_repo: "https://github.com/your-username/your-dotfiles"
+    # dotfiles_branch: "main"
+    
+    # Enable debug mode for troubleshooting
+    dotfiles_debug: "{{ debug_mode | default(false) }}"
+    
+    # Force update even if repository exists
+    dotfiles_force_update: "{{ force_update | default(false) }}"
+    
+    # Skip backup (use with caution)
+    dotfiles_skip_backup: "{{ skip_backup | default(false) }}"
+
+  pre_tasks:
+    - name: Display dotfiles playbook information
+      debug:
+        msg: |
+          Starting Dotfiles Management Playbook
+          =====================================
+          Target Host: {{ inventory_hostname }}
+          User: {{ ansible_user }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Profile: {{ profile | default('Not specified') }}
+          Repository: {{ dotfiles.repository }}
+          Branch: {{ dotfiles.branch }}
+          Local Path: {{ dotfiles.local_path }}
+          Backup Enabled: {{ dotfiles.backup_existing and not dotfiles_skip_backup }}
+      tags: ['dotfiles', 'info']
+
+    - name: Ensure required packages are installed
+      package:
+        name:
+          - git
+          - curl
+          - wget
+        state: present
+      become: true
+      when: ansible_os_family in ["Debian", "RedHat", "Archlinux"]
+      tags: ['dotfiles', 'packages']
+
+    - name: Create user directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      loop:
+        - "{{ ansible_user_dir }}/.config"
+        - "{{ ansible_user_dir }}/.local"
+        - "{{ ansible_user_dir }}/.local/bin"
+        - "{{ ansible_user_dir }}/.local/share"
+        - "{{ ansible_user_dir }}/.cache"
+      tags: ['dotfiles', 'directories']
+
+  tasks:
+    - name: Include dotfiles role
+      include_role:
+        name: dotfiles
+      vars:
+        dotfiles:
+          enabled: true
+          repository: "{{ dotfiles_repo | default(dotfiles.repository) }}"
+          branch: "{{ dotfiles_branch | default(dotfiles.branch) }}"
+          local_path: "{{ dotfiles.local_path }}"
+          backup_existing: "{{ not dotfiles_skip_backup and dotfiles.backup_existing }}"
+          force_update: "{{ dotfiles_force_update }}"
+          symlink_strategy: "{{ dotfiles_symlink_strategy | default('force') }}"
+          process_templates: "{{ dotfiles_process_templates | default(true) }}"
+          os_specific_configs: "{{ dotfiles_os_specific | default(true) }}"
+          profile_specific_configs: "{{ dotfiles_profile_specific | default(true) }}"
+          verify_installation: "{{ dotfiles_verify | default(true) }}"
+      tags: ['dotfiles', 'main']
+
+  post_tasks:
+    - name: Trigger shell reload
+      command: echo "Shell configuration updated"
+      notify:
+        - reload shell
+        - refresh fonts
+        - update desktop
+        - dotfiles updated
+      changed_when: true
+      tags: ['dotfiles', 'reload']
+
+    - name: Display completion message
+      debug:
+        msg: |
+          Dotfiles Installation Complete!
+          ===============================
+          
+          ✅ Repository cloned/updated: {{ dotfiles.repository }}
+          ✅ Symlinks created for dotfiles
+          ✅ Templates processed (if any)
+          ✅ Permissions set correctly
+          ✅ Installation verified
+          
+          {% if dotfiles.backup_existing and not dotfiles_skip_backup %}
+          📁 Backups stored in: {{ dotfiles.backup_directory }}
+          {% endif %}
+          
+          📋 Reports generated in: {{ dotfiles.local_path }}
+          
+          Next Steps:
+          -----------
+          1. Restart your shell or run: source ~/.bashrc
+          2. Check the verification report for any issues
+          3. Customize your dotfiles in: {{ dotfiles.local_path }}
+          4. Commit and push changes to your repository
+          
+          Useful Commands:
+          ----------------
+          • View symlinks: ls -la ~ | grep '\->'
+          • Check reports: ls {{ dotfiles.local_path }}/*_REPORT.txt
+          • Update dotfiles: git -C {{ dotfiles.local_path }} pull
+          • Re-run setup: ansible-playbook {{ playbook_dir }}/dotfiles.yml
+      tags: ['dotfiles', 'completion']
+
+  handlers:
+    - name: reload shell
+      shell: |
+        if [ -f ~/.bashrc ]; then
+          source ~/.bashrc
+        fi
+      become_user: "{{ ansible_user }}"
+
+    - name: refresh fonts
+      command: fc-cache -fv
+      become_user: "{{ ansible_user }}"
+      ignore_errors: true
+
+    - name: update desktop
+      command: update-desktop-database ~/.local/share/applications
+      become_user: "{{ ansible_user }}"
+      ignore_errors: true
+
+    - name: dotfiles updated
+      debug:
+        msg: "Dotfiles have been successfully updated!"
+
+# Example usage:
+# ansible-playbook playbooks/dotfiles.yml
+# ansible-playbook playbooks/dotfiles.yml -e "dotfiles_repo=https://github.com/username/dotfiles"
+# ansible-playbook playbooks/dotfiles.yml -e "force_update=true"
+# ansible-playbook playbooks/dotfiles.yml -e "profile=developer"
+# ansible-playbook playbooks/dotfiles.yml -e "skip_backup=true" # Use with caution

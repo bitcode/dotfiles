@@ -1,0 +1,51 @@
+---
+# Test the fixed dotfiles role directly
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    dotfiles_require_common: false
+
+  roles:
+    - role: dotfiles
+      tags: ['dotfiles']
+
+  post_tasks:
+    - name: "📊 FINAL VERIFICATION"
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: final_check
+
+    - name: "🎯 DEPLOYMENT RESULTS"
+      debug:
+        msg: |
+          FIXED DOTFILES DEPLOYMENT RESULTS
+          =================================
+          {% for result in final_check.results %}
+          • {{ result.item | basename }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK ✅)' if result.stat.islnk | default(false) else ' (REGULAR ⚠️)' if result.stat.exists else ' (NOT FOUND ❌)' }}
+          {% endfor %}
+          
+          {% set symlinks = final_check.results | selectattr('stat.islnk', 'equalto', true) | list | length %}
+          {% set total = final_check.results | length %}
+          
+          Success Rate: {{ ((symlinks / total) * 100) | round(1) }}%
+          Symlinks Created: {{ symlinks }}/{{ total }}
+          
+          {% if symlinks == total %}
+          🎉 SUCCESS: All dotfiles deployed as symlinks!
+          {% elif symlinks > 0 %}
+          ⚠️  PARTIAL: Some dotfiles deployed, check conflicts above
+          {% else %}
+          ❌ FAILED: No symlinks created, check role execution
+          {% endif %}

@@ -40,10 +40,8 @@
   when: zsh_plugins is defined and zsh_plugins | length > 0
   tags: ['zsh', 'plugins']
 
-- name: Setup FZF integration
-  include_tasks: setup_fzf_integration.yml
-  when: zsh_fzf_enabled | default(true)
-  tags: ['zsh', 'fzf']
+# Note: FZF integration is now handled by the dedicated applications/fzf role
+# This prevents conflicts and follows the separation of concerns principle
 
 - name: Setup ZSH theme
   include_tasks: setup_theme.yml

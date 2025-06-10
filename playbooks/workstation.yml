@@ -1,0 +1,79 @@
+---
+# Workstation configuration playbook
+# This playbook configures desktop/laptop environments with GUI applications and development tools
+
+- name: Configure workstation environments
+  hosts: workstations
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Display workstation configuration info
+      debug:
+        msg: |
+          Configuring workstation: {{ inventory_hostname }}
+          Profile: {{ profile | default('minimal') }}
+          Features: {{ features | default([]) | join(', ') }}
+          OS: {{ ansible_os_family }} {{ ansible_distribution }} {{ ansible_distribution_version }}
+    
+    - name: Validate system requirements
+      assert:
+        that:
+          - ansible_os_family in ['Debian', 'RedHat', 'Archlinux', 'Darwin', 'Windows']
+          - ansible_architecture in ['x86_64', 'aarch64', 'arm64']
+        fail_msg: "Unsupported system: {{ ansible_os_family }} on {{ ansible_architecture }}"
+        success_msg: "System validation passed"
+    
+    - name: Setup package manager
+      include_role:
+        name: package_manager
+      tags: ['package_manager', 'setup']
+  
+  roles:
+    - role: common
+      tags: ['common', 'base']
+    
+    - role: dotfiles
+      tags: ['dotfiles', 'config']
+      when: manage_dotfiles | default(true) | bool
+    
+    - role: "profiles/{{ profile | default('minimal') }}"
+      tags: ['profile', 'applications']
+      when: profile is defined
+  
+  post_tasks:
+    - name: Verify essential applications
+      command: "which {{ item }}"
+      register: app_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ essential_applications | default(['git', 'vim']) }}"
+      tags: ['verify']
+    
+    - name: Display missing applications
+      debug:
+        msg: "Warning: {{ item.item }} not found in PATH"
+      loop: "{{ app_check.results }}"
+      when: item.rc != 0
+      tags: ['verify']
+    
+    - name: Generate system report
+      template:
+        src: system_report.j2
+        dest: "/tmp/dotsible_report_{{ inventory_hostname }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      become: no
+      tags: ['report']
+    
+    - name: Display completion message
+      debug:
+        msg: |
+          Workstation configuration completed successfully!
+          Profile: {{ profile | default('minimal') }}
+          Report saved to: /tmp/dotsible_report_{{ inventory_hostname }}.txt
+          
+          Next steps:
+          - Review the system report
+          - Test applications and configurations
+          - Run maintenance tasks if needed: ansible-playbook site.yml --extra-vars "maintenance=true"

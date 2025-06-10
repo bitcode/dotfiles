@@ -1,0 +1,362 @@
+---
+# Profile definitions for different use cases
+# Each profile defines a set of applications, configurations, and features
+
+profiles:
+  # Minimal profile - basic tools only
+  minimal:
+    description: "Minimal configuration with essential tools only"
+    applications:
+      - git
+      - vim
+      - zsh
+      - fzf
+    packages:
+      - essential
+    features:
+      - basic_shell
+      - git_config
+    dotfiles:
+      - .vimrc
+      - .gitconfig
+      - .zshrc
+    services: []
+
+  # Developer profile - full development environment
+  developer:
+    description: "Complete development environment with programming tools"
+    applications:
+      - git
+      - vim
+      - zsh
+      - fzf
+      - tmux
+      - docker
+      - nodejs
+      - python
+    packages:
+      - essential
+      - development
+      - docker
+    features:
+      - advanced_shell
+      - git_config
+      - development_tools
+      - docker_support
+      - code_editor
+      - display_server_support
+    dotfiles:
+      - .vimrc
+      - .gitconfig
+      - .zshrc
+      - .tmux.conf
+      - .dockerconfig
+    services:
+      - docker
+    gui_applications:
+      - code
+      - firefox
+      - alacritty
+    display_server_preference: "{{ display_server_preference | default('x11') }}"
+    desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  # Server profile - headless server configuration
+  server:
+    description: "Server configuration with monitoring and management tools"
+    applications:
+      - git
+      - vim
+      - zsh
+      - fzf
+      - tmux
+      - htop
+      - docker
+    packages:
+      - essential
+      - server
+      - docker
+    features:
+      - server_monitoring
+      - log_management
+      - security_hardening
+      - backup_automation
+    dotfiles:
+      - .vimrc
+      - .gitconfig
+      - .zshrc
+      - .tmux.conf
+    services:
+      - ssh
+      - cron
+      - fail2ban
+      - docker
+    monitoring:
+      - system_metrics
+      - log_aggregation
+      - alert_notifications
+
+  # Gaming profile - gaming and entertainment setup
+  gaming:
+    description: "Gaming setup with Steam, Lutris, and media applications"
+    applications:
+      - git
+      - vim
+      - zsh
+      - steam
+      - lutris
+      - discord
+    packages:
+      - essential
+      - gaming
+      - media
+    features:
+      - gaming_optimizations
+      - media_codecs
+      - graphics_drivers
+      - display_server_support
+    dotfiles:
+      - .vimrc
+      - .gitconfig
+      - .zshrc
+    gui_applications:
+      - steam
+      - lutris
+      - discord
+      - vlc
+      - firefox
+    services: []
+    display_server_preference: "{{ display_server_preference | default('x11') }}"
+    desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  # Designer profile - creative and design tools
+  designer:
+    description: "Creative professional setup with design and media tools"
+    applications:
+      - git
+      - vim
+      - zsh
+      - gimp
+      - inkscape
+      - blender
+    packages:
+      - essential
+      - media
+      - development
+    features:
+      - color_management
+      - font_management
+      - graphics_acceleration
+      - display_server_support
+    dotfiles:
+      - .vimrc
+      - .gitconfig
+      - .zshrc
+    gui_applications:
+      - gimp
+      - inkscape
+      - blender
+      - firefox
+      - code
+    services: []
+    display_server_preference: "{{ display_server_preference | default('x11') }}"
+    desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  # Enterprise profile - security-focused business environment
+  enterprise:
+    description: "Enterprise security and compliance configuration"
+    applications:
+      - git
+      - neovim
+      - tmux
+      - zsh
+      - fzf
+      - starship
+      - alacritty
+    packages:
+      - essential
+      - development
+      - security
+    features:
+      - security_hardening
+      - audit_logging
+      - compliance_mode
+      - restricted_network
+      - enterprise_tools
+    dotfiles:
+      - .gitconfig
+      - .zshrc
+      - .tmux.conf
+      - .config/nvim
+      - .config/starship.toml
+      - .config/alacritty
+    gui_applications:
+      - alacritty
+      - code
+    services:
+      - ssh
+      - cron
+    security:
+      audit_logging: true
+      restricted_network: true
+      compliance_mode: true
+      security_hardened: true
+      custom_themes: false
+      social_integrations: false
+      external_plugins: false
+
+# Profile-specific configurations
+profile_configs:
+  minimal:
+    shell:
+      theme: "simple"
+      plugins: []
+      aliases:
+        ll: "ls -la"
+        la: "ls -A"
+        l: "ls -CF"
+
+  developer:
+    shell:
+      theme: "powerlevel10k"
+      plugins:
+        - git
+        - docker
+        - node
+        - python
+        - tmux
+      aliases:
+        ll: "ls -la"
+        la: "ls -A"
+        l: "ls -CF"
+        dc: "docker-compose"
+        dps: "docker ps"
+        dimg: "docker images"
+    git:
+      user_name: "Developer"
+      user_email: "developer@example.com"
+      editor: "vim"
+      default_branch: "main"
+    vim:
+      plugins:
+        - vim-plug
+        - nerdtree
+        - vim-airline
+        - vim-gitgutter
+        - vim-fugitive
+      color_scheme: "monokai"
+      line_numbers: true
+      syntax_highlighting: true
+    display_server:
+      preference: "{{ display_server_preference | default('x11') }}"
+      desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  server:
+    shell:
+      theme: "minimal"
+      plugins:
+        - git
+        - tmux
+      aliases:
+        ll: "ls -la"
+        la: "ls -A"
+        l: "ls -CF"
+        htop: "htop -d 10"
+        df: "df -h"
+        du: "du -h"
+    monitoring:
+      cpu_threshold: 80
+      memory_threshold: 85
+      disk_threshold: 90
+      network_monitoring: true
+
+  gaming:
+    shell:
+      theme: "agnoster"
+      plugins:
+        - git
+      aliases:
+        ll: "ls -la"
+        steam: "steam &"
+        lutris: "lutris &"
+    graphics:
+      enable_vulkan: true
+      enable_opengl: true
+      optimize_performance: true
+    display_server:
+      preference: "{{ display_server_preference | default('x11') }}"
+      desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  designer:
+    shell:
+      theme: "robbyrussell"
+      plugins:
+        - git
+      aliases:
+        ll: "ls -la"
+        gimp: "gimp &"
+        inkscape: "inkscape &"
+    graphics:
+      color_profile: "sRGB"
+      font_rendering: "subpixel"
+      graphics_acceleration: true
+    display_server:
+      preference: "{{ display_server_preference | default('x11') }}"
+      desktop_environment: "{{ desktop_environment | default('gnome') }}"
+
+  enterprise:
+    shell:
+      theme: "minimal"
+      plugins:
+        - git
+        - tmux
+      aliases:
+        ll: "ls -la"
+        la: "ls -A"
+        l: "ls -CF"
+    git:
+      user_name: "Enterprise User"
+      user_email: "user@company.com"
+      editor: "nvim"
+      default_branch: "main"
+    security:
+      audit_logging: true
+      restricted_network: true
+      compliance_mode: true
+
+# Profile compatibility matrix
+profile_compatibility:
+  minimal:
+    ubuntu: true
+    archlinux: true
+    macos: true
+    windows: true
+
+  developer:
+    ubuntu: true
+    archlinux: true
+    macos: true
+    windows: true
+
+  server:
+    ubuntu: true
+    archlinux: true
+    macos: false
+    windows: false
+
+  gaming:
+    ubuntu: true
+    archlinux: true
+    macos: false
+    windows: true
+
+  designer:
+    ubuntu: true
+    archlinux: true
+    macos: true
+    windows: true
+
+  enterprise:
+    ubuntu: true
+    archlinux: true
+    macos: true
+    windows: true

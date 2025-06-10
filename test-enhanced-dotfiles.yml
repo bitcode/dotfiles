@@ -1,0 +1,95 @@
+---
+# Test enhanced dotfiles deployment with backup logic
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: "🔧 ENHANCED DOTFILES DEPLOYMENT TEST"
+      debug:
+        msg: |
+          Testing enhanced dotfiles deployment with backup logic
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+      tags: ['dotfiles']
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.config"
+        - "{{ ansible_env.HOME }}/.local"
+        - "{{ ansible_env.HOME }}/.local/bin"
+        - "{{ ansible_env.HOME }}/.dotsible"
+        - "{{ ansible_env.HOME }}/.dotsible/backups"
+        - "{{ ansible_env.HOME }}/.dotsible/logs"
+      tags: ['dotfiles']
+
+    - name: Include dotfiles role
+      include_role:
+        name: dotfiles
+      tags: ['dotfiles']
+
+    - name: "📊 DEPLOYMENT VERIFICATION"
+      debug:
+        msg: |
+          Enhanced dotfiles deployment completed!
+          
+          Check the following locations for symlinks:
+          • ~/.gitconfig (should link to dotsible/files/dotfiles/git/.gitconfig)
+          • ~/.config/nvim/ (should link to dotsible/files/dotfiles/nvim/.config/nvim)
+          • ~/.zshrc (should link to dotsible/files/dotfiles/zsh/.zshrc)
+          • ~/.tmux.conf (should link to dotsible/files/dotfiles/tmux/.tmux.conf)
+          • ~/.config/starship.toml (should link to dotsible/files/dotfiles/starship/.config/starship.toml)
+          • ~/.config/alacritty/ (should link to dotsible/files/dotfiles/alacritty/.config/alacritty)
+          
+          Check backup location: ~/.dotsible/backups/
+      tags: ['dotfiles']
+
+    - name: Check created symlinks
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: symlink_check
+      tags: ['dotfiles']
+
+    - name: Display symlink status
+      debug:
+        msg: |
+          Symlink Status:
+          {% for result in symlink_check.results %}
+          • {{ result.item }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK)' if result.stat.islnk | default(false) else ' (REGULAR FILE)' if result.stat.exists else '' }}
+          {% endfor %}
+      tags: ['dotfiles']
+
+    - name: Check backup directory
+      find:
+        paths: "{{ ansible_env.HOME }}/.dotsible/backups"
+        file_type: directory
+      register: backup_dirs
+      tags: ['dotfiles']
+
+    - name: Display backup information
+      debug:
+        msg: |
+          Backup Information:
+          • Backup directories found: {{ backup_dirs.files | length }}
+          {% for backup_dir in backup_dirs.files %}
+          • {{ backup_dir.path }}
+          {% endfor %}
+      when: backup_dirs.files | length > 0
+      tags: ['dotfiles']

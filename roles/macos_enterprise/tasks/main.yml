@@ -1,0 +1,67 @@
+---
+# macOS Enterprise Management Tasks
+# Handles MDM detection, desktop layout management, and enterprise-friendly configurations
+
+- name: Include macOS enterprise variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  when: ansible_os_family == "Darwin"
+  tags: ['macos_enterprise', 'variables']
+
+- name: Display macOS enterprise management info
+  debug:
+    msg: |
+      macOS Enterprise Management Configuration
+      ======================================
+      MDM Detection: {{ macos_enterprise.mdm.detect_mdm }}
+      Respect MDM Settings: {{ macos_enterprise.mdm.respect_mdm_settings }}
+      Desktop Layout Management: {{ macos_enterprise.desktop_layout.enabled }}
+      Host: {{ inventory_hostname }}
+  when: ansible_os_family == "Darwin"
+  tags: ['macos_enterprise', 'info']
+
+- name: Detect MDM management
+  include_tasks: detect_mdm.yml
+  when: 
+    - ansible_os_family == "Darwin"
+    - macos_enterprise.mdm.detect_mdm | bool
+  tags: ['macos_enterprise', 'mdm', 'detection']
+
+- name: Backup current desktop layout
+  include_tasks: backup_desktop_layout.yml
+  when:
+    - ansible_os_family == "Darwin"
+    - macos_enterprise.desktop_layout.enabled | bool
+    - macos_backup_desktop_layout | default(false) | bool
+  tags: ['macos_enterprise', 'desktop', 'backup']
+
+- name: Restore desktop layout
+  include_tasks: restore_desktop_layout.yml
+  when:
+    - ansible_os_family == "Darwin"
+    - macos_enterprise.desktop_layout.enabled | bool
+    - macos_restore_desktop_layout | default(false) | bool
+  tags: ['macos_enterprise', 'desktop', 'restore']
+
+- name: Apply enterprise-safe system preferences
+  include_tasks: apply_safe_preferences.yml
+  when:
+    - ansible_os_family == "Darwin"
+    - not (mdm_detected | default(false)) or not (macos_enterprise.mdm.respect_mdm_settings | bool)
+  tags: ['macos_enterprise', 'preferences', 'safe']
+
+- name: Setup desktop layout management
+  include_tasks: setup_desktop_management.yml
+  when:
+    - ansible_os_family == "Darwin"
+    - macos_enterprise.desktop_layout.enabled | bool
+  tags: ['macos_enterprise', 'desktop', 'setup']
+
+- name: Create enterprise management scripts
+  include_tasks: create_management_scripts.yml
+  when: ansible_os_family == "Darwin"
+  tags: ['macos_enterprise', 'scripts']
+
+- name: Verify enterprise configuration
+  include_tasks: verify_enterprise_config.yml
+  when: ansible_os_family == "Darwin"
+  tags: ['macos_enterprise', 'verify']

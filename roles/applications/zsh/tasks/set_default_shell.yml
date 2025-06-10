@@ -45,12 +45,12 @@
 
 - name: Set ZSH as default shell (macOS)
   shell: chsh -s "{{ zsh_binary_path | default('/bin/zsh') }}"
-  when: 
+  when:
     - ansible_os_family == "Darwin"
     - current_shell.stdout != zsh_binary_path | default('/bin/zsh')
   register: shell_change_macos
   failed_when: false
-  changed_when: shell_change_macos.rc == 0
+  changed_when: shell_change_macos is defined and shell_change_macos.rc == 0
   tags: ['zsh', 'default', 'macos']
 
 - name: Handle macOS shell change authentication
@@ -59,10 +59,10 @@
       Note: On macOS, changing the default shell may require authentication.
       If the automatic change failed, you can manually run:
       chsh -s {{ zsh_binary_path | default('/bin/zsh') }}
-  when: 
+  when:
     - ansible_os_family == "Darwin"
     - shell_change_macos is defined
-    - shell_change_macos.rc != 0
+    - (shell_change_macos.rc | default(1)) != 0
   tags: ['zsh', 'default', 'macos']
 
 - name: Verify shell change
@@ -79,7 +79,7 @@
       
       Previous shell: {{ current_shell.stdout }}
       New shell: {{ zsh_binary_path | default('/bin/zsh') }}
-      Change status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and shell_change_macos.rc == 0) else 'Pending' }}
+      Change status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and (shell_change_macos.rc | default(1)) == 0) else 'Pending' }}
       
       To activate the new shell:
       1. Close and reopen your terminal, or
@@ -100,7 +100,7 @@
       • Previous shell: {{ current_shell.stdout }}
       • Target shell: {{ zsh_binary_path | default('/bin/zsh') }}
       • Change required: {{ current_shell.stdout != zsh_binary_path | default('/bin/zsh') }}
-      • Status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and shell_change_macos.rc == 0) else 'No change needed' if current_shell.stdout == zsh_binary_path | default('/bin/zsh') else 'Failed/Pending' }}
+      • Status: {{ 'Success' if (shell_change_unix is defined and shell_change_unix.changed) or (shell_change_macos is defined and (shell_change_macos.rc | default(1)) == 0) else 'No change needed' if current_shell.stdout == zsh_binary_path | default('/bin/zsh') else 'Failed/Pending' }}
       
       {% if current_shell.stdout != zsh_binary_path | default('/bin/zsh') %}
       Next steps:

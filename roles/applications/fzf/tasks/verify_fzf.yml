@@ -1,0 +1,67 @@
+---
+# Verify FZF installation and configuration
+
+- name: Verify FZF binary is accessible
+  shell: command -v fzf
+  register: fzf_binary_check
+  failed_when: false
+  changed_when: false
+
+- name: Get FZF version
+  shell: fzf --version
+  register: fzf_version_check
+  failed_when: false
+  changed_when: false
+  when: fzf_binary_check.rc == 0
+
+- name: Display FZF binary verification
+  debug:
+    msg: "FZF Binary: {{ '✅ ACCESSIBLE' if fzf_binary_check.rc == 0 else '❌ NOT FOUND' }}"
+
+- name: Display FZF version
+  debug:
+    msg: "FZF Version: {{ fzf_version_check.stdout if fzf_version_check.rc == 0 else 'Unknown' }}"
+  when: fzf_binary_check.rc == 0
+
+- name: Test FZF basic functionality
+  shell: echo "test" | fzf --filter="test"
+  register: fzf_function_test
+  failed_when: false
+  changed_when: false
+  when: fzf_binary_check.rc == 0
+
+- name: Display FZF functionality test
+  debug:
+    msg: "FZF Functionality: {{ '✅ WORKING' if fzf_function_test.rc == 0 else '❌ NOT WORKING' }}"
+  when: fzf_binary_check.rc == 0
+
+- name: Check shell integration files
+  stat:
+    path: "{{ item }}"
+  register: fzf_shell_files_check
+  loop:
+    - "{{ fzf_home_path }}/.fzf.zsh"
+    - "{{ fzf_home_path }}/.fzf.bash"
+    - "/usr/share/fzf/key-bindings.zsh"
+    - "/usr/share/fzf/completion.zsh"
+
+- name: Display shell integration files status
+  debug:
+    msg: "Shell Integration Files: {{ fzf_shell_files_check.results | selectattr('stat.exists') | list | length }} found"
+
+- name: Set FZF verification facts
+  set_fact:
+    fzf_verified: "{{ fzf_binary_check.rc == 0 }}"
+    fzf_version: "{{ fzf_version_check.stdout | default('unknown') }}"
+
+- name: Final FZF verification summary
+  debug:
+    msg: |
+      🔍 FZF Verification Summary
+      ==========================
+      Binary: {{ '✅ Found' if fzf_binary_check.rc == 0 else '❌ Missing' }}
+      Version: {{ fzf_version }}
+      Functionality: {{ '✅ Working' if fzf_function_test is defined and fzf_function_test.rc | default(1) == 0 else '❌ Failed' }}
+      Shell Integration: {{ '✅ Configured' if fzf_shell_files_check.results | selectattr('stat.exists') | list | length > 0 else '❌ Missing' }}
+      Overall Status: {{ '✅ SUCCESS' if fzf_verified else '❌ FAILED' }}
+      ==========================

@@ -1,0 +1,150 @@
+---
+# Test only the dotfiles role without dependencies
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+  
+  tasks:
+    - name: "🔧 DOTFILES MANAGEMENT"
+      debug:
+        msg: "Starting dotfiles configuration for {{ ansible_os_family }}"
+      tags: ['dotfiles', 'banner']
+
+    - name: Include main dotfiles variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['dotfiles', 'variables']
+
+    - name: Include OS-specific variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['dotfiles', 'variables']
+
+    - name: Check dotfiles source directory
+      stat:
+        path: "{{ playbook_dir }}/files/dotfiles"
+      register: dotfiles_source_check
+      tags: ['dotfiles', 'check']
+
+    - name: "✅ Dotfiles source status"
+      debug:
+        msg: "{{ '✅ FOUND' if dotfiles_source_check.stat.exists else '❌ MISSING' }}: {{ playbook_dir }}/files/dotfiles"
+      tags: ['dotfiles', 'status']
+
+    - name: Load conditional deployment configuration
+      include_vars: roles/dotfiles/vars/conditional_deployment.yml
+      when: dotfiles_source_check.stat.exists
+      tags: ['dotfiles', 'conditional']
+
+    - name: Set environment detection variables
+      set_fact:
+        detected_environment: "{{ environment_type | default('personal') }}"
+        detected_window_manager: "{{ dotsible_window_manager | default('unknown') }}"
+      tags: ['dotfiles', 'conditional', 'environment']
+
+    - name: Filter applications by platform compatibility
+      set_fact:
+        compatible_applications: >-
+          {%- set compatible = [] -%}
+          {%- set universal = dotfiles_application_compatibility.universal -%}
+          {%- set platform_specific = [] -%}
+
+          {%- if ansible_os_family == 'Darwin' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.macos_only -%}
+          {%- elif ansible_os_family == 'Windows' -%}
+            {%- set platform_specific = dotfiles_application_compatibility.windows_only -%}
+          {%- elif ansible_os_family in ['Debian', 'RedHat', 'Archlinux'] -%}
+            {%- set platform_specific = dotfiles_application_compatibility.unix_like + dotfiles_application_compatibility.linux_only -%}
+          {%- endif -%}
+
+          {{ (universal + platform_specific) | unique }}
+      tags: ['dotfiles', 'conditional', 'filtering']
+
+    - name: Apply profile-based application filtering
+      set_fact:
+        profile_filtered_applications: >-
+          {%- set profile_config = dotfiles_profile_applications[profile | default('minimal')] -%}
+          {%- set required = profile_config.required | default([]) -%}
+          {%- set optional = profile_config.optional | default([]) -%}
+          {%- set excluded = profile_config.excluded | default([]) -%}
+
+          {%- set filtered = [] -%}
+          {%- for app in compatible_applications -%}
+            {%- if app in required or (app in optional and profile_config.get('window_manager_support', false)) -%}
+              {%- if app not in excluded -%}
+                {%- set _ = filtered.append(app) -%}
+              {%- endif -%}
+            {%- elif app in compatible_applications and app not in excluded -%}
+              {%- if not (app in dotfiles_application_compatibility.linux_only and profile == 'minimal') -%}
+                {%- set _ = filtered.append(app) -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ filtered | unique }}
+      when: profile is defined
+      tags: ['dotfiles', 'conditional', 'profile']
+
+    - name: Apply environment type restrictions
+      set_fact:
+        final_applications: >-
+          {%- set apps = profile_filtered_applications | default(compatible_applications) -%}
+          {%- if detected_environment == 'enterprise' -%}
+            {%- set enterprise_config = dotfiles_environment_configs.enterprise -%}
+            {%- if enterprise_config.security_hardened -%}
+              {%- set filtered = [] -%}
+              {%- for app in apps -%}
+                {%- if app not in ['discord', 'steam', 'gaming_apps'] -%}
+                  {%- set _ = filtered.append(app) -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {{ filtered }}
+            {%- else -%}
+              {{ apps }}
+            {%- endif -%}
+          {%- else -%}
+            {{ apps }}
+          {%- endif -%}
+      tags: ['dotfiles', 'conditional', 'environment']
+
+    - name: Set conditional deployment variables
+      set_fact:
+        dotfiles_conditional_applications: "{{ final_applications | default([]) }}"
+      tags: ['dotfiles', 'conditional', 'variables']
+
+    - name: "📋 DEPLOYMENT PLAN"
+      debug:
+        msg: |
+          🎯 Conditional Deployment Analysis Complete:
+
+          📱 Platform: {{ ansible_os_family }} ({{ ansible_distribution | default('Unknown') }})
+          🖥️  Display Server: None
+          🪟 Window Manager: {{ detected_window_manager | default('none') | title }}
+          👤 Profile: {{ profile | default('minimal') | title }}
+          🏢 Environment: {{ detected_environment | default('personal') | title }}
+
+          📦 Applications to Deploy ({{ final_applications | default([]) | length }}):
+          {% for app in final_applications | default([]) %}
+          • ✅ {{ app }}
+          {% endfor %}
+      tags: ['dotfiles', 'conditional', 'summary']
+
+    - name: Deploy applications based on conditional analysis
+      include_tasks: roles/dotfiles/tasks/conditional_application_deployment.yml
+      when:
+        - dotfiles_source_check.stat.exists
+        - dotfiles_conditional_applications is defined
+      tags: ['dotfiles', 'applications']
+
+    - name: "📊 DOTFILES SUMMARY"
+      debug:
+        msg: |
+          Dotfiles management completed:
+          • Source: {{ playbook_dir }}/files/dotfiles
+          • Status: {{ '✅ CONFIGURED' if dotfiles_source_check.stat.exists else '❌ SOURCE MISSING' }}
+          • Applications: {{ dotfiles_conditional_applications | default([]) | join(', ') }}
+      tags: ['dotfiles', 'summary']

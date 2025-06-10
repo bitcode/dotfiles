@@ -1,0 +1,278 @@
+---
+# Windows-specific configuration variables
+# These variables apply to all Windows systems
+
+# OS Information
+os_family: "Windows"
+os_name: "Windows"
+package_manager: "chocolatey"
+
+# Chocolatey Configuration
+chocolatey_config:
+  state: present
+  source: chocolatey
+  install_args: ""
+  params: ""
+
+# Windows-specific packages
+windows_packages:
+  essential:
+    - chocolatey
+    - git
+    - curl
+    - wget
+    - vim
+    - 7zip
+    - notepadplusplus
+    - powershell-core
+  
+  development:
+    - git
+    - python3
+    - nodejs
+    - npm
+    - yarn
+    - openjdk
+    - maven
+    - gradle
+    - golang
+    - rust
+    - ruby
+    - visualstudio2022community
+  
+  gui:
+    - firefox
+    - googlechrome
+    - vscode
+    - windows-terminal
+    - vlc
+    - gimp
+  
+  server:
+    - openssh
+    - nginx
+    - apache-httpd
+  
+  docker:
+    - docker-desktop
+    - docker-compose
+  
+  gaming:
+    - steam
+    - epicgameslauncher
+    - origin
+    - uplay
+  
+  media:
+    - vlc
+    - audacity
+    - obs-studio
+    - ffmpeg
+    - imagemagick
+
+# Windows Features
+windows_features:
+  essential:
+    - IIS-WebServerRole
+    - IIS-WebServer
+    - IIS-CommonHttpFeatures
+    - IIS-HttpErrors
+    - IIS-HttpLogging
+    - IIS-RequestFiltering
+    - IIS-StaticContent
+  
+  development:
+    - Microsoft-Windows-Subsystem-Linux
+    - VirtualMachinePlatform
+    - Containers-DisposableClientVM
+  
+  server:
+    - IIS-WebServerRole
+    - IIS-ASPNET45
+
+# PowerShell Modules
+windows_powershell_modules:
+  - PowerShellGet
+  - PackageManagement
+  - PSReadLine
+  - Posh-Git
+  - Oh-My-Posh
+  - Terminal-Icons
+
+# System Services
+windows_services:
+  essential:
+    - sshd
+    - ssh-agent
+  
+  docker:
+    - docker
+  
+  development:
+    - LxssManager  # WSL
+
+# System Configuration
+windows_system:
+  timezone: "UTC"
+  
+  # Windows Update settings
+  windows_update:
+    auto_update: false
+    reboot_required: false
+  
+  # Security settings
+  security:
+    windows_defender: true
+    firewall: true
+    uac: true
+  
+  # Performance settings
+  performance:
+    visual_effects: "best_performance"
+    power_plan: "high_performance"
+
+# File paths
+windows_paths:
+  home: "C:\\Users\\{{ ansible_user }}"
+  config: "C:\\Users\\{{ ansible_user }}\\AppData\\Roaming"
+  local: "C:\\Users\\{{ ansible_user }}\\AppData\\Local"
+  bin: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\bin"
+  applications: "C:\\Program Files"
+  user_applications: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\Programs"
+  fonts: "C:\\Windows\\Fonts"
+  
+  # Chocolatey paths
+  chocolatey: "C:\\ProgramData\\chocolatey"
+  chocolatey_bin: "C:\\ProgramData\\chocolatey\\bin"
+
+# Shell configuration
+windows_shell:
+  default: "powershell"
+  alternatives:
+    - "cmd"
+    - "pwsh"
+    - "bash"  # WSL
+  
+  # Terminal applications
+  terminals:
+    - "Windows Terminal"
+    - "PowerShell ISE"
+    - "Command Prompt"
+    - "Windows PowerShell"
+
+# Development tools
+windows_dev_tools:
+  wsl_enabled: true
+  wsl_distributions:
+    - Ubuntu-20.04
+    - Ubuntu-22.04
+  
+  editors:
+    - notepad
+    - notepadplusplus
+    - vscode
+    - visualstudio2022community
+  
+  version_control:
+    - git
+    - tortoisegit
+    - sourcetree
+  
+  build_tools:
+    - cmake
+    - ninja
+    - msbuild
+
+# Registry settings
+windows_registry:
+  # Show file extensions
+  - path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    name: HideFileExt
+    data: 0
+    type: dword
+  
+  # Show hidden files
+  - path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    name: Hidden
+    data: 1
+    type: dword
+  
+  # Disable Windows Defender (if needed)
+  # - path: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender
+  #   name: DisableAntiSpyware
+  #   data: 1
+  #   type: dword
+
+# Windows Subsystem for Linux
+windows_wsl:
+  enabled: true
+  version: 2
+  default_distribution: "Ubuntu-22.04"
+  
+  distributions:
+    - name: "Ubuntu-22.04"
+      source: "https://aka.ms/wslubuntu2204"
+    - name: "Ubuntu-20.04"
+      source: "https://aka.ms/wslubuntu2004"
+
+# Gaming configuration
+windows_gaming:
+  steam_library_folders:
+    - "C:\\Program Files (x86)\\Steam\\steamapps"
+    - "D:\\SteamLibrary"
+  
+  graphics_drivers:
+    nvidia: "geforce-game-ready-driver"
+    amd: "amd-software"
+  
+  gaming_tools:
+    - steam
+    - epicgameslauncher
+    - origin
+    - uplay
+    - discord
+    - obs-studio
+
+# Compatibility settings
+windows_compatibility:
+  minimum_version: "10.0.19041"  # Windows 10 2004
+  supported_versions:
+    - "10.0.19041"  # Windows 10 2004
+    - "10.0.19042"  # Windows 10 20H2
+    - "10.0.19043"  # Windows 10 21H1
+    - "10.0.19044"  # Windows 10 21H2
+    - "10.0.22000"  # Windows 11 21H2
+    - "10.0.22621"  # Windows 11 22H2
+  
+  architecture_support:
+    - "AMD64"
+    - "ARM64"
+
+# Windows-specific environment variables
+windows_environment:
+  PATH:
+    - "C:\\ProgramData\\chocolatey\\bin"
+    - "C:\\Program Files\\Git\\bin"
+    - "C:\\Program Files\\PowerShell\\7"
+    - "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\bin"
+  
+  CHOCOLATEY_INSTALL_TIMEOUT: "300"
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+
+# Scheduled tasks
+windows_scheduled_tasks:
+  - name: "Chocolatey Update"
+    description: "Update all Chocolatey packages"
+    command: "choco upgrade all -y"
+    trigger:
+      frequency: weekly
+      day: sunday
+      time: "02:00"
+  
+  - name: "System Cleanup"
+    description: "Clean temporary files and system cache"
+    command: "cleanmgr /sagerun:1"
+    trigger:
+      frequency: monthly
+      day: 1
+      time: "03:00"

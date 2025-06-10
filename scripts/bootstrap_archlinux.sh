@@ -1,28 +1,58 @@
 #!/bin/bash
 # Arch Linux-Specific Bootstrap Script for Dotsible
+# Updates system packages, installs Python/Ansible, and configures AUR helper
+
 set -euo pipefail
 
-# Colors
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-BLUE="\033[0;34m"
-YELLOW="\033[1;33m"
-NC="\033[0m"
+# Script configuration
+readonly SCRIPT_NAME="$(basename "$0")"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LOG_DIR="$HOME/.dotsible/logs"
+readonly LOG_FILE="$LOG_DIR/bootstrap_archlinux_$(date +%Y%m%d_%H%M%S).log"
 
-# Logging
-LOG_DIR="$HOME/.dotsible/logs"
-LOG_FILE="$LOG_DIR/bootstrap_archlinux_$(date +%Y%m%d_%H%M%S).log"
-mkdir -p "$LOG_DIR"
+# Colors for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
 
-log() { echo "$(date) [INFO] $*" | tee -a "$LOG_FILE"; }
-error() { echo -e "${RED}$(date) [ERROR] $*${NC}" | tee -a "$LOG_FILE" >&2; }
-success() { echo -e "${GREEN}$(date) [SUCCESS] $*${NC}" | tee -a "$LOG_FILE"; }
-info() { echo -e "${BLUE}$(date) [INFO] $*${NC}" | tee -a "$LOG_FILE"; }
-warning() { echo -e "${YELLOW}$(date) [WARN] $*${NC}" | tee -a "$LOG_FILE"; }
+# Configuration
+readonly MIN_PYTHON_VERSION="3.8"
+readonly MIN_ANSIBLE_VERSION="2.9"
+readonly AUR_HELPER="yay"
 
+# Global variables
 ENVIRONMENT_TYPE="${1:-personal}"
-TARGET_PYTHON_VERSION="3.13.4"
-REQUIRED_PYTHON_MAJOR_MINOR="3.13"
+FORCE_REINSTALL=false
+VERBOSE=false
+
+# Logging functions
+setup_logging() {
+    mkdir -p "$LOG_DIR"
+    exec 1> >(tee -a "$LOG_FILE")
+    exec 2> >(tee -a "$LOG_FILE" >&2)
+}
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $*" | tee -a "$LOG_FILE" >/dev/null
+}
+
+error() {
+    echo -e "${RED}$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $*${NC}" | tee -a "$LOG_FILE" >&2
+}
+
+warning() {
+    echo -e "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') [WARN] $*${NC}" | tee -a "$LOG_FILE" >&2
+}
+
+success() {
+    echo -e "${GREEN}$(date '+%Y-%m-%d %H:%M:%S') [SUCCESS] $*${NC}" | tee -a "$LOG_FILE"
+}
+
+info() {
+    echo -e "${BLUE}$(date '+%Y-%m-%d %H:%M:%S') [INFO] $*${NC}" | tee -a "$LOG_FILE"
+}
 
 # Progress indicator
 show_progress() {
@@ -47,11 +77,13 @@ show_progress() {
 validate_arch_system() {
     info "Validating Arch Linux system..."
     
+    # Check if running on Arch Linux
     if [[ ! -f /etc/arch-release ]]; then
         error "This script is designed for Arch Linux systems"
         exit 1
     fi
     
+    # Check if pacman is available
     if ! command -v pacman >/dev/null 2>&1; then
         error "pacman package manager not found"
         exit 1
@@ -63,11 +95,19 @@ validate_arch_system() {
 # System update
 update_system() {
     info "Updating system packages..."
-    sudo pacman -Syu --noconfirm
+    
+    # Update package database
+    info "Updating package database..."
+    sudo pacman -Sy --noconfirm
+    
+    # Upgrade system packages
+    info "Upgrading system packages..."
+    sudo pacman -Su --noconfirm
+    
     success "System update completed"
 }
 
-# Base development tools
+# Base development tools installation
 install_base_tools() {
     info "Installing base development tools..."
     
@@ -76,8 +116,9 @@ install_base_tools() {
         "git"
         "curl"
         "wget"
-        "python"
-        "python-pip"
+        "unzip"
+        "tar"
+        "gzip"
         "which"
         "sudo"
     )
@@ -94,83 +135,59 @@ install_base_tools() {
     success "Base development tools installed"
 }
 
-# Python version management - upgrade to Python 3.13
-manage_python_version() {
-    info "🐍 Managing Python version..."
-
-    # Check current Python version
-    local current_version=""
-    if command -v python3 >/dev/null 2>&1; then
-        current_version=$(python3 --version 2>&1 | cut -d' ' -f2)
-        info "Current Python: $current_version"
-    fi
-
-    # Check if we already have the target version
-    if [[ "$current_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
-        success "Python $REQUIRED_PYTHON_MAJOR_MINOR already installed"
-        return 0
-    fi
-
-    # Install Python 3.13 via pacman
-    info "Installing Python 3.13 via pacman..."
+# Python installation
+install_python() {
+    info "Installing Python..."
+    
+    # Check if Python 3.8+ is already available
+    local python_cmd=""
+    local python_version=""
+    
+    for cmd in python3 python python3.11 python3.10 python3.9 python3.8; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            python_version=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            if [[ -n "$python_version" ]]; then
+                if python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)" 2>/dev/null; then
+                    python_cmd="$cmd"
+                    success "Python found: $python_cmd (version $python_version)"
+                    return 0
+                fi
+            fi
+        fi
+    done
+    
+    info "Installing Python via pacman..."
+    
+    # Install Python and pip
     sudo pacman -S --noconfirm python python-pip
-
+    
     # Verify installation
     if command -v python3 >/dev/null 2>&1; then
-        local new_version=$(python3 --version 2>&1 | cut -d' ' -f2)
-        if [[ "$new_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
-            success "✅ Python $new_version installed successfully"
-        else
-            warning "⚠️  Python installed but version is $new_version (expected $REQUIRED_PYTHON_MAJOR_MINOR.x)"
-        fi
+        python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        success "Python installed successfully: version $python_version"
+        
+        # Upgrade pip
+        info "Upgrading pip..."
+        python3 -m pip install --user --upgrade pip
     else
-        error "❌ Python installation failed"
+        error "Python installation failed"
         exit 1
     fi
-
-    # Verify pip
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        error "❌ pip not working properly"
-        exit 1
-    fi
-
-    success "Python version management completed"
-}
-
-# Python and pip validation
-validate_python() {
-    info "Validating Python installation..."
-
-    if ! command -v python3 >/dev/null 2>&1; then
-        error "Python 3 not found"
-        exit 1
-    fi
-
-    if ! python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)" 2>/dev/null; then
-        error "Python 3.8+ required"
-        exit 1
-    fi
-
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        error "pip not working properly"
-        exit 1
-    fi
-
-    local python_version
-    python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    success "Python validation passed: version $python_version"
 }
 
 # AUR helper installation
 install_aur_helper() {
-    info "Installing AUR helper: yay"
+    info "Installing AUR helper: $AUR_HELPER"
     
-    if command -v yay >/dev/null 2>&1; then
-        success "yay already installed"
+    # Check if AUR helper is already installed
+    if command -v "$AUR_HELPER" >/dev/null 2>&1; then
+        success "AUR helper already installed: $AUR_HELPER"
         return 0
     fi
     
+    # Install yay from AUR
     local temp_dir="/tmp/yay-install"
+    
     info "Cloning yay repository..."
     rm -rf "$temp_dir"
     git clone https://aur.archlinux.org/yay.git "$temp_dir"
@@ -180,13 +197,44 @@ install_aur_helper() {
     makepkg -si --noconfirm
     cd - >/dev/null
     
+    # Clean up
     rm -rf "$temp_dir"
     
-    if command -v yay >/dev/null 2>&1; then
-        success "yay installed successfully"
+    # Verify installation
+    if command -v "$AUR_HELPER" >/dev/null 2>&1; then
+        success "AUR helper installed successfully: $AUR_HELPER"
     else
-        error "yay installation failed"
+        error "AUR helper installation failed"
         exit 1
+    fi
+}
+
+# Function to verify all required Ansible commands are available
+verify_ansible_commands() {
+    local expected_commands=(
+        "ansible"
+        "ansible-playbook"
+        "ansible-galaxy"
+        "ansible-vault"
+        "ansible-config"
+        "ansible-inventory"
+        "ansible-doc"
+    )
+
+    local missing_commands=()
+
+    for cmd in "${expected_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_commands+=("$cmd")
+        fi
+    done
+
+    if [[ ${#missing_commands[@]} -eq 0 ]]; then
+        success "✅ All Ansible commands verified successfully"
+        return 0
+    else
+        error "❌ Missing Ansible commands: ${missing_commands[*]}"
+        return 1
     fi
 }
 
@@ -194,21 +242,31 @@ install_aur_helper() {
 install_ansible() {
     info "Installing Ansible..."
     
+    # Check if Ansible is already installed
     if command -v ansible >/dev/null 2>&1; then
         local ansible_version
         ansible_version=$(ansible --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         success "Ansible already installed: version $ansible_version"
-        return 0
+
+        # Verify all commands are available
+        if verify_ansible_commands; then
+            return 0
+        else
+            warning "Ansible installation incomplete - missing subcommands"
+        fi
     fi
     
-    # Try pacman first
+    # Try installing via pacman first
+    info "Installing Ansible via pacman..."
     if sudo pacman -S --noconfirm ansible; then
         success "Ansible installed via pacman"
     else
+        # Fallback to pip installation
         warning "pacman installation failed, trying pip..."
+        info "Installing Ansible via pip..."
         python3 -m pip install --user ansible
         
-        # Add pip user bin to PATH
+        # Add pip user bin to PATH if not already there
         local pip_user_bin="$HOME/.local/bin"
         if [[ -d "$pip_user_bin" ]] && [[ ":$PATH:" != *":$pip_user_bin:"* ]]; then
             export PATH="$pip_user_bin:$PATH"
@@ -216,107 +274,80 @@ install_ansible() {
         fi
     fi
     
+    # Verify installation
     if command -v ansible >/dev/null 2>&1; then
         local ansible_version
         ansible_version=$(ansible --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         success "Ansible installed successfully: version $ansible_version"
+
+        # Verify all commands are available
+        if ! verify_ansible_commands; then
+            error "Ansible installation incomplete - missing critical subcommands"
+            exit 1
+        fi
     else
         error "Ansible installation failed"
         exit 1
     fi
 }
 
-# pipx installation
-install_pipx() {
-    info "Installing pipx..."
+# Configure Arch-specific Ansible requirements
+configure_arch_ansible() {
+    info "Configuring Arch-specific Ansible requirements..."
     
-    if command -v pipx >/dev/null 2>&1; then
-        local pipx_version
-        pipx_version=$(pipx --version 2>/dev/null || echo "unknown")
-        success "pipx already installed: version $pipx_version"
-        return 0
-    fi
+    # Install additional Python packages
+    local packages=(
+        "requests"
+        "urllib3"
+        "certifi"
+        "pexpect"
+    )
     
-    # Verify pip3 is working
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        error "pip3 is not working properly"
-        exit 1
-    fi
-    
-    info "Installing pipx via pip..."
-    python3 -m pip install --user pipx
-    
-    # Add pipx to PATH
-    local pip_user_bin="$HOME/.local/bin"
-    if [[ -d "$pip_user_bin" ]] && [[ ":$PATH:" != *":$pip_user_bin:"* ]]; then
-        export PATH="$pip_user_bin:$PATH"
-        info "Added $pip_user_bin to PATH"
-    fi
-    
-    # Configure pipx
-    if command -v pipx >/dev/null 2>&1; then
-        info "Configuring pipx environment..."
-        pipx ensurepath --force 2>/dev/null || true
-        
-        local pipx_version
-        pipx_version=$(pipx --version 2>/dev/null || echo "unknown")
-        success "pipx installed successfully: version $pipx_version"
-    else
-        error "pipx installation failed"
-        exit 1
-    fi
-}
-
-# Ansible development tools
-install_ansible_dev_tools() {
-    info "Installing Ansible development tools..."
-    
-    if ! command -v pipx >/dev/null 2>&1; then
-        error "pipx is required but not found"
-        exit 1
-    fi
-    
-    # Install community-ansible-dev-tools
-    if pipx list | grep -q "community-ansible-dev-tools" 2>/dev/null; then
-        success "community-ansible-dev-tools already installed"
-    else
-        info "Installing community-ansible-dev-tools via pipx..."
-        if pipx install community-ansible-dev-tools; then
-            success "community-ansible-dev-tools installed successfully"
-        else
-            error "community-ansible-dev-tools installation failed"
-            exit 1
-        fi
-    fi
-    
-    # Install ansible-lint
-    if pipx list | grep -q "ansible-lint" 2>/dev/null; then
-        success "ansible-lint already installed"
-    else
-        info "Installing ansible-lint via pipx..."
-        if pipx install ansible-lint; then
-            success "ansible-lint installed successfully"
-        else
-            error "ansible-lint installation failed"
-            exit 1
-        fi
-    fi
-    
-    # Verify installations
-    local tools=("community-ansible-dev-tools" "ansible-lint")
-    for tool in "${tools[@]}"; do
-        if command -v "$tool" >/dev/null 2>&1; then
-            success "$tool is accessible"
-        else
-            warning "$tool installed but not in PATH"
-        fi
+    for package in "${packages[@]}"; do
+        info "Installing Python package: $package"
+        python3 -m pip install --user "$package" || warning "Failed to install $package"
     done
+    
+    # Create Ansible configuration directory
+    local ansible_config_dir="$HOME/.ansible"
+    if [[ ! -d "$ansible_config_dir" ]]; then
+        mkdir -p "$ansible_config_dir"
+        info "Created Ansible configuration directory: $ansible_config_dir"
+    fi
+    
+    # Create basic ansible.cfg if it doesn't exist
+    local ansible_cfg="$ansible_config_dir/ansible.cfg"
+    if [[ ! -f "$ansible_cfg" ]]; then
+        cat > "$ansible_cfg" << EOF
+[defaults]
+host_key_checking = False
+retry_files_enabled = False
+gathering = smart
+fact_caching = memory
+stdout_callback = yaml
+bin_ansible_callbacks = True
+become_ask_pass = False
+
+[ssh_connection]
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+become_ask_pass = False
+EOF
+        info "Created Ansible configuration: $ansible_cfg"
+    fi
+    
+    success "Arch Ansible configuration completed"
 }
 
 # Configure sudo permissions
 configure_sudo() {
     info "Configuring sudo permissions..."
     
+    # Check if user is in wheel group
     if groups "$USER" | grep -q wheel; then
         success "User already in wheel group"
     else
@@ -325,6 +356,7 @@ configure_sudo() {
         success "User added to wheel group"
     fi
     
+    # Configure sudo for wheel group
     local sudoers_file="/etc/sudoers.d/wheel"
     if [[ ! -f "$sudoers_file" ]]; then
         info "Configuring sudo for wheel group..."
@@ -336,6 +368,54 @@ configure_sudo() {
     fi
 }
 
+# Environment-specific configuration
+configure_environment() {
+    local env_type="$1"
+    
+    info "Configuring for environment type: $env_type"
+    
+    case "$env_type" in
+        enterprise)
+            info "Applying enterprise-specific configurations..."
+            
+            # Install additional enterprise tools
+            local enterprise_packages=(
+                "openssh"
+                "rsync"
+                "htop"
+                "neofetch"
+            )
+            
+            for package in "${enterprise_packages[@]}"; do
+                if ! pacman -Q "$package" >/dev/null 2>&1; then
+                    info "Installing enterprise package: $package"
+                    sudo pacman -S --noconfirm "$package" || warning "Failed to install $package"
+                fi
+            done
+            ;;
+        personal)
+            info "Applying personal environment configurations..."
+            
+            # Install additional personal tools
+            local personal_packages=(
+                "neofetch"
+                "htop"
+                "tree"
+            )
+            
+            for package in "${personal_packages[@]}"; do
+                if ! pacman -Q "$package" >/dev/null 2>&1; then
+                    info "Installing personal package: $package"
+                    sudo pacman -S --noconfirm "$package" || warning "Failed to install $package"
+                fi
+            done
+            ;;
+        *)
+            warning "Unknown environment type: $env_type. Using default configuration."
+            ;;
+    esac
+}
+
 # Final validation
 final_validation() {
     info "Performing final validation..."
@@ -343,6 +423,12 @@ final_validation() {
     # Check pacman
     if ! command -v pacman >/dev/null 2>&1; then
         error "pacman validation failed"
+        return 1
+    fi
+    
+    # Check AUR helper
+    if ! command -v "$AUR_HELPER" >/dev/null 2>&1; then
+        error "AUR helper validation failed"
         return 1
     fi
     
@@ -358,82 +444,52 @@ final_validation() {
         return 1
     fi
     
-    # Check pipx
-    if ! command -v pipx >/dev/null 2>&1; then
-        error "pipx validation failed"
-        return 1
-    fi
-    
-    # Check development tools
-    local dev_tools=("community-ansible-dev-tools" "ansible-lint")
-    for tool in "${dev_tools[@]}"; do
-        if command -v "$tool" >/dev/null 2>&1; then
-            success "$tool validation passed"
-        else
-            warning "$tool not found in PATH but may be installed via pipx"
-        fi
-    done
-    
-    # Comprehensive Ansible command verification
-    local expected_commands=("ansible" "ansible-playbook" "ansible-galaxy" "ansible-vault")
-    local missing_commands=()
-
-    for cmd in "${expected_commands[@]}"; do
-        if ! command -v "$cmd" >/dev/null 2>&1; then
-            missing_commands+=("$cmd")
-        fi
-    done
-
-    if [[ ${#missing_commands[@]} -gt 0 ]]; then
-        warning "Missing Ansible commands: ${missing_commands[*]}"
-        warning "This may indicate an incomplete pipx installation"
-
-        # Try to fix with pipx force reinstall
-        if command -v pipx >/dev/null 2>&1; then
-            info "Attempting to fix Ansible installation..."
-            pipx install --force ansible >/dev/null 2>&1 || warning "Failed to force reinstall Ansible"
-        fi
-    else
-        success "All critical Ansible commands available"
-    fi
-
     # Test Ansible functionality
     if ! ansible localhost -m ping >/dev/null 2>&1; then
         warning "Ansible ping test failed, but installation appears successful"
     else
         success "Ansible functionality verified"
     fi
-
+    
     success "All validations passed!"
     return 0
 }
 
-# Main function
+# Main execution function
 main() {
-    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                ARCH LINUX BOOTSTRAP SCRIPT                  ║${NC}"
-    echo -e "${BLUE}║              Dotsible Environment Setup                     ║${NC}"
-    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    # Setup logging
+    setup_logging
     
-    log "Arch Linux bootstrap started for environment: $ENVIRONMENT_TYPE"
+    # Display banner
+    echo -e "${BLUE}"
+    cat << "EOF"
+╔══════════════════════════════════════════════════════════════╗
+║                ARCH LINUX BOOTSTRAP SCRIPT                  ║
+║              Dotsible Environment Setup                     ║
+╚══════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
     
-    local total_steps=10
+    log "Arch Linux bootstrap started"
+    log "Environment type: $ENVIRONMENT_TYPE"
+    log "Working directory: $(pwd)"
+    log "Script location: $SCRIPT_DIR"
+    
+    # Main bootstrap sequence
+    local total_steps=9
     local current_step=0
     
     show_progress $((++current_step)) $total_steps "Validating Arch system..."
     validate_arch_system
     
-    show_progress $((++current_step)) $total_steps "Updating system..."
+    show_progress $((++current_step)) $total_steps "Updating system packages..."
     update_system
     
     show_progress $((++current_step)) $total_steps "Installing base tools..."
     install_base_tools
-
-    show_progress $((++current_step)) $total_steps "Managing Python version..."
-    manage_python_version
-
-    show_progress $((++current_step)) $total_steps "Validating Python..."
-    validate_python
+    
+    show_progress $((++current_step)) $total_steps "Installing Python..."
+    install_python
     
     show_progress $((++current_step)) $total_steps "Installing AUR helper..."
     install_aur_helper
@@ -441,39 +497,37 @@ main() {
     show_progress $((++current_step)) $total_steps "Installing Ansible..."
     install_ansible
     
-    show_progress $((++current_step)) $total_steps "Installing pipx..."
-    install_pipx
-    
-    show_progress $((++current_step)) $total_steps "Installing Ansible dev tools..."
-    install_ansible_dev_tools
+    show_progress $((++current_step)) $total_steps "Configuring Ansible..."
+    configure_arch_ansible
     
     show_progress $((++current_step)) $total_steps "Configuring sudo..."
     configure_sudo
     
+    show_progress $((++current_step)) $total_steps "Configuring environment..."
+    configure_environment "$ENVIRONMENT_TYPE"
+    
     show_progress $total_steps $total_steps "Performing final validation..."
     final_validation
     
+    # Success message
     echo
     success "Arch Linux bootstrap completed successfully!"
     echo
     info "Installed components:"
     echo "  - System packages: Updated and base-devel installed"
     echo "  - Python: $(python3 --version)"
-    echo "  - AUR helper: yay $(yay --version | head -1 2>/dev/null || echo 'installed')"
+    echo "  - AUR helper: $AUR_HELPER $(yay --version | head -1)"
     echo "  - Ansible: $(ansible --version | head -1)"
-    if command -v pipx >/dev/null 2>&1; then
-        echo "  - pipx: $(pipx --version 2>/dev/null || echo 'installed')"
-    fi
-    if command -v community-ansible-dev-tools >/dev/null 2>&1; then
-        echo "  - community-ansible-dev-tools: $(community-ansible-dev-tools --version 2>/dev/null || echo 'installed')"
-    fi
-    if command -v ansible-lint >/dev/null 2>&1; then
-        echo "  - ansible-lint: $(ansible-lint --version 2>/dev/null || echo 'installed')"
-    fi
     echo
-    info "Environment: $ENVIRONMENT_TYPE"
-    info "Log: $LOG_FILE"
+    info "Environment type: $ENVIRONMENT_TYPE"
+    info "Log file: $LOG_FILE"
+    
+    log "Arch Linux bootstrap completed successfully"
+    exit 0
 }
 
-trap 'error "Arch Linux bootstrap failed at line $LINENO"; exit 1' ERR
+# Error handling
+trap 'error "Arch Linux bootstrap failed at line $LINENO. Check log: $LOG_FILE"; exit 1' ERR
+
+# Execute main function
 main "$@"

@@ -1,0 +1,89 @@
+MDM Detection Report
+===================
+
+Generated: {{ ansible_date_time.iso8601 }}
+Hostname: {{ inventory_hostname }}
+User: {{ ansible_user }}
+macOS Version: {{ ansible_distribution_version }}
+
+Detection Results:
+-----------------
+MDM Detected: {{ mdm_detected | default(false) }}
+MDM Type: {{ mdm_type | default('none') }}
+{% if mdm_details is defined and mdm_details %}
+MDM Details:
+{% for key, value in mdm_details.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+
+Configuration Profiles:
+----------------------
+{% if configuration_profiles is defined %}
+Total Profiles: {{ configuration_profiles | length }}
+{% if configuration_profiles | length > 0 %}
+Installed Profiles:
+{% for profile in configuration_profiles %}
+- {{ profile }}
+{% endfor %}
+{% endif %}
+{% else %}
+Profile information not available
+{% endif %}
+
+Enterprise Management Status:
+----------------------------
+{% if mdm_detected %}
+✅ Enterprise management detected
+{% if macos_enterprise.mdm.respect_mdm_settings %}
+⚠️  MDM-conflicting operations will be skipped
+Restricted Operations:
+{% for restriction in macos_enterprise.mdm.skip_when_mdm_detected %}
+- {{ restriction }}
+{% endfor %}
+{% else %}
+⚠️  MDM restrictions are being ignored (force_ignore_mdm=true)
+{% endif %}
+{% else %}
+ℹ️  No enterprise management detected
+All system configuration operations are available
+{% endif %}
+
+Recommendations:
+---------------
+{% if mdm_detected %}
+{% if macos_enterprise.mdm.respect_mdm_settings %}
+- System-level changes will be automatically skipped
+- User-level preferences and applications can still be managed
+- Contact your IT administrator for enterprise policy questions
+{% else %}
+- MDM restrictions are being overridden
+- Use caution when modifying system settings
+- Some changes may conflict with enterprise policies
+{% endif %}
+{% else %}
+- Full system configuration is available
+- All Dotsible features can be used without restrictions
+- Consider enabling MDM detection for future enterprise compatibility
+{% endif %}
+
+Detection Methods Used:
+----------------------
+{% for method in macos_enterprise.mdm.detection_methods %}
+{% if method is mapping %}
+{% for key, path in method.items() %}
+{{ key }}: {{ path }}
+{% endfor %}
+{% else %}
+{{ method }}
+{% endif %}
+{% endfor %}
+
+Safe Operations (Always Available):
+----------------------------------
+{% for operation in macos_enterprise.mdm.safe_operations %}
+- {{ operation }}
+{% endfor %}
+
+Report Location: {{ ansible_user_dir }}/.dotsible/mdm_detection_report.txt
+For more information, run: dotsible-help

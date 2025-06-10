@@ -1,0 +1,213 @@
+---
+# macOS Enterprise Management Variables
+
+# Default enterprise configuration
+default_macos_enterprise:
+  mdm:
+    detect_mdm: true
+    respect_mdm_settings: true
+    force_ignore_mdm: false
+    
+  desktop_layout:
+    enabled: true
+    backup_dir: "{{ ansible_user_dir }}/.dotsible/desktop_layouts"
+    auto_backup:
+      enabled: false
+      frequency: "daily"
+      retention_days: 30
+
+# Enterprise management tools
+enterprise_tools:
+  - name: "dotsible-detect-mdm"
+    description: "Detect MDM/enterprise management solutions"
+    category: "detection"
+  
+  - name: "dotsible-system-info"
+    description: "Display comprehensive system information"
+    category: "information"
+  
+  - name: "dotsible-compliance-check"
+    description: "Check enterprise compliance status"
+    category: "compliance"
+  
+  - name: "dotsible-backup-desktop"
+    description: "Backup current desktop layout"
+    category: "desktop"
+  
+  - name: "dotsible-restore-desktop"
+    description: "Restore saved desktop layout"
+    category: "desktop"
+  
+  - name: "dotsible-capture-desktop"
+    description: "Capture current desktop arrangement"
+    category: "desktop"
+  
+  - name: "dotsible-list-desktop-backups"
+    description: "List available desktop backups"
+    category: "desktop"
+  
+  - name: "dotsible-help"
+    description: "Display enterprise management help"
+    category: "help"
+
+# MDM detection patterns
+mdm_detection_patterns:
+  jamf_pro:
+    binary: "/usr/local/bin/jamf"
+    plist: "/Library/Preferences/com.jamfsoftware.jamf.plist"
+    description: "Jamf Pro Mobile Device Management"
+    
+  microsoft_intune:
+    agent: "/Library/Intune/Microsoft Intune Agent.app"
+    portal: "/Applications/Company Portal.app"
+    description: "Microsoft Intune Mobile Device Management"
+    
+  vmware_workspace_one:
+    hub: "/Applications/Workspace ONE Intelligent Hub.app"
+    description: "VMware Workspace ONE Unified Endpoint Management"
+    
+  kandji:
+    agent: "/Library/Kandji/Kandji Agent.app"
+    description: "Kandji Apple Device Management"
+    
+  mosyle:
+    binary: "/usr/local/bin/mosyle"
+    description: "Mosyle Apple Device Management"
+    
+  addigy:
+    agent: "/Library/Addigy/auditor"
+    description: "Addigy Mac Management Platform"
+
+# Desktop layout plist mappings
+desktop_plist_mappings:
+  finder_prefs:
+    path: "~/Library/Preferences/com.apple.finder.plist"
+    keys:
+      - "DesktopViewSettings"
+      - "FK_StandardViewSettings"
+      - "StandardViewSettings"
+      - "IconViewSettings"
+      
+  dock_prefs:
+    path: "~/Library/Preferences/com.apple.dock.plist"
+    keys:
+      - "autohide"
+      - "tilesize"
+      - "orientation"
+      - "magnification"
+      
+  global_prefs:
+    path: "~/Library/Preferences/.GlobalPreferences.plist"
+    keys:
+      - "AppleShowAllExtensions"
+      - "AppleShowScrollBars"
+      - "NSDocumentSaveNewDocumentsToCloud"
+
+# Enterprise-safe preferences
+safe_preferences:
+  user_level:
+    - domain: "com.apple.finder"
+      preferences:
+        - { key: "ShowPathbar", type: "bool", value: "true" }
+        - { key: "ShowStatusBar", type: "bool", value: "true" }
+        - { key: "AppleShowAllFiles", type: "bool", value: "true" }
+        
+    - domain: "com.apple.dock"
+      preferences:
+        - { key: "autohide", type: "bool", value: "true" }
+        - { key: "tilesize", type: "int", value: "48" }
+        
+    - domain: "NSGlobalDomain"
+      preferences:
+        - { key: "AppleShowAllExtensions", type: "bool", value: "true" }
+        - { key: "AppleShowScrollBars", type: "string", value: "Always" }
+
+# Compliance check definitions
+compliance_checks:
+  security:
+    - name: "FileVault Encryption"
+      command: "fdesetup status | grep -q 'FileVault is On'"
+      weight: 3
+      category: "security"
+      
+    - name: "Gatekeeper"
+      command: "spctl --status 2>/dev/null | grep -q 'assessments enabled'"
+      weight: 2
+      category: "security"
+      
+    - name: "Firewall"
+      command: "[ $(defaults read /Library/Preferences/com.apple.alf globalstate 2>/dev/null) -gt 0 ]"
+      weight: 2
+      category: "security"
+      
+  system:
+    - name: "Guest Account Disabled"
+      command: "dscl . -read /Users/Guest 2>&1 | grep -q 'eDSRecordNotFound'"
+      weight: 2
+      category: "system"
+      
+    - name: "System Integrity Protection"
+      command: "csrutil status 2>/dev/null | grep -q enabled"
+      weight: 2
+      category: "system"
+      
+  software:
+    - name: "Homebrew Installed"
+      command: "command -v brew >/dev/null 2>&1"
+      weight: 1
+      category: "software"
+      
+    - name: "Xcode Command Line Tools"
+      command: "xcode-select -p >/dev/null 2>&1"
+      weight: 1
+      category: "software"
+
+# Shell aliases for enterprise tools
+enterprise_aliases:
+  - alias: "detect-mdm"
+    command: "dotsible-detect-mdm"
+    description: "Detect MDM management"
+    
+  - alias: "system-info"
+    command: "dotsible-system-info"
+    description: "Show system information"
+    
+  - alias: "compliance-check"
+    command: "dotsible-compliance-check"
+    description: "Check compliance status"
+    
+  - alias: "backup-desktop"
+    command: "dotsible-backup-desktop"
+    description: "Backup desktop layout"
+    
+  - alias: "restore-desktop"
+    command: "dotsible-restore-desktop"
+    description: "Restore desktop layout"
+    
+  - alias: "capture-desktop"
+    command: "dotsible-capture-desktop"
+    description: "Capture desktop arrangement"
+    
+  - alias: "list-desktop-backups"
+    command: "dotsible-list-desktop-backups"
+    description: "List desktop backups"
+
+# Enterprise documentation templates
+documentation_templates:
+  readme:
+    title: "Dotsible macOS Enterprise Management"
+    sections:
+      - "Features"
+      - "Quick Start"
+      - "Configuration"
+      - "Files and Directories"
+      - "Support"
+      
+  verification_report:
+    title: "Enterprise Configuration Verification Report"
+    sections:
+      - "MDM Detection"
+      - "Desktop Layout Management"
+      - "Enterprise Scripts"
+      - "System Integration"
+      - "Overall Status"

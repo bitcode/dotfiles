@@ -1,0 +1,157 @@
+---
+# Maintenance playbook for system updates and cleanup
+# This playbook performs routine maintenance tasks across all systems
+
+- name: System maintenance and updates
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Display maintenance information
+      debug:
+        msg: |
+          Starting maintenance for: {{ inventory_hostname }}
+          OS: {{ ansible_os_family }} {{ ansible_distribution }}
+          Last boot: {{ ansible_date_time.date }}
+          Uptime: {{ ansible_uptime_seconds | int // 86400 }} days
+    
+    - name: Create maintenance log directory
+      file:
+        path: /var/log/dotsible
+        state: directory
+        mode: '0755'
+      
+  tasks:
+    - name: Update package cache and packages (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      when: ansible_os_family == "Debian"
+      register: apt_result
+      
+    - name: Update packages (Arch Linux)
+      pacman:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_os_family == "Archlinux"
+      register: pacman_result
+
+    # Enhanced Arch Linux maintenance
+    - name: Update AUR packages (Arch Linux)
+      command: "yay -Syu --noconfirm"
+      become: no
+      when:
+        - ansible_os_family == "Archlinux"
+        - update_aur_packages | default(false)
+      register: aur_result
+      failed_when: false
+      tags: ['maintenance', 'aur']
+
+    - name: Update source-compiled packages (Arch Linux)
+      include_tasks: ../roles/package_manager/tasks/update_source_packages.yml
+      when:
+        - ansible_os_family == "Archlinux"
+        - update_source_packages | default(false)
+      tags: ['maintenance', 'source']
+
+    - name: Check for orphaned packages (Arch Linux)
+      command: "pacman -Qtdq"
+      register: orphaned_packages
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == "Archlinux"
+
+    - name: Remove orphaned packages (Arch Linux)
+      command: "pacman -Rns --noconfirm {{ orphaned_packages.stdout_lines | join(' ') }}"
+      when:
+        - ansible_os_family == "Archlinux"
+        - orphaned_packages.stdout_lines | length > 0
+        - remove_orphaned_packages | default(false)
+      register: orphan_removal_result
+      
+    - name: Update packages (macOS)
+      homebrew:
+        update_homebrew: yes
+        upgrade_all: yes
+      when: ansible_os_family == "Darwin"
+      become: no
+      register: brew_result
+      
+    - name: Clean package cache (Debian/Ubuntu)
+      apt:
+        autoclean: yes
+        autoremove: yes
+      when: ansible_os_family == "Debian"
+      
+    - name: Clean package cache (Arch Linux)
+      command: "{{ item }}"
+      loop:
+        - "pacman -Sc --noconfirm"
+        - "yay -Sc --noconfirm"
+      when: ansible_os_family == "Archlinux"
+      changed_when: false
+      failed_when: false
+      
+    - name: Update Ansible collections
+      command: ansible-galaxy collection install -r requirements.yml --upgrade
+      delegate_to: localhost
+      become: no
+      run_once: true
+      
+    - name: Clean temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/ansible-*
+        - /var/tmp/ansible-*
+        - ~/.ansible/tmp
+      failed_when: false
+      
+    - name: Rotate logs
+      logrotate:
+        path: /etc/logrotate.conf
+      failed_when: false
+      
+    - name: Check disk usage
+      shell: df -h / | tail -1 | awk '{print $5}' | sed 's/%//'
+      register: disk_usage
+      changed_when: false
+      
+    - name: Warn about disk usage
+      debug:
+        msg: "Warning: Disk usage is {{ disk_usage.stdout }}% on {{ inventory_hostname }}"
+      when: disk_usage.stdout | int > 80
+      
+  post_tasks:
+    - name: Log maintenance completion
+      lineinfile:
+        path: /var/log/dotsible/maintenance.log
+        line: "{{ ansible_date_time.iso8601 }} - Maintenance completed on {{ inventory_hostname }}"
+        create: yes
+        mode: '0644'
+        
+    - name: Display maintenance summary
+      debug:
+        msg: |
+          Maintenance completed for {{ inventory_hostname }}
+          {% if apt_result is defined and apt_result.changed %}
+          - APT packages updated
+          {% endif %}
+          {% if pacman_result is defined and pacman_result.changed %}
+          - Pacman packages updated
+          {% endif %}
+          {% if aur_result is defined and aur_result.rc == 0 %}
+          - AUR packages updated
+          {% endif %}
+          {% if orphan_removal_result is defined and orphan_removal_result.changed %}
+          - Orphaned packages removed: {{ orphaned_packages.stdout_lines | length }}
+          {% endif %}
+          {% if brew_result is defined and brew_result.changed %}
+          - Homebrew packages updated
+          {% endif %}
+          - Disk usage: {{ disk_usage.stdout }}%
+          - Maintenance log: /var/log/dotsible/maintenance.log

@@ -1,0 +1,197 @@
+---
+# Desktop Layout Restore Tasks
+# Restores previously backed up desktop icon arrangements and Finder preferences
+
+- name: Determine backup to restore
+  set_fact:
+    restore_backup_dir: "{{ macos_enterprise.desktop_layout.backup_dir }}/{{ macos_desktop_backup_timestamp | default('latest') }}"
+  tags: ['desktop', 'restore', 'determine']
+
+- name: Check if backup directory exists
+  stat:
+    path: "{{ restore_backup_dir }}"
+  register: backup_dir_check
+  tags: ['desktop', 'restore', 'check']
+
+- name: Fail if backup directory doesn't exist
+  fail:
+    msg: |
+      Backup directory not found: {{ restore_backup_dir }}
+      
+      Available backups:
+      {{ lookup('pipe', 'ls -la ' + macos_enterprise.desktop_layout.backup_dir + ' 2>/dev/null || echo "No backups found"') }}
+      
+      To create a backup first, run:
+      ansible-playbook site.yml -e "macos_backup_desktop_layout=true"
+  when: not backup_dir_check.stat.exists
+  tags: ['desktop', 'restore', 'validation']
+
+- name: Load backup manifest
+  include_vars:
+    file: "{{ restore_backup_dir }}/manifest.yml"
+    name: backup_manifest
+  when: backup_dir_check.stat.exists
+  tags: ['desktop', 'restore', 'manifest']
+
+- name: Display restore information
+  debug:
+    msg: |
+      Restoring Desktop Layout
+      =======================
+      Backup Source: {{ restore_backup_dir }}
+      Original Hostname: {{ backup_manifest.backup_info.hostname | default('unknown') }}
+      Original User: {{ backup_manifest.backup_info.user | default('unknown') }}
+      Backup Timestamp: {{ backup_manifest.backup_info.timestamp | default('unknown') }}
+      Current Host: {{ inventory_hostname }}
+      Current User: {{ ansible_user }}
+  tags: ['desktop', 'restore', 'info']
+
+- name: Backup current settings before restore
+  block:
+    - name: Create pre-restore backup
+      include_tasks: backup_desktop_layout.yml
+      vars:
+        current_backup_dir: "{{ macos_enterprise.desktop_layout.backup_dir }}/pre_restore_{{ ansible_date_time.iso8601_basic_short }}"
+  when: macos_backup_before_restore | default(true) | bool
+  tags: ['desktop', 'restore', 'pre_backup']
+
+- name: Stop Finder and Dock to prevent conflicts
+  block:
+    - name: Kill Finder process
+      command: "killall Finder"
+      failed_when: false
+      changed_when: false
+
+    - name: Kill Dock process
+      command: "killall Dock"
+      failed_when: false
+      changed_when: false
+
+    - name: Wait for processes to stop
+      pause:
+        seconds: 2
+  tags: ['desktop', 'restore', 'stop_processes']
+
+- name: Restore plist files
+  block:
+    - name: Find backup plist files
+      find:
+        paths: "{{ restore_backup_dir }}"
+        patterns: "*.plist"
+      register: backup_plist_files
+
+    - name: Restore plist files to their original locations
+      copy:
+        src: "{{ item.path }}"
+        dest: "{{ plist_target_path }}"
+        remote_src: yes
+        mode: '0644'
+        backup: yes
+      vars:
+        plist_filename: "{{ item.path | basename | regex_replace('\\.plist$', '') }}"
+        plist_target_path: "{{ plist_mapping[plist_filename] | default(ansible_user_dir + '/Library/Preferences/' + plist_filename + '.plist') }}"
+        plist_mapping:
+          finder_prefs: "{{ ansible_user_dir }}/Library/Preferences/com.apple.finder.plist"
+          dock_prefs: "{{ ansible_user_dir }}/Library/Preferences/com.apple.dock.plist"
+          global_prefs: "{{ ansible_user_dir }}/Library/Preferences/.GlobalPreferences.plist"
+          spaces_prefs: "{{ ansible_user_dir }}/Library/Preferences/com.apple.spaces.plist"
+          window_manager_prefs: "{{ ansible_user_dir }}/Library/Preferences/com.apple.WindowManager.plist"
+      loop: "{{ backup_plist_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: plist_restore_results
+  tags: ['desktop', 'restore', 'plist']
+
+- name: Apply specific desktop layout settings
+  block:
+    - name: Load desktop settings from backup
+      include_vars:
+        file: "{{ restore_backup_dir }}/desktop_settings.json"
+        name: backup_desktop_settings
+      when: backup_dir_check.stat.exists
+
+    - name: Apply Finder desktop view settings
+      command: "defaults write com.apple.finder DesktopViewSettings '{{ backup_desktop_settings.finder_desktop_settings | to_json }}'"
+      when: backup_desktop_settings.finder_desktop_settings is defined
+      failed_when: false
+      changed_when: true
+
+    - name: Apply Finder icon view settings
+      command: "defaults write com.apple.finder FK_StandardViewSettings '{{ backup_desktop_settings.finder_icon_settings | to_json }}'"
+      when: backup_desktop_settings.finder_icon_settings is defined
+      failed_when: false
+      changed_when: true
+  tags: ['desktop', 'restore', 'settings']
+
+- name: Apply desktop layout profile settings
+  block:
+    - name: Get selected desktop profile
+      set_fact:
+        selected_profile: "{{ macos_desktop_layout_profile | default('default') }}"
+        profile_settings: "{{ macos_enterprise.desktop_layout.profiles[macos_desktop_layout_profile | default('default')] }}"
+
+    - name: Apply profile-specific icon settings
+      command: "defaults write com.apple.finder DesktopViewSettings -dict IconSize {{ profile_settings.icon_size }} GridSpacing {{ profile_settings.grid_spacing }} TextSize {{ profile_settings.text_size }} LabelOnBottom {{ 'true' if profile_settings.label_position == 'bottom' else 'false' }} ArrangeBy {{ profile_settings.arrange_by }}"
+      when: macos_apply_desktop_profile | default(false) | bool
+      changed_when: true
+  tags: ['desktop', 'restore', 'profile']
+
+- name: Restart Finder and Dock
+  block:
+    - name: Start Finder
+      command: "open -a Finder"
+      failed_when: false
+      changed_when: false
+
+    - name: Restart Dock
+      command: "killall Dock"
+      failed_when: false
+      changed_when: false
+
+    - name: Wait for services to restart
+      pause:
+        seconds: 3
+  tags: ['desktop', 'restore', 'restart_processes']
+
+- name: Verify desktop layout restoration
+  block:
+    - name: Check if Finder preferences were applied
+      command: "defaults read com.apple.finder DesktopViewSettings"
+      register: restored_finder_settings
+      failed_when: false
+      changed_when: false
+
+    - name: Check if Dock preferences were applied
+      command: "defaults read com.apple.dock"
+      register: restored_dock_settings
+      failed_when: false
+      changed_when: false
+  tags: ['desktop', 'restore', 'verify']
+
+- name: Create restore completion report
+  template:
+    src: desktop_restore_report.j2
+    dest: "{{ ansible_user_dir }}/.dotsible/desktop_restore_report_{{ ansible_date_time.iso8601_basic_short }}.txt"
+    mode: '0644'
+  vars:
+    restore_info:
+      timestamp: "{{ ansible_date_time.iso8601 }}"
+      backup_source: "{{ restore_backup_dir }}"
+      files_restored: "{{ plist_restore_results.results | selectattr('changed') | list | length }}"
+      verification_status: "{{ 'success' if restored_finder_settings.rc == 0 else 'partial' }}"
+  tags: ['desktop', 'restore', 'report']
+
+- name: Display restore completion message
+  debug:
+    msg: |
+      Desktop Layout Restore Completed
+      ===============================
+      Backup Source: {{ restore_backup_dir }}
+      Files Restored: {{ plist_restore_results.results | selectattr('changed') | list | length }}
+      Verification: {{ 'Success' if restored_finder_settings.rc == 0 else 'Partial - Please check manually' }}
+      
+      ℹ️  Desktop layout has been restored. You may need to:
+      1. Log out and log back in for all changes to take effect
+      2. Manually arrange any new icons that weren't present in the backup
+      3. Check that all applications are in their expected positions
+  tags: ['desktop', 'restore', 'completion']

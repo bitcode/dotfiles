@@ -35,10 +35,22 @@ if [[ -f "roles/platform_specific/macos/tasks/main.yml" ]]; then
         echo "❌ macOS: Missing Python development tools section"
     fi
     
-    if grep -q "community-ansible-dev-tools" roles/platform_specific/macos/tasks/main.yml; then
-        echo "✅ macOS: Has community-ansible-dev-tools installation"
+    if grep -q "Check if pip3 is working properly" roles/platform_specific/macos/tasks/main.yml; then
+        echo "✅ macOS: Has pip3 validation"
     else
-        echo "❌ macOS: Missing community-ansible-dev-tools installation"
+        echo "❌ macOS: Missing pip3 validation"
+    fi
+    
+    if grep -q "Check if pipx is already installed" roles/platform_specific/macos/tasks/main.yml; then
+        echo "✅ macOS: Has pipx installation check"
+    else
+        echo "❌ macOS: Missing pipx installation check"
+    fi
+    
+    if grep -q "ansible-dev-tools" roles/platform_specific/macos/tasks/main.yml; then
+        echo "✅ macOS: Has ansible-dev-tools installation"
+    else
+        echo "❌ macOS: Missing ansible-dev-tools installation"
     fi
     
     if grep -q "ansible-lint" roles/platform_specific/macos/tasks/main.yml; then
@@ -57,10 +69,28 @@ if [[ -f "roles/platform_specific/windows/tasks/main.yml" ]]; then
         echo "❌ Windows: Missing Python development tools section"
     fi
     
-    if grep -q "community-ansible-dev-tools" roles/platform_specific/windows/tasks/main.yml; then
-        echo "✅ Windows: Has community-ansible-dev-tools installation"
+    if grep -q "Check if Python is installed" roles/platform_specific/windows/tasks/main.yml; then
+        echo "✅ Windows: Has Python validation"
     else
-        echo "❌ Windows: Missing community-ansible-dev-tools installation"
+        echo "❌ Windows: Missing Python validation"
+    fi
+    
+    if grep -q "Check if pipx is already installed" roles/platform_specific/windows/tasks/main.yml; then
+        echo "✅ Windows: Has pipx installation check"
+    else
+        echo "❌ Windows: Missing pipx installation check"
+    fi
+    
+    if grep -q "ansible-dev-tools" roles/platform_specific/windows/tasks/main.yml; then
+        echo "✅ Windows: Has ansible-dev-tools installation"
+    else
+        echo "❌ Windows: Missing ansible-dev-tools installation"
+    fi
+    
+    if grep -q "ansible-lint" roles/platform_specific/windows/tasks/main.yml; then
+        echo "✅ Windows: Has ansible-lint installation"
+    else
+        echo "❌ Windows: Missing ansible-lint installation"
     fi
 fi
 
@@ -73,10 +103,28 @@ if [[ -f "roles/platform_specific/archlinux/tasks/main.yml" ]]; then
         echo "❌ Arch Linux: Missing Python development tools section"
     fi
     
-    if grep -q "community-ansible-dev-tools" roles/platform_specific/archlinux/tasks/main.yml; then
-        echo "✅ Arch Linux: Has community-ansible-dev-tools installation"
+    if grep -q "Check if Python 3 is installed" roles/platform_specific/archlinux/tasks/main.yml; then
+        echo "✅ Arch Linux: Has Python 3 validation"
     else
-        echo "❌ Arch Linux: Missing community-ansible-dev-tools installation"
+        echo "❌ Arch Linux: Missing Python 3 validation"
+    fi
+    
+    if grep -q "Check if pipx is already installed" roles/platform_specific/archlinux/tasks/main.yml; then
+        echo "✅ Arch Linux: Has pipx installation check"
+    else
+        echo "❌ Arch Linux: Missing pipx installation check"
+    fi
+    
+    if grep -q "ansible-dev-tools" roles/platform_specific/archlinux/tasks/main.yml; then
+        echo "✅ Arch Linux: Has ansible-dev-tools installation"
+    else
+        echo "❌ Arch Linux: Missing ansible-dev-tools installation"
+    fi
+    
+    if grep -q "ansible-lint" roles/platform_specific/archlinux/tasks/main.yml; then
+        echo "✅ Arch Linux: Has ansible-lint installation"
+    else
+        echo "❌ Arch Linux: Missing ansible-lint installation"
     fi
 fi
 
@@ -89,19 +137,115 @@ if [[ -f "roles/platform_specific/ubuntu/tasks/main.yml" ]]; then
         echo "❌ Ubuntu: Missing Python development tools section"
     fi
     
-    if grep -q "community-ansible-dev-tools" roles/platform_specific/ubuntu/tasks/main.yml; then
-        echo "✅ Ubuntu: Has community-ansible-dev-tools installation"
+    if grep -q "Check if Python 3 is installed" roles/platform_specific/ubuntu/tasks/main.yml; then
+        echo "✅ Ubuntu: Has Python 3 validation"
     else
-        echo "❌ Ubuntu: Missing community-ansible-dev-tools installation"
+        echo "❌ Ubuntu: Missing Python 3 validation"
+    fi
+    
+    if grep -q "Check if pipx is already installed" roles/platform_specific/ubuntu/tasks/main.yml; then
+        echo "✅ Ubuntu: Has pipx installation check"
+    else
+        echo "❌ Ubuntu: Missing pipx installation check"
+    fi
+    
+    if grep -q "ansible-dev-tools" roles/platform_specific/ubuntu/tasks/main.yml; then
+        echo "✅ Ubuntu: Has ansible-dev-tools installation"
+    else
+        echo "❌ Ubuntu: Missing ansible-dev-tools installation"
+    fi
+    
+    if grep -q "ansible-lint" roles/platform_specific/ubuntu/tasks/main.yml; then
+        echo "✅ Ubuntu: Has ansible-lint installation"
+    else
+        echo "❌ Ubuntu: Missing ansible-lint installation"
     fi
 fi
+
+echo ""
+echo "✅ Testing dependency ordering..."
+
+# Check that Python dev tools come after NPM in all platform roles
+for platform in "${platforms[@]}"; do
+    tasks_file="roles/platform_specific/$platform/tasks/main.yml"
+    if [[ -f "$tasks_file" ]]; then
+        # Get line numbers
+        npm_line=$(grep -n "NPM GLOBAL PACKAGES" "$tasks_file" | head -1 | cut -d: -f1)
+        python_dev_line=$(grep -n "PYTHON DEVELOPMENT TOOLS" "$tasks_file" | head -1 | cut -d: -f1)
+        python_packages_line=$(grep -n "PYTHON PACKAGES" "$tasks_file" | head -1 | cut -d: -f1)
+        
+        if [[ -n "$npm_line" && -n "$python_dev_line" && -n "$python_packages_line" ]]; then
+            if [[ "$npm_line" -lt "$python_dev_line" && "$python_dev_line" -lt "$python_packages_line" ]]; then
+                echo "✅ $platform: Correct dependency ordering (NPM → Python dev tools → Python packages)"
+            else
+                echo "❌ $platform: Incorrect dependency ordering"
+            fi
+        else
+            echo "⚠️  $platform: Could not verify dependency ordering (missing sections)"
+        fi
+    fi
+done
+
+echo ""
+echo "✅ Testing idempotency patterns..."
+
+# Check for idempotent patterns in all platform roles
+for platform in "${platforms[@]}"; do
+    tasks_file="roles/platform_specific/$platform/tasks/main.yml"
+    if [[ -f "$tasks_file" ]]; then
+        echo "--- $platform Idempotency Checks ---"
+        
+        # Check for pipx installation check
+        if grep -q "Check if pipx is already installed" "$tasks_file"; then
+            echo "✅ $platform: Has pipx pre-installation check"
+        else
+            echo "❌ $platform: Missing pipx pre-installation check"
+        fi
+        
+        # Check for pipx package checks
+        if grep -q "Check which pipx packages are already installed" "$tasks_file"; then
+            echo "✅ $platform: Has pipx package pre-installation checks"
+        else
+            echo "❌ $platform: Missing pipx package pre-installation checks"
+        fi
+        
+        # Check for verification steps
+        if grep -q "Verify pipx.*installation" "$tasks_file"; then
+            echo "✅ $platform: Has pipx installation verification"
+        else
+            echo "❌ $platform: Missing pipx installation verification"
+        fi
+        
+        # Check for status display
+        if grep -q "Display.*status" "$tasks_file"; then
+            echo "✅ $platform: Has status display tasks"
+        else
+            echo "❌ $platform: Missing status display tasks"
+        fi
+    fi
+done
+
+echo ""
+echo "✅ Testing Ansible syntax..."
+
+# Test syntax of all platform roles
+for platform in "${platforms[@]}"; do
+    tasks_file="roles/platform_specific/$platform/tasks/main.yml"
+    if [[ -f "$tasks_file" ]]; then
+        if ansible-playbook --syntax-check --check "$tasks_file" >/dev/null 2>&1; then
+            echo "✅ $platform: Ansible syntax is valid"
+        else
+            echo "❌ $platform: Ansible syntax check failed"
+        fi
+    fi
+done
 
 echo ""
 echo "🎉 Python development tools integration test completed!"
 echo ""
 echo "📋 Summary:"
 echo "- pipx: Python package isolation tool"
-echo "- community-ansible-dev-tools: Ansible development toolkit"
+echo "- ansible-dev-tools: Ansible development toolkit"
 echo "- ansible-lint: Ansible linting tool"
 echo ""
 echo "All tools integrated with proper dependency ordering and idempotent patterns!"

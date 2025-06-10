@@ -1,0 +1,125 @@
+---
+# Test dotfiles backup and deployment logic only
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: "🔧 DOTFILES BACKUP & DEPLOYMENT TEST"
+      debug:
+        msg: |
+          Testing dotfiles backup and deployment logic
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+      tags: ['dotfiles']
+
+    - name: Include dotfiles main variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['dotfiles']
+
+    - name: Include OS-specific dotfiles variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['dotfiles']
+
+    - name: Include conditional deployment configuration
+      include_vars: roles/dotfiles/vars/conditional_deployment.yml
+      tags: ['dotfiles']
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.config"
+        - "{{ ansible_env.HOME }}/.local"
+        - "{{ ansible_env.HOME }}/.local/bin"
+        - "{{ ansible_env.HOME }}/.dotsible"
+        - "{{ ansible_env.HOME }}/.dotsible/backups"
+        - "{{ ansible_env.HOME }}/.dotsible/logs"
+      tags: ['dotfiles']
+
+    - name: Check dotfiles source directory
+      stat:
+        path: "{{ playbook_dir }}/files/dotfiles"
+      register: dotfiles_source_check
+      tags: ['dotfiles']
+
+    - name: Run conditional deployment analysis
+      include_tasks: roles/dotfiles/tasks/conditional_deployment.yml
+      when: dotfiles_source_check.stat.exists
+      tags: ['dotfiles']
+
+    - name: Deploy applications based on conditional analysis
+      include_tasks: roles/dotfiles/tasks/deploy_application_dotfiles.yml
+      vars:
+        app_name: "{{ item }}"
+        deployment_reason: "Conditional deployment"
+      loop: "{{ ['git', 'nvim', 'zsh', 'tmux', 'starship', 'alacritty'] }}"
+      when:
+        - dotfiles_source_check.stat.exists
+        - item in dotfiles_conditional_applications | default([])
+      tags: ['dotfiles']
+
+    - name: "📊 DEPLOYMENT VERIFICATION"
+      debug:
+        msg: |
+          Dotfiles deployment with backup logic completed!
+          
+          Check the following locations for symlinks:
+          • ~/.gitconfig (should link to dotsible/files/dotfiles/git/.gitconfig)
+          • ~/.config/nvim/ (should link to dotsible/files/dotfiles/nvim/.config/nvim)
+          • ~/.zshrc (should link to dotsible/files/dotfiles/zsh/.zshrc)
+          • ~/.tmux.conf (should link to dotsible/files/dotfiles/tmux/.tmux.conf)
+          • ~/.config/starship.toml (should link to dotsible/files/dotfiles/starship/.config/starship.toml)
+          • ~/.config/alacritty/ (should link to dotsible/files/dotfiles/alacritty/.config/alacritty)
+          
+          Check backup location: ~/.dotsible/backups/
+      tags: ['dotfiles']
+
+    - name: Check created symlinks
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: symlink_check
+      tags: ['dotfiles']
+
+    - name: Display symlink status
+      debug:
+        msg: |
+          Symlink Status:
+          {% for result in symlink_check.results %}
+          • {{ result.item }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK)' if result.stat.islnk | default(false) else ' (REGULAR FILE)' if result.stat.exists else '' }}
+          {% endfor %}
+      tags: ['dotfiles']
+
+    - name: Check backup directory
+      find:
+        paths: "{{ ansible_env.HOME }}/.dotsible/backups"
+        file_type: directory
+      register: backup_dirs
+      ignore_errors: yes
+      tags: ['dotfiles']
+
+    - name: Display backup information
+      debug:
+        msg: |
+          Backup Information:
+          • Backup directories found: {{ backup_dirs.files | default([]) | length }}
+          {% for backup_dir in backup_dirs.files | default([]) %}
+          • {{ backup_dir.path }}
+          {% endfor %}
+      tags: ['dotfiles']

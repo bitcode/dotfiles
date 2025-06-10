@@ -1,0 +1,429 @@
+---
+# Create Enterprise Management Scripts
+# Creates utility scripts for enterprise macOS management
+
+- name: Create enterprise management script directory
+  file:
+    path: "{{ ansible_user_dir }}/.dotsible/scripts"
+    state: directory
+    mode: '0755'
+  tags: ['scripts', 'directory']
+
+- name: Create MDM detection script
+  copy:
+    content: |
+      #!/bin/bash
+      # MDM Detection Script
+      # Detects various MDM solutions on macOS
+      
+      set -e
+      
+      echo "🔍 Detecting MDM Management..."
+      echo "=============================="
+      echo ""
+      
+      MDM_DETECTED=false
+      MDM_TYPE="none"
+      
+      # Check for Jamf Pro
+      if [ -f "/usr/local/bin/jamf" ] || [ -f "/Library/Preferences/com.jamfsoftware.jamf.plist" ]; then
+          echo "✅ Jamf Pro detected"
+          if [ -f "/usr/local/bin/jamf" ]; then
+              VERSION=$(/usr/local/bin/jamf version 2>/dev/null || echo "unknown")
+              echo "   Version: $VERSION"
+          fi
+          MDM_DETECTED=true
+          MDM_TYPE="jamf_pro"
+      fi
+      
+      # Check for Microsoft Intune
+      if [ -d "/Library/Intune/Microsoft Intune Agent.app" ] || [ -d "/Applications/Company Portal.app" ]; then
+          echo "✅ Microsoft Intune detected"
+          MDM_DETECTED=true
+          MDM_TYPE="microsoft_intune"
+      fi
+      
+      # Check for VMware Workspace ONE
+      if [ -d "/Applications/Workspace ONE Intelligent Hub.app" ]; then
+          echo "✅ VMware Workspace ONE detected"
+          MDM_DETECTED=true
+          MDM_TYPE="vmware_workspace_one"
+      fi
+      
+      # Check for other MDM solutions
+      if [ -d "/Library/Kandji/Kandji Agent.app" ]; then
+          echo "✅ Kandji detected"
+          MDM_DETECTED=true
+          MDM_TYPE="kandji"
+      fi
+      
+      if [ -f "/usr/local/bin/mosyle" ]; then
+          echo "✅ Mosyle detected"
+          MDM_DETECTED=true
+          MDM_TYPE="mosyle"
+      fi
+      
+      if [ -f "/Library/Addigy/auditor" ]; then
+          echo "✅ Addigy detected"
+          MDM_DETECTED=true
+          MDM_TYPE="addigy"
+      fi
+      
+      # Check for configuration profiles
+      PROFILES_COUNT=$(profiles -P 2>/dev/null | wc -l | tr -d ' ')
+      if [ "$PROFILES_COUNT" -gt 0 ]; then
+          echo "✅ Configuration profiles detected ($PROFILES_COUNT profiles)"
+          if [ "$MDM_DETECTED" = "false" ]; then
+              MDM_DETECTED=true
+              MDM_TYPE="configuration_profiles"
+          fi
+      fi
+      
+      echo ""
+      echo "Results:"
+      echo "--------"
+      echo "MDM Detected: $MDM_DETECTED"
+      echo "MDM Type: $MDM_TYPE"
+      echo "Configuration Profiles: $PROFILES_COUNT"
+      echo ""
+      
+      if [ "$MDM_DETECTED" = "true" ]; then
+          echo "⚠️  Enterprise management detected. Some system modifications may be restricted."
+          echo "   Use 'macos_respect_mdm=false' to override (not recommended in managed environments)"
+      else
+          echo "ℹ️  No enterprise management detected. Full system configuration available."
+      fi
+      
+    dest: "{{ ansible_user_dir }}/.local/bin/dotsible-detect-mdm"
+    mode: '0755'
+  tags: ['scripts', 'mdm_detection']
+
+- name: Create system info script
+  copy:
+    content: |
+      #!/bin/bash
+      # macOS System Information Script
+      # Displays comprehensive system information for enterprise environments
+      
+      echo "macOS System Information"
+      echo "======================="
+      echo ""
+      
+      echo "System Details:"
+      echo "---------------"
+      echo "Hostname: $(hostname)"
+      echo "Computer Name: $(scutil --get ComputerName 2>/dev/null || echo 'Not set')"
+      echo "Local Hostname: $(scutil --get LocalHostName 2>/dev/null || echo 'Not set')"
+      echo "macOS Version: $(sw_vers -productVersion)"
+      echo "Build: $(sw_vers -buildVersion)"
+      echo "Architecture: $(uname -m)"
+      echo "Kernel: $(uname -r)"
+      echo "Uptime: $(uptime | awk '{print $3,$4}' | sed 's/,//')"
+      echo ""
+      
+      echo "Hardware:"
+      echo "---------"
+      echo "Model: $(system_profiler SPHardwareDataType | grep "Model Name" | awk -F': ' '{print $2}')"
+      echo "Chip: $(system_profiler SPHardwareDataType | grep "Chip" | awk -F': ' '{print $2}' || echo 'Intel')"
+      echo "Memory: $(system_profiler SPHardwareDataType | grep "Memory" | awk -F': ' '{print $2}')"
+      echo "Serial: $(system_profiler SPHardwareDataType | grep "Serial Number" | awk -F': ' '{print $2}')"
+      echo ""
+      
+      echo "User Information:"
+      echo "----------------"
+      echo "Current User: $(whoami)"
+      echo "User ID: $(id -u)"
+      echo "Groups: $(id -Gn | tr ' ' ',')"
+      echo "Home Directory: $HOME"
+      echo "Shell: $SHELL"
+      echo ""
+      
+      echo "Enterprise Management:"
+      echo "---------------------"
+      dotsible-detect-mdm | grep -E "(MDM Detected|MDM Type|Configuration Profiles)"
+      echo ""
+      
+      echo "Security Status:"
+      echo "---------------"
+      echo "FileVault: $(fdesetup status | head -1)"
+      echo "Gatekeeper: $(spctl --status 2>/dev/null || echo 'Unknown')"
+      echo "SIP Status: $(csrutil status 2>/dev/null | awk '{print $5}' || echo 'Unknown')"
+      echo "Firewall: $(defaults read /Library/Preferences/com.apple.alf globalstate 2>/dev/null | case $(cat) in 0) echo "Off";; 1) echo "On (specific services)";; 2) echo "On (essential services)";; *) echo "Unknown";; esac)"
+      echo ""
+      
+      echo "Network:"
+      echo "--------"
+      echo "Primary Interface: $(route get default 2>/dev/null | grep interface | awk '{print $2}' || echo 'Unknown')"
+      echo "IP Address: $(ifconfig $(route get default 2>/dev/null | grep interface | awk '{print $2}') 2>/dev/null | grep 'inet ' | awk '{print $2}' || echo 'Unknown')"
+      echo "DNS Servers: $(scutil --dns 2>/dev/null | grep nameserver | head -3 | awk '{print $3}' | tr '\n' ' ')"
+      echo ""
+      
+      echo "Homebrew:"
+      echo "---------"
+      if command -v brew >/dev/null 2>&1; then
+          echo "Homebrew: $(brew --version | head -1)"
+          echo "Prefix: $(brew --prefix)"
+          echo "Packages: $(brew list | wc -l | tr -d ' ')"
+          echo "Casks: $(brew list --cask | wc -l | tr -d ' ')"
+      else
+          echo "Homebrew: Not installed"
+      fi
+      
+    dest: "{{ ansible_user_dir }}/.local/bin/dotsible-system-info"
+    mode: '0755'
+  tags: ['scripts', 'system_info']
+
+- name: Create enterprise compliance check script
+  copy:
+    content: |
+      #!/bin/bash
+      # Enterprise Compliance Check Script
+      # Checks system compliance with enterprise policies
+      
+      echo "🔒 Enterprise Compliance Check"
+      echo "============================="
+      echo ""
+      
+      COMPLIANCE_SCORE=0
+      TOTAL_CHECKS=0
+      
+      check_compliance() {
+          local check_name="$1"
+          local check_command="$2"
+          local expected_result="$3"
+          local weight="${4:-1}"
+          
+          TOTAL_CHECKS=$((TOTAL_CHECKS + weight))
+          
+          echo -n "Checking $check_name... "
+          
+          if eval "$check_command" >/dev/null 2>&1; then
+              result="PASS"
+              COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + weight))
+              echo "✅ PASS"
+          else
+              result="FAIL"
+              echo "❌ FAIL"
+          fi
+      }
+      
+      # Security Checks
+      echo "Security Compliance:"
+      echo "-------------------"
+      check_compliance "FileVault Encryption" "fdesetup status | grep -q 'FileVault is On'" "enabled" 3
+      check_compliance "Gatekeeper" "spctl --status 2>/dev/null | grep -q 'assessments enabled'" "enabled" 2
+      check_compliance "Firewall" "[ \$(defaults read /Library/Preferences/com.apple.alf globalstate 2>/dev/null) -gt 0 ]" "enabled" 2
+      check_compliance "Automatic Updates" "defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled 2>/dev/null | grep -q 1" "enabled" 1
+      check_compliance "Screen Lock" "[ \$(defaults read com.apple.screensaver askForPassword 2>/dev/null) -eq 1 ]" "enabled" 1
+      
+      echo ""
+      echo "System Configuration:"
+      echo "--------------------"
+      check_compliance "Guest Account Disabled" "dscl . -read /Users/Guest 2>&1 | grep -q 'eDSRecordNotFound'" "disabled" 2
+      check_compliance "Remote Login Secure" "systemsetup -getremotelogin 2>/dev/null | grep -q 'Remote Login: Off'" "disabled" 1
+      check_compliance "Sharing Services" "[ \$(launchctl list | grep -c 'com.apple.*sharing') -eq 0 ]" "minimal" 1
+      
+      echo ""
+      echo "Software Management:"
+      echo "-------------------"
+      check_compliance "Homebrew Installed" "command -v brew >/dev/null 2>&1" "present" 1
+      check_compliance "Xcode Tools" "xcode-select -p >/dev/null 2>&1" "present" 1
+      check_compliance "System Integrity" "csrutil status 2>/dev/null | grep -q enabled" "enabled" 2
+      
+      echo ""
+      echo "Results:"
+      echo "--------"
+      COMPLIANCE_PERCENTAGE=$((COMPLIANCE_SCORE * 100 / TOTAL_CHECKS))
+      echo "Compliance Score: $COMPLIANCE_SCORE/$TOTAL_CHECKS ($COMPLIANCE_PERCENTAGE%)"
+      
+      if [ $COMPLIANCE_PERCENTAGE -ge 90 ]; then
+          echo "Status: ✅ EXCELLENT - System meets enterprise standards"
+      elif [ $COMPLIANCE_PERCENTAGE -ge 75 ]; then
+          echo "Status: ⚠️  GOOD - Minor compliance issues detected"
+      elif [ $COMPLIANCE_PERCENTAGE -ge 50 ]; then
+          echo "Status: ⚠️  FAIR - Several compliance issues need attention"
+      else
+          echo "Status: ❌ POOR - Significant compliance issues detected"
+      fi
+      
+      echo ""
+      echo "Recommendations:"
+      echo "---------------"
+      if [ $COMPLIANCE_PERCENTAGE -lt 100 ]; then
+          echo "- Review failed checks above"
+          echo "- Contact IT administrator for enterprise policy guidance"
+          echo "- Run 'dotsible-system-info' for detailed system information"
+      else
+          echo "- System is fully compliant with enterprise policies"
+          echo "- Continue regular compliance monitoring"
+      fi
+      
+    dest: "{{ ansible_user_dir }}/.local/bin/dotsible-compliance-check"
+    mode: '0755'
+  tags: ['scripts', 'compliance']
+
+- name: Create enterprise help script
+  copy:
+    content: |
+      #!/bin/bash
+      # Dotsible Enterprise Help Script
+      
+      echo "Dotsible macOS Enterprise Management"
+      echo "==================================="
+      echo ""
+      echo "Available Commands:"
+      echo "------------------"
+      echo "dotsible-detect-mdm           - Detect MDM/enterprise management"
+      echo "dotsible-system-info          - Display comprehensive system information"
+      echo "dotsible-compliance-check     - Check enterprise compliance status"
+      echo "dotsible-capture-desktop      - Capture current desktop layout"
+      echo "dotsible-backup-desktop       - Backup desktop layout"
+      echo "dotsible-restore-desktop      - Restore desktop layout"
+      echo "dotsible-list-desktop-backups - List available desktop backups"
+      echo ""
+      echo "Desktop Management Workflow:"
+      echo "---------------------------"
+      echo "1. Arrange desktop icons as desired"
+      echo "2. Run: dotsible-capture-desktop"
+      echo "3. Later restore with: dotsible-restore-desktop [backup-id]"
+      echo ""
+      echo "Enterprise Features:"
+      echo "-------------------"
+      echo "• Automatic MDM detection and compatibility"
+      echo "• Desktop icon layout preservation"
+      echo "• Enterprise compliance checking"
+      echo "• Safe system preference management"
+      echo "• Comprehensive system reporting"
+      echo ""
+      echo "Configuration Variables:"
+      echo "-----------------------"
+      echo "macos_detect_mdm=true/false           - Enable/disable MDM detection"
+      echo "macos_respect_mdm=true/false          - Respect MDM restrictions"
+      echo "macos_desktop_layout_enabled=true/false - Enable desktop management"
+      echo "macos_backup_desktop_layout=true      - Backup current layout"
+      echo "macos_restore_desktop_layout=true     - Restore saved layout"
+      echo ""
+      echo "For more information, see:"
+      echo "{{ ansible_user_dir }}/.dotsible/README.md"
+      
+    dest: "{{ ansible_user_dir }}/.local/bin/dotsible-help"
+    mode: '0755'
+  tags: ['scripts', 'help']
+
+- name: Update shell aliases for new scripts
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: "{{ item }}"
+    create: yes
+    mode: '0644'
+  loop:
+    - "# Dotsible Enterprise Management Aliases"
+    - "alias detect-mdm='dotsible-detect-mdm'"
+    - "alias system-info='dotsible-system-info'"
+    - "alias compliance-check='dotsible-compliance-check'"
+    - "alias dotsible-help='dotsible-help'"
+  tags: ['scripts', 'aliases']
+
+- name: Create enterprise management README
+  copy:
+    content: |
+      # Dotsible macOS Enterprise Management
+      
+      This system provides enterprise-friendly macOS configuration management with MDM compatibility and desktop layout preservation.
+      
+      ## Features
+      
+      ### MDM Compatibility
+      - Automatic detection of Jamf Pro, Microsoft Intune, VMware Workspace ONE, and other MDM solutions
+      - Intelligent skipping of operations that might conflict with enterprise policies
+      - Configurable override options for advanced users
+      
+      ### Desktop Layout Management
+      - Backup and restore desktop icon arrangements
+      - Preserve Finder preferences and view settings
+      - Support for multiple layout profiles
+      - Automatic backup scheduling (optional)
+      
+      ### Enterprise Tools
+      - System compliance checking
+      - Comprehensive system information reporting
+      - Safe system preference management
+      - Enterprise policy validation
+      
+      ## Quick Start
+      
+      1. **Check system status:**
+         ```bash
+         dotsible-system-info
+         dotsible-detect-mdm
+         dotsible-compliance-check
+         ```
+      
+      2. **Capture desktop layout:**
+         ```bash
+         # Arrange your desktop icons as desired, then:
+         dotsible-capture-desktop
+         ```
+      
+      3. **Restore desktop layout:**
+         ```bash
+         dotsible-restore-desktop [backup-id]
+         ```
+      
+      ## Configuration
+      
+      Set these variables when running Ansible:
+      
+      ```bash
+      # Basic usage
+      ansible-playbook site.yml -e "profile=developer"
+      
+      # With enterprise features
+      ansible-playbook site.yml -e "profile=developer macos_backup_desktop_layout=true"
+      
+      # Restore desktop layout
+      ansible-playbook site.yml -e "macos_restore_desktop_layout=true"
+      
+      # Override MDM restrictions (use with caution)
+      ansible-playbook site.yml -e "macos_respect_mdm=false"
+      ```
+      
+      ## Files and Directories
+      
+      - `~/.dotsible/` - Main configuration directory
+      - `~/.dotsible/desktop_layouts/` - Desktop layout backups
+      - `~/.dotsible/scripts/` - Management scripts
+      - `~/.local/bin/dotsible-*` - Command-line tools
+      
+      ## Support
+      
+      For help with enterprise features:
+      - Run `dotsible-help` for command reference
+      - Check `~/.dotsible/` for logs and reports
+      - Contact your IT administrator for enterprise policy questions
+      
+      Generated by Dotsible v{{ dotsible.version | default('2.0.0') }}
+      Timestamp: {{ ansible_date_time.iso8601 }}
+      
+    dest: "{{ ansible_user_dir }}/.dotsible/README.md"
+    mode: '0644'
+  tags: ['scripts', 'documentation']
+
+- name: Display management scripts creation completion
+  debug:
+    msg: |
+      Enterprise Management Scripts Created
+      ===================================
+      
+      New Commands Available:
+      - dotsible-detect-mdm
+      - dotsible-system-info  
+      - dotsible-compliance-check
+      - dotsible-help
+      
+      Documentation:
+      - ~/.dotsible/README.md
+      
+      All scripts are available in your PATH and have shell aliases.
+      Run 'dotsible-help' for complete usage information.
+  tags: ['scripts', 'completion']

@@ -1,0 +1,219 @@
+---
+# Test playbook for idempotent GNU Stow deployment system
+# Verifies that repeated executions are fast and show correct status
+
+- name: Test Idempotent GNU Stow Deployment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+
+  vars:
+    profile: "enterprise"
+    environment_type: "enterprise"
+    ansible_user: "mdrozrosario"
+    ansible_user_dir: "/Users/mdrozrosario"
+
+  tasks:
+    - name: "🧪 TESTING IDEMPOTENT GNU STOW DEPLOYMENT"
+      debug:
+        msg: |
+          Testing the idempotent GNU Stow deployment system
+          🎯 Objective: Verify fast repeated executions with accurate status reporting
+          📊 Expected: Mostly "SKIPPED" status on second run
+          ⚡ Performance: Significant time savings on repeated deployments
+          
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+
+    - name: "🔄 First Deployment Run (Baseline)"
+      debug:
+        msg: |
+          Performing first deployment run to establish baseline
+          This run may show "ADDED" or "CHANGED" status for new symlinks
+      tags: ['first_run']
+
+    - name: Record first run start time
+      set_fact:
+        first_run_start: "{{ ansible_date_time.epoch }}"
+      tags: ['first_run']
+
+    - name: "🔗 Execute first idempotent GNU Stow deployment"
+      include_role:
+        name: dotfiles
+      vars:
+        dotfiles:
+          enabled: true
+          repository: ""  # Auto-detected
+          backup_existing: true
+          backup_directory: "/Users/mdrozrosario/.dotsible/backups"
+          symlink_strategy: "force"
+          create_directories: true
+          cleanup_broken_links: true
+      tags: ['first_run', 'dotfiles']
+
+    - name: Record first run end time and results
+      set_fact:
+        first_run_end: "{{ ansible_date_time.epoch }}"
+        first_run_duration: "{{ (ansible_date_time.epoch | int) - (first_run_start | int) }}"
+        first_run_stats: "{{ execution_stats | default({}) }}"
+      tags: ['first_run']
+
+    - name: "📊 First Run Results"
+      debug:
+        msg: |
+          🔄 FIRST DEPLOYMENT RUN COMPLETED
+          ================================
+          
+          ⏱️  Duration: {{ first_run_duration }}s
+          📊 Applications: {{ first_run_stats.apps_skipped | default(0) + first_run_stats.apps_processed | default(0) }}
+          ✅ Skipped: {{ first_run_stats.apps_skipped | default(0) }}
+          🔄 Processed: {{ first_run_stats.apps_processed | default(0) }}
+          
+          🔗 Symlinks:
+          • ✅ SKIPPED: {{ first_run_stats.symlinks_skipped | default(0) }}
+          • 🔄 CHANGED: {{ first_run_stats.symlinks_changed | default(0) }}
+          • ➕ ADDED: {{ first_run_stats.symlinks_added | default(0) }}
+          • 🔧 FIXED: {{ first_run_stats.symlinks_fixed | default(0) }}
+          • ❌ FAILED: {{ first_run_stats.symlinks_failed | default(0) }}
+      tags: ['first_run']
+
+    - name: "⏳ Brief pause between runs"
+      pause:
+        seconds: 2
+        prompt: "Pausing briefly before second run to ensure timestamp differences..."
+      tags: ['second_run']
+
+    - name: "🔄 Second Deployment Run (Idempotency Test)"
+      debug:
+        msg: |
+          Performing second deployment run to test idempotency
+          This run should show mostly "SKIPPED" status for optimal performance
+      tags: ['second_run']
+
+    - name: Record second run start time
+      set_fact:
+        second_run_start: "{{ ansible_date_time.epoch }}"
+      tags: ['second_run']
+
+    - name: "🔗 Execute second idempotent GNU Stow deployment"
+      include_role:
+        name: dotfiles
+      vars:
+        dotfiles:
+          enabled: true
+          repository: ""  # Auto-detected
+          backup_existing: true
+          backup_directory: "/Users/mdrozrosario/.dotsible/backups"
+          symlink_strategy: "force"
+          create_directories: true
+          cleanup_broken_links: true
+      tags: ['second_run', 'dotfiles']
+
+    - name: Record second run end time and results
+      set_fact:
+        second_run_end: "{{ ansible_date_time.epoch }}"
+        second_run_duration: "{{ (ansible_date_time.epoch | int) - (second_run_start | int) }}"
+        second_run_stats: "{{ execution_stats | default({}) }}"
+      tags: ['second_run']
+
+    - name: "📊 Second Run Results"
+      debug:
+        msg: |
+          🔄 SECOND DEPLOYMENT RUN COMPLETED
+          =================================
+          
+          ⏱️  Duration: {{ second_run_duration }}s
+          📊 Applications: {{ second_run_stats.apps_skipped | default(0) + second_run_stats.apps_processed | default(0) }}
+          ✅ Skipped: {{ second_run_stats.apps_skipped | default(0) }}
+          🔄 Processed: {{ second_run_stats.apps_processed | default(0) }}
+          
+          🔗 Symlinks:
+          • ✅ SKIPPED: {{ second_run_stats.symlinks_skipped | default(0) }}
+          • 🔄 CHANGED: {{ second_run_stats.symlinks_changed | default(0) }}
+          • ➕ ADDED: {{ second_run_stats.symlinks_added | default(0) }}
+          • 🔧 FIXED: {{ second_run_stats.symlinks_fixed | default(0) }}
+          • ❌ FAILED: {{ second_run_stats.symlinks_failed | default(0) }}
+      tags: ['second_run']
+
+    - name: Calculate idempotency performance metrics
+      set_fact:
+        performance_improvement: "{{ ((first_run_duration | int) - (second_run_duration | int)) / (first_run_duration | int) * 100 }}"
+        idempotency_ratio: "{{ (second_run_stats.symlinks_skipped | default(0)) / ((second_run_stats.symlinks_skipped | default(0)) + (second_run_stats.symlinks_changed | default(0)) + (second_run_stats.symlinks_added | default(0))) * 100 }}"
+      tags: ['analysis']
+
+    - name: "🎯 IDEMPOTENCY TEST ANALYSIS"
+      debug:
+        msg: |
+          🎯 IDEMPOTENT GNU STOW DEPLOYMENT TEST RESULTS
+          =============================================
+          
+          📊 Performance Comparison:
+          • First Run Duration: {{ first_run_duration }}s
+          • Second Run Duration: {{ second_run_duration }}s
+          • Performance Improvement: {{ performance_improvement | round(1) }}%
+          
+          🔗 Idempotency Analysis:
+          • Second Run Skipped: {{ second_run_stats.symlinks_skipped | default(0) }}
+          • Second Run Changed: {{ second_run_stats.symlinks_changed | default(0) }}
+          • Second Run Added: {{ second_run_stats.symlinks_added | default(0) }}
+          • Idempotency Ratio: {{ idempotency_ratio | round(1) }}%
+          
+          ✅ Success Criteria Verification:
+          {% if (second_run_stats.symlinks_skipped | default(0)) > (second_run_stats.symlinks_changed | default(0)) + (second_run_stats.symlinks_added | default(0)) %}
+          ✅ PASSED: More symlinks skipped than changed (idempotent behavior)
+          {% else %}
+          ❌ FAILED: Too many changes on second run (not idempotent)
+          {% endif %}
+          
+          {% if (second_run_duration | int) <= (first_run_duration | int) %}
+          ✅ PASSED: Second run was faster or equal (performance optimization)
+          {% else %}
+          ❌ FAILED: Second run was slower (performance regression)
+          {% endif %}
+          
+          {% if (second_run_stats.symlinks_failed | default(0)) == 0 %}
+          ✅ PASSED: No failed operations (reliability)
+          {% else %}
+          ❌ FAILED: {{ second_run_stats.symlinks_failed }} operations failed
+          {% endif %}
+          
+          🎉 Overall Status: {{ 'SUCCESS' if (
+            (second_run_stats.symlinks_skipped | default(0)) > (second_run_stats.symlinks_changed | default(0)) + (second_run_stats.symlinks_added | default(0)) and
+            (second_run_duration | int) <= (first_run_duration | int) and
+            (second_run_stats.symlinks_failed | default(0)) == 0
+          ) else 'NEEDS ATTENTION' }}
+          
+          💡 Expected Behavior:
+          • First run: May show ADDED/CHANGED for new symlinks
+          • Second run: Should show mostly SKIPPED for existing symlinks
+          • Performance: Second run should be significantly faster
+          • Reliability: No failed operations on either run
+          
+          📋 Reports Generated:
+          • Detailed Report: ~/.dotsible/IDEMPOTENT_STOW_REPORT.txt
+          • Backup Manifests: ~/.dotsible/backups/
+          • Validation Reports: ~/.dotsible/VALIDATION_REPORT.txt
+      tags: ['analysis']
+
+    - name: "🔍 Verify report files were created"
+      stat:
+        path: "{{ item }}"
+      register: report_files_check
+      loop:
+        - "/Users/mdrozrosario/.dotsible/IDEMPOTENT_STOW_REPORT.txt"
+        - "/Users/mdrozrosario/.dotsible/VALIDATION_REPORT.txt"
+      tags: ['verification']
+
+    - name: "📋 Report Files Status"
+      debug:
+        msg: |
+          📋 Generated Report Files:
+          {% for file_check in report_files_check.results %}
+          • {{ file_check.item | basename }}: {{ 'EXISTS' if file_check.stat.exists else 'MISSING' }}
+          {% endfor %}
+          
+          📖 To view detailed results:
+          cat ~/.dotsible/IDEMPOTENT_STOW_REPORT.txt
+          cat ~/.dotsible/VALIDATION_REPORT.txt
+      tags: ['verification']

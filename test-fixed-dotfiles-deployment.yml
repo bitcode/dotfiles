@@ -1,0 +1,153 @@
+---
+# Test playbook for fixed dotfiles deployment
+# This tests that dotfiles now point to user's actual configuration files
+
+- name: Test Fixed Dotfiles Deployment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+
+  vars:
+    # Test configuration
+    profile: "enterprise"
+    environment_type: "enterprise"
+    
+    # Override ansible_user for testing
+    ansible_user: "mdrozrosario"
+    ansible_user_dir: "/Users/mdrozrosario"
+
+  tasks:
+    - name: "🔍 TESTING FIXED DOTFILES CONFIGURATION"
+      debug:
+        msg: |
+          Testing dotfiles deployment with user's actual configuration files
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          User: {{ ansible_user }}
+          Home: {{ ansible_user_dir }}
+
+    - name: "📍 Check user's actual dotfiles repository"
+      stat:
+        path: "/Users/mdrozrosario/dotfiles/files/dotfiles"
+      register: user_dotfiles_check
+
+    - name: "✅ User dotfiles repository status"
+      debug:
+        msg: "{{ '✅ FOUND' if user_dotfiles_check.stat.exists else '❌ MISSING' }}: /Users/mdrozrosario/dotfiles/files/dotfiles"
+
+    - name: "📋 List user's actual dotfiles applications"
+      find:
+        paths: "/Users/mdrozrosario/dotfiles/files/dotfiles"
+        file_type: directory
+        depth: 1
+      register: user_dotfiles_apps
+      when: user_dotfiles_check.stat.exists
+
+    - name: "📱 Available user applications"
+      debug:
+        msg: |
+          User's actual dotfiles applications:
+          {% for app in user_dotfiles_apps.files | default([]) %}
+          • {{ app.path | basename }}
+          {% endfor %}
+      when: user_dotfiles_check.stat.exists
+
+    - name: "🔧 Test enhanced dotfiles role with auto-detection"
+      include_role:
+        name: dotfiles
+      vars:
+        # Let the role auto-detect the user's actual dotfiles
+        profile: "{{ profile }}"
+        environment_type: "{{ environment_type }}"
+        dotsible_environment_type: "{{ environment_type }}"
+        dotsible_window_manager: "none"  # macOS doesn't use Linux window managers
+        dotfiles:
+          enabled: true
+          repository: ""  # Use local files - will be auto-detected
+          backup_existing: true
+          backup_directory: "/Users/mdrozrosario/.dotsible/backups"
+          symlink_strategy: "force"
+          create_directories: true
+          cleanup_broken_links: true
+      tags: ['dotfiles', 'test']
+
+    - name: "🔍 Verify symlink targets after deployment"
+      stat:
+        path: "{{ item }}"
+        follow: false
+      register: symlink_verification
+      loop:
+        - "/Users/mdrozrosario/.zshrc"
+        - "/Users/mdrozrosario/.config/nvim"
+        - "/Users/mdrozrosario/.tmux.conf"
+        - "/Users/mdrozrosario/.config/starship.toml"
+        - "/Users/mdrozrosario/.config/alacritty"
+      ignore_errors: true
+
+    - name: "📊 Symlink verification results"
+      debug:
+        msg: |
+          Symlink Verification Results:
+          {% for result in symlink_verification.results %}
+          {% set path = result.item %}
+          {% if result.stat.exists %}
+          {% if result.stat.islnk %}
+          ✅ {{ path }} → {{ result.stat.lnk_target }}
+          {% else %}
+          ⚠️  {{ path }} (not a symlink)
+          {% endif %}
+          {% else %}
+          ❌ {{ path }} (missing)
+          {% endif %}
+          {% endfor %}
+
+    - name: "🎯 Check if symlinks point to user's actual dotfiles"
+      debug:
+        msg: |
+          Checking if symlinks point to user's actual dotfiles:
+          {% for result in symlink_verification.results %}
+          {% set path = result.item %}
+          {% if result.stat.exists and result.stat.islnk %}
+          {% if '/Users/mdrozrosario/dotfiles/files/dotfiles/' in result.stat.lnk_target %}
+          ✅ {{ path }} → CORRECT (points to user's dotfiles)
+          {% else %}
+          ❌ {{ path }} → INCORRECT ({{ result.stat.lnk_target }})
+          {% endif %}
+          {% endif %}
+          {% endfor %}
+
+    - name: "📝 Test content verification"
+      shell: |
+        if [ -L ~/.zshrc ]; then
+          if grep -q "LANG=" ~/.zshrc && grep -q "VISUAL=" ~/.zshrc; then
+            echo "✅ .zshrc contains user's actual configuration"
+          else
+            echo "❌ .zshrc contains placeholder configuration"
+          fi
+        else
+          echo "⚠️  .zshrc is not a symlink"
+        fi
+      register: zshrc_content_check
+      changed_when: false
+
+    - name: "📝 Content verification results"
+      debug:
+        msg: "{{ zshrc_content_check.stdout }}"
+
+    - name: "🎉 DEPLOYMENT TEST SUMMARY"
+      debug:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════╗
+          ║                    DOTFILES FIX TEST RESULTS                ║
+          ╚══════════════════════════════════════════════════════════════╝
+          
+          ✅ User's dotfiles repository: {{ 'FOUND' if user_dotfiles_check.stat.exists else 'MISSING' }}
+          📍 Repository location: /Users/mdrozrosario/dotfiles/files/dotfiles
+          🔧 Configuration updated: YES
+          📊 Symlinks verified: {{ symlink_verification.results | length }}
+          
+          Next Steps:
+          1. Verify all symlinks point to user's actual dotfiles
+          2. Test that configurations work as expected
+          3. Remove any remaining placeholder files

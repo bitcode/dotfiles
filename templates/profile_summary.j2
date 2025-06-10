@@ -1,0 +1,68 @@
+# Ansible Configuration Summary
+# Generated on {{ installation_date }}
+
+## System Information
+- **Hostname**: {{ inventory_hostname }}
+- **Operating System**: {{ ansible_distribution }} {{ ansible_distribution_version }}
+- **Architecture**: {{ ansible_architecture }}
+- **Profile**: {{ profile_name }}
+
+## Profile Configuration
+- **Description**: {{ profile_config.description }}
+- **Applications**: {{ profile_config.applications | join(', ') }}
+- **Features**: {{ profile_config.features | join(', ') }}
+- **Package Groups**: {{ profile_config.packages | join(', ') }}
+
+## Installed Applications
+{% for app in profile_config.applications %}
+- {{ app }}
+{% endfor %}
+
+## Configured Features
+{% for feature in profile_config.features %}
+- {{ feature }}
+{% endfor %}
+
+## Dotfiles
+{% if profile_config.dotfiles is defined %}
+{% for dotfile in profile_config.dotfiles %}
+- {{ dotfile }}
+{% endfor %}
+{% endif %}
+
+## Services
+{% if profile_config.services is defined %}
+{% for service in profile_config.services %}
+- {{ service }}
+{% endfor %}
+{% endif %}
+
+## GUI Applications
+{% if profile_config.gui_applications is defined %}
+{% for gui_app in profile_config.gui_applications %}
+- {{ gui_app }}
+{% endfor %}
+{% endif %}
+
+## Configuration Files
+- Shell configuration: ~/.zshrc (if ZSH installed)
+- Git configuration: ~/.gitconfig
+- Vim configuration: ~/.vimrc
+- Tmux configuration: ~/.tmux.conf (if tmux installed)
+
+## Useful Commands
+- **Reload shell**: `exec $SHELL`
+- **Check Git config**: `git config --global --list`
+- **Tmux help**: `tmux list-keys` (if tmux installed)
+- **ZSH aliases**: `alias` (if ZSH installed)
+
+## Log Files
+- Bootstrap log: /var/log/ansible/bootstrap.log
+- Application log: /var/log/ansible/applications.log
+- Package manager log: /var/log/ansible/package_manager.log
+
+## Support
+For issues or questions, refer to the project documentation or check the log files above.
+
+---
+Configuration completed on {{ installation_date }}

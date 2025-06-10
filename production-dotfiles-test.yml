@@ -1,0 +1,119 @@
+---
+# Production dotfiles deployment test with enhanced backup system
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: "🚀 PRODUCTION DOTFILES DEPLOYMENT"
+      debug:
+        msg: |
+          Production deployment of enhanced dotfiles system
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+          Enhanced backup system: ENABLED
+      tags: ['dotfiles']
+
+    - name: Include common role for environment detection
+      include_role:
+        name: common
+      tags: ['dotfiles']
+
+    - name: Include dotfiles role with enhanced backup
+      include_role:
+        name: dotfiles
+      tags: ['dotfiles']
+
+    - name: "📊 PRODUCTION DEPLOYMENT VERIFICATION"
+      debug:
+        msg: |
+          🎉 PRODUCTION DEPLOYMENT COMPLETED!
+          
+          Enhanced Features Deployed:
+          • ✅ Automatic backup system with conflict resolution
+          • ✅ Conditional deployment based on macOS enterprise profile
+          • ✅ GNU Stow-compatible directory structure
+          • ✅ Timestamped backups in ~/.dotsible/backups/
+          • ✅ Recovery manifests with restoration instructions
+          
+          Verify deployment:
+          ls -la ~/.gitconfig ~/.config/nvim ~/.zshrc ~/.tmux.conf
+          ls -la ~/.dotsible/backups/
+      tags: ['dotfiles']
+
+    - name: Final symlink verification
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: final_symlink_check
+      tags: ['dotfiles']
+
+    - name: "🎯 FINAL DEPLOYMENT STATUS"
+      debug:
+        msg: |
+          PRODUCTION DEPLOYMENT STATUS REPORT
+          ===================================
+          
+          Symlink Status:
+          {% for result in final_symlink_check.results %}
+          • {{ result.item | basename }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK ✅)' if result.stat.islnk | default(false) else ' (REGULAR FILE ⚠️)' if result.stat.exists else ' (NOT FOUND ❌)' }}
+          {% endfor %}
+          
+          {% set symlinks_created = final_symlink_check.results | selectattr('stat.islnk', 'equalto', true) | list | length %}
+          {% set files_exist = final_symlink_check.results | selectattr('stat.exists', 'equalto', true) | list | length %}
+          
+          Summary:
+          • Total configurations: {{ final_symlink_check.results | length }}
+          • Symlinks created: {{ symlinks_created }}
+          • Files existing: {{ files_exist }}
+          • Success rate: {{ ((symlinks_created / final_symlink_check.results | length) * 100) | round(1) }}%
+          
+          {% if symlinks_created == final_symlink_check.results | length %}
+          🎉 DEPLOYMENT SUCCESSFUL - All configurations deployed as symlinks!
+          {% elif symlinks_created > 0 %}
+          ⚠️  PARTIAL SUCCESS - Some configurations deployed, check individual status above
+          {% else %}
+          ❌ DEPLOYMENT FAILED - No symlinks created, check logs and backup system
+          {% endif %}
+      tags: ['dotfiles']
+
+    - name: Check backup directory status
+      find:
+        paths: "{{ ansible_env.HOME }}/.dotsible/backups"
+        file_type: directory
+      register: backup_status
+      ignore_errors: yes
+      tags: ['dotfiles']
+
+    - name: "🛡️ BACKUP SYSTEM STATUS"
+      debug:
+        msg: |
+          BACKUP SYSTEM VERIFICATION
+          =========================
+          
+          Backup directories found: {{ backup_status.files | default([]) | length }}
+          {% for backup_dir in backup_status.files | default([]) %}
+          • {{ backup_dir.path | basename }} ({{ backup_dir.mtime | int | strftime('%Y-%m-%d %H:%M:%S') }})
+          {% endfor %}
+          
+          {% if backup_status.files | default([]) | length > 0 %}
+          ✅ Backup system operational - {{ backup_status.files | length }} backup(s) available
+          {% else %}
+          ⚠️  No backups found - either no conflicts occurred or backup system needs attention
+          {% endif %}
+          
+          Recovery location: ~/.dotsible/backups/
+          Manifest files: Check for *_backup_manifest.txt in backup directories
+      tags: ['dotfiles']

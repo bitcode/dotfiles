@@ -1,0 +1,414 @@
+---
+# macOS-specific configuration variables
+# These variables apply to all macOS systems
+
+# OS Information
+os_family: "Darwin"
+os_name: "macOS"
+package_manager: "homebrew"
+
+# Homebrew Configuration
+homebrew_config:
+  update_homebrew: true
+  upgrade_all: false
+  install_options: []
+
+# Homebrew taps
+homebrew_taps:
+  - homebrew/core
+  - homebrew/cask
+  - homebrew/cask-fonts
+  - homebrew/cask-versions
+  - homebrew/services
+
+# macOS-specific packages
+macos_packages:
+  essential:
+    - git
+    - curl
+    - wget
+    - vim
+    - htop
+    - tree
+    - unzip
+    - zip
+    - coreutils
+    - findutils
+    - gnu-tar
+    - gnu-sed
+    - gawk
+    - gnutls
+    - gnu-indent
+    - gnu-getopt
+
+  development:
+    - python3
+    - node
+    - npm
+    - yarn
+    - openjdk
+    - maven
+    - gradle
+    - rust
+    - go
+    - ruby
+
+  gui:
+    - firefox
+    - visual-studio-code
+    - iterm2
+    - finder
+    - vlc
+    - gimp
+
+  server:
+    - openssh
+    - nginx
+    - apache2
+
+  docker:
+    - docker
+    - docker-compose
+
+  gaming:
+    - steam
+
+  media:
+    - vlc
+    - audacity
+    - obs
+    - ffmpeg
+    - imagemagick
+
+# Homebrew Casks (GUI applications)
+macos_casks:
+  essential:
+    - firefox
+    - google-chrome
+    - visual-studio-code
+    - iterm2
+
+  development:
+    - visual-studio-code
+    - postman
+    - docker
+    - github-desktop
+    - sourcetree
+
+  productivity:
+    - notion
+    - slack
+    - discord
+    - zoom
+    - microsoft-office
+
+  media:
+    - vlc
+    - spotify
+    - obs
+    - gimp
+    - adobe-creative-cloud
+
+  gaming:
+    - steam
+    - epic-games
+
+  utilities:
+    - the-unarchiver
+    - appcleaner
+    - bartender-4
+    - alfred
+    - rectangle
+
+# System Services (using launchctl)
+macos_services:
+  essential:
+    - com.openssh.sshd
+
+  homebrew:
+    - homebrew.mxcl.nginx
+
+  docker:
+    - com.docker.docker
+
+# System Configuration
+macos_system:
+  timezone: "America/New_York"
+
+  # Dock settings
+  dock:
+    autohide: true
+    magnification: false
+    tilesize: 48
+    position: "bottom"
+
+  # Finder settings
+  finder:
+    show_hidden_files: true
+    show_path_bar: true
+    show_status_bar: true
+    default_view: "list"
+
+  # Security settings
+  security:
+    gatekeeper: true
+    firewall: true
+    filevault: true
+
+  # Performance settings
+  performance:
+    reduce_motion: false
+    reduce_transparency: false
+
+# Enterprise Management Configuration
+macos_enterprise:
+  # MDM Detection and Compatibility
+  mdm:
+    # Enable MDM detection (automatically detects Jamf Pro, Microsoft Intune, etc.)
+    detect_mdm: "{{ macos_detect_mdm | default(true) }}"
+
+    # Skip MDM-conflicting operations when MDM is detected
+    respect_mdm_settings: "{{ macos_respect_mdm | default(true) }}"
+
+    # Force disable MDM checks (use with caution in enterprise environments)
+    force_ignore_mdm: "{{ macos_force_ignore_mdm | default(false) }}"
+
+    # Common MDM indicators to check for
+    detection_methods:
+      - jamf_binary: "/usr/local/bin/jamf"
+      - jamf_plist: "/Library/Preferences/com.jamfsoftware.jamf.plist"
+      - intune_agent: "/Library/Intune/Microsoft Intune Agent.app"
+      - workspace_one: "/Applications/Workspace ONE Intelligent Hub.app"
+      - kandji_agent: "/Library/Kandji/Kandji Agent.app"
+      - mosyle_mdm: "/usr/local/bin/mosyle"
+      - addigy_agent: "/Library/Addigy/auditor"
+      - profiles_command: "profiles -P"
+
+    # Operations to skip when MDM is detected
+    skip_when_mdm_detected:
+      - hostname_changes
+      - system_preferences_modification
+      - security_policy_changes
+      - network_configuration
+      - certificate_management
+      - software_restriction_policies
+
+    # Safe operations that can proceed even with MDM
+    safe_operations:
+      - user_preferences
+      - dotfiles_management
+      - homebrew_packages
+      - user_applications
+      - shell_configuration
+      - development_tools
+
+  # Desktop Icon Layout Management
+  desktop_layout:
+    # Enable desktop icon layout backup and restore
+    enabled: "{{ macos_desktop_layout_enabled | default(true) }}"
+
+    # Directory to store desktop layout backups
+    backup_dir: "{{ ansible_user_dir }}/.dotsible/desktop_layouts"
+
+    # Plist files that control desktop icon positions
+    plist_files:
+      - path: "~/Library/Preferences/com.apple.finder.plist"
+        description: "Finder preferences including desktop icon arrangement"
+        backup_key: "finder_prefs"
+
+      - path: "~/Library/Preferences/com.apple.dock.plist"
+        description: "Dock configuration and desktop settings"
+        backup_key: "dock_prefs"
+
+      - path: "~/Library/Preferences/.GlobalPreferences.plist"
+        description: "Global system preferences"
+        backup_key: "global_prefs"
+
+      - path: "~/Library/Preferences/com.apple.spaces.plist"
+        description: "Spaces and Mission Control settings"
+        backup_key: "spaces_prefs"
+
+      - path: "~/Library/Preferences/com.apple.WindowManager.plist"
+        description: "Window management and desktop organization"
+        backup_key: "window_manager_prefs"
+
+    # Desktop icon specific settings to preserve
+    preserve_settings:
+      - "DesktopViewSettings"
+      - "FK_StandardViewSettings"
+      - "StandardViewSettings"
+      - "IconViewSettings"
+      - "DesktopIconSize"
+      - "DesktopIconSpacing"
+      - "DesktopLabelOnBottom"
+      - "ShowItemInfo"
+      - "ShowIconPreview"
+      - "ArrangeBy"
+      - "GridSpacing"
+      - "IconSize"
+      - "LabelOnBottom"
+      - "ShowItemInfo"
+      - "ShowIconPreview"
+      - "TextSize"
+
+    # Automatic backup triggers
+    auto_backup:
+      enabled: "{{ macos_auto_backup_desktop | default(false) }}"
+      frequency: "daily"  # daily, weekly, monthly
+      retention_days: 30
+
+    # Layout profiles for different use cases
+    profiles:
+      default:
+        description: "Standard desktop layout"
+        icon_size: 64
+        grid_spacing: 100
+        text_size: 12
+        label_position: "bottom"
+        arrange_by: "none"
+
+      developer:
+        description: "Developer-optimized desktop layout"
+        icon_size: 48
+        grid_spacing: 80
+        text_size: 11
+        label_position: "bottom"
+        arrange_by: "kind"
+
+      minimal:
+        description: "Minimal desktop with fewer icons"
+        icon_size: 32
+        grid_spacing: 60
+        text_size: 10
+        label_position: "right"
+        arrange_by: "name"
+
+# File paths
+macos_paths:
+  home: "/Users/{{ ansible_user }}"
+  config: "/Users/{{ ansible_user }}/.config"
+  local: "/Users/{{ ansible_user }}/.local"
+  bin: "/Users/{{ ansible_user }}/.local/bin"
+  applications: "/Applications"
+  user_applications: "/Users/{{ ansible_user }}/Applications"
+  fonts: "/Users/{{ ansible_user }}/Library/Fonts"
+  preferences: "/Users/{{ ansible_user }}/Library/Preferences"
+
+  # System paths
+  homebrew: "/opt/homebrew"
+  homebrew_bin: "/opt/homebrew/bin"
+
+# Shell configuration
+macos_shell:
+  default: "/bin/zsh"
+  alternatives:
+    - "/bin/bash"
+    - "/opt/homebrew/bin/fish"
+
+  # Terminal applications
+  terminals:
+    - Terminal.app
+    - iTerm2
+    - Alacritty
+    - Kitty
+
+# Development tools
+macos_dev_tools:
+  xcode_tools: true
+
+  editors:
+    - vim
+    - nano
+    - visual-studio-code
+    - sublime-text
+
+  version_control:
+    - git
+    - subversion
+    - mercurial
+
+  build_tools:
+    - make
+    - cmake
+    - autoconf
+    - automake
+    - pkg-config
+
+# macOS-specific defaults
+macos_defaults:
+  # Global settings
+  - domain: NSGlobalDomain
+    key: AppleShowAllExtensions
+    type: bool
+    value: true
+
+  - domain: NSGlobalDomain
+    key: AppleShowScrollBars
+    type: string
+    value: "Always"
+
+  # Dock settings
+  - domain: com.apple.dock
+    key: autohide
+    type: bool
+    value: true
+
+  - domain: com.apple.dock
+    key: tilesize
+    type: int
+    value: 48
+
+  # Finder settings
+  - domain: com.apple.finder
+    key: AppleShowAllFiles
+    type: bool
+    value: true
+
+  - domain: com.apple.finder
+    key: ShowPathbar
+    type: bool
+    value: true
+
+  - domain: com.apple.finder
+    key: ShowStatusBar
+    type: bool
+    value: true
+
+# Compatibility settings
+macos_compatibility:
+  minimum_version: "10.15"
+  supported_versions:
+    - "10.15"  # Catalina
+    - "11.0"   # Big Sur
+    - "12.0"   # Monterey
+    - "13.0"   # Ventura
+    - "14.0"   # Sonoma
+
+  architecture_support:
+    - "x86_64"
+    - "arm64"
+
+  # Chip-specific settings
+  intel_specific:
+    homebrew_prefix: "/usr/local"
+
+  apple_silicon_specific:
+    homebrew_prefix: "/opt/homebrew"
+    rosetta_required: false
+
+# App Store applications (mas-cli)
+macos_app_store:
+  - id: 497799835
+    name: "Xcode"
+  - id: 1295203466
+    name: "Microsoft Remote Desktop"
+  - id: 1176895641
+    name: "Spark – Email App by Readdle"
+
+# Font management
+macos_fonts:
+  - font-fira-code
+  - font-source-code-pro
+  - font-jetbrains-mono
+  - font-cascadia-code
+  - font-hack

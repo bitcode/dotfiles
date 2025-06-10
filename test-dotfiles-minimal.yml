@@ -1,0 +1,71 @@
+---
+# Minimal dotfiles test - no common role dependencies
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  become: no
+  vars:
+    profile: "{{ profile | default('enterprise') }}"
+    environment_type: "{{ environment_type | default('enterprise') }}"
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+
+  tasks:
+    - name: "🔧 MINIMAL DOTFILES TEST"
+      debug:
+        msg: |
+          Testing dotfiles deployment without dependencies
+          Profile: {{ profile }}
+          Environment: {{ environment_type }}
+      tags: ['dotfiles']
+
+    - name: Include dotfiles main variables
+      include_vars: "roles/dotfiles/vars/main.yml"
+      tags: ['dotfiles']
+
+    - name: Include OS-specific dotfiles variables
+      include_vars: "roles/dotfiles/vars/{{ ansible_os_family | lower }}.yml"
+      failed_when: false
+      tags: ['dotfiles']
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ ansible_env.HOME }}/.config"
+        - "{{ ansible_env.HOME }}/.local"
+        - "{{ ansible_env.HOME }}/.local/bin"
+      tags: ['dotfiles']
+
+    - name: Include dotfiles tasks directly
+      include_tasks: roles/dotfiles/tasks/main.yml
+      tags: ['dotfiles']
+
+    - name: "📊 VERIFY DEPLOYMENT"
+      debug:
+        msg: "Dotfiles deployment completed - checking results..."
+      tags: ['dotfiles']
+
+    - name: Check for created symlinks
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_env.HOME }}/.gitconfig"
+        - "{{ ansible_env.HOME }}/.config/nvim"
+        - "{{ ansible_env.HOME }}/.zshrc"
+        - "{{ ansible_env.HOME }}/.tmux.conf"
+        - "{{ ansible_env.HOME }}/.config/starship.toml"
+        - "{{ ansible_env.HOME }}/.config/alacritty"
+      register: symlink_results
+      tags: ['dotfiles']
+
+    - name: Display symlink verification
+      debug:
+        msg: |
+          Symlink Verification Results:
+          {% for result in symlink_results.results %}
+          • {{ result.item }}: {{ 'EXISTS' if result.stat.exists else 'MISSING' }}{{ ' (SYMLINK)' if result.stat.islnk | default(false) else ' (REGULAR FILE)' if result.stat.exists else '' }}
+          {% endfor %}
+      tags: ['dotfiles']

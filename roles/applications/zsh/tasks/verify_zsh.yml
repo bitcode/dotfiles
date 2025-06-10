@@ -67,7 +67,7 @@
       ===================================
       Generated: {{ ansible_date_time.iso8601 }}
       Host: {{ inventory_hostname }}
-      User: {{ ansible_user }}
+      User: {{ ansible_env.USER | default(ansible_user_id) }}
       Profile: {{ profile | default('minimal') }}
       
       Binary Installation

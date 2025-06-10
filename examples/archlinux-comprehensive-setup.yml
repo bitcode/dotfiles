@@ -1,0 +1,190 @@
+---
+# Comprehensive Arch Linux Setup Example
+# This playbook demonstrates all package management capabilities
+
+- name: Comprehensive Arch Linux Configuration
+  hosts: archlinux
+  become: yes
+  vars:
+    # Enable different package management methods
+    install_aur_packages: true
+    compile_from_source: true
+    
+    # Package categories to install
+    package_categories:
+      - essential
+      - development
+      - gui
+    
+    # AUR categories to install
+    aur_categories:
+      - development
+      - system
+      - fonts
+    
+    # Custom package lists
+    custom_packages:
+      official:
+        - neofetch
+        - bat
+        - exa
+        - fd
+        - fzf
+        - zoxide
+      
+      aur:
+        - brave-bin
+        - zoom
+        - teams
+      
+      source:
+        - name: "starship"
+          repo: "https://github.com/starship/starship.git"
+          track_latest: true
+          build_system: "cargo"
+          build_command: "cargo build --release"
+          install_command: "cargo install --path . --root /usr/local"
+          binary_name: "starship"
+          build_deps:
+            - rust
+            - cargo
+        
+        - name: "bottom"
+          repo: "https://github.com/ClementTsang/bottom.git"
+          track_latest: true
+          build_system: "cargo"
+          build_command: "cargo build --release"
+          install_command: "cargo install --path . --root /usr/local"
+          binary_name: "btm"
+          build_deps:
+            - rust
+            - cargo
+
+    # Version management settings
+    version_management:
+      track_latest: true
+      update_frequency: "weekly"
+      backup_versions: true
+
+  tasks:
+    - name: Update system packages
+      pacman:
+        update_cache: yes
+        upgrade: yes
+      tags: ['system', 'update']
+
+    - name: Install official packages by category
+      pacman:
+        name: "{{ archlinux_packages[item] }}"
+        state: present
+      loop: "{{ package_categories }}"
+      tags: ['packages', 'official']
+
+    - name: Install custom official packages
+      pacman:
+        name: "{{ custom_packages.official }}"
+        state: present
+      tags: ['packages', 'custom']
+
+    - name: Setup package manager with AUR support
+      include_role:
+        name: package_manager
+      vars:
+        aur_helper:
+          enabled: true
+          name: yay
+      tags: ['setup', 'aur']
+
+    - name: Install AUR packages by category
+      include_tasks: ../roles/package_manager/tasks/install_aur_packages.yml
+      vars:
+        aur_category: "{{ item }}"
+      loop: "{{ aur_categories }}"
+      tags: ['packages', 'aur']
+
+    - name: Install custom AUR packages
+      include_tasks: ../roles/package_manager/tasks/install_aur_packages.yml
+      vars:
+        aur_packages: "{{ custom_packages.aur }}"
+      tags: ['packages', 'aur', 'custom']
+
+    - name: Compile software from source
+      include_tasks: ../roles/package_manager/tasks/compile_from_source.yml
+      vars:
+        source_packages: "{{ custom_packages.source }}"
+        source_build_dir: "/tmp/ansible_builds"
+        cleanup_build_dirs: false
+      tags: ['packages', 'source']
+
+    - name: Configure custom repositories
+      blockinfile:
+        path: /etc/pacman.conf
+        block: |
+          # Chaotic AUR repository
+          [chaotic-aur]
+          Include = /etc/pacman.d/chaotic-mirrorlist
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - chaotic-aur"
+        state: present
+      when: enable_chaotic_aur | default(false)
+      notify: update pacman cache
+      tags: ['repositories', 'custom']
+
+    - name: Enable services
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: started
+      loop:
+        - NetworkManager
+        - bluetooth
+        - cronie
+      tags: ['services']
+
+    - name: Create development directories
+      file:
+        path: "{{ ansible_env.HOME }}/{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      loop:
+        - Development
+        - .local/bin
+        - .config
+      become_user: "{{ ansible_user }}"
+      tags: ['directories']
+
+    - name: Configure shell environment
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        block: |
+          # Ansible managed environment
+          export PATH="$HOME/.local/bin:$PATH"
+          export EDITOR="nvim"
+          
+          # Aliases for new tools
+          alias ls='exa'
+          alias cat='bat'
+          alias find='fd'
+          alias top='btm'
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - environment"
+        create: yes
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      become_user: "{{ ansible_user }}"
+      tags: ['shell', 'environment']
+
+  handlers:
+    - name: update pacman cache
+      pacman:
+        update_cache: yes
+
+# Example usage:
+# ansible-playbook -i inventories/local/hosts.yml examples/archlinux-comprehensive-setup.yml
+# 
+# With specific tags:
+# ansible-playbook -i inventories/local/hosts.yml examples/archlinux-comprehensive-setup.yml --tags "packages,aur"
+#
+# With custom variables:
+# ansible-playbook -i inventories/local/hosts.yml examples/archlinux-comprehensive-setup.yml -e "enable_chaotic_aur=true"

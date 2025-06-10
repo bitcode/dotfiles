@@ -1,0 +1,293 @@
+---
+# Verify Enterprise Configuration
+# Validates that enterprise features are working correctly
+
+- name: Verify MDM detection functionality
+  block:
+    - name: Test MDM detection script
+      command: "{{ ansible_user_dir }}/.local/bin/dotsible-detect-mdm"
+      register: mdm_detection_test
+      failed_when: false
+      changed_when: false
+
+    - name: Validate MDM detection results
+      assert:
+        that:
+          - mdm_detection_test.rc == 0
+          - "'MDM Detected:' in mdm_detection_test.stdout"
+        fail_msg: "MDM detection script failed to execute properly"
+        success_msg: "MDM detection script is working correctly"
+  tags: ['verify', 'mdm']
+
+- name: Verify desktop management scripts
+  block:
+    - name: Check if desktop management scripts exist
+      stat:
+        path: "{{ item }}"
+      register: desktop_scripts_check
+      loop:
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-backup-desktop"
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-restore-desktop"
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-capture-desktop"
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-list-desktop-backups"
+
+    - name: Validate desktop scripts are executable
+      assert:
+        that:
+          - item.stat.exists
+          - item.stat.executable
+        fail_msg: "Desktop management script {{ item.item }} is not properly installed"
+        success_msg: "Desktop management scripts are properly installed"
+      loop: "{{ desktop_scripts_check.results }}"
+      loop_control:
+        label: "{{ item.item | basename }}"
+
+    - name: Test desktop backup directory creation
+      file:
+        path: "{{ macos_enterprise.desktop_layout.backup_dir }}"
+        state: directory
+        mode: '0755'
+      register: backup_dir_creation
+
+    - name: Validate backup directory
+      assert:
+        that:
+          - backup_dir_creation is succeeded
+        fail_msg: "Failed to create desktop backup directory"
+        success_msg: "Desktop backup directory is accessible"
+  tags: ['verify', 'desktop']
+
+- name: Verify enterprise management scripts
+  block:
+    - name: Check enterprise management scripts
+      stat:
+        path: "{{ item }}"
+      register: enterprise_scripts_check
+      loop:
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-system-info"
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-compliance-check"
+        - "{{ ansible_user_dir }}/.local/bin/dotsible-help"
+
+    - name: Test system info script
+      command: "{{ ansible_user_dir }}/.local/bin/dotsible-system-info"
+      register: system_info_test
+      failed_when: false
+      changed_when: false
+
+    - name: Validate enterprise scripts
+      assert:
+        that:
+          - item.stat.exists
+          - item.stat.executable
+        fail_msg: "Enterprise script {{ item.item }} is not properly installed"
+        success_msg: "Enterprise management scripts are properly installed"
+      loop: "{{ enterprise_scripts_check.results }}"
+      loop_control:
+        label: "{{ item.item | basename }}"
+  tags: ['verify', 'enterprise_scripts']
+
+- name: Verify shell integration
+  block:
+    - name: Check if PATH includes .local/bin
+      shell: "echo $PATH | grep -q '{{ ansible_user_dir }}/.local/bin'"
+      register: path_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check if aliases are defined
+      shell: "grep -q 'dotsible' {{ ansible_user_dir }}/.zshrc"
+      register: aliases_check
+      failed_when: false
+      changed_when: false
+
+    - name: Validate shell integration
+      debug:
+        msg: |
+          Shell Integration Status:
+          - PATH includes .local/bin: {{ 'Yes' if path_check.rc == 0 else 'No' }}
+          - Aliases defined: {{ 'Yes' if aliases_check.rc == 0 else 'No' }}
+          
+          {% if path_check.rc != 0 %}
+          ⚠️  PATH may not include ~/.local/bin. You may need to restart your shell.
+          {% endif %}
+          {% if aliases_check.rc != 0 %}
+          ⚠️  Aliases may not be loaded. You may need to restart your shell.
+          {% endif %}
+  tags: ['verify', 'shell']
+
+- name: Verify plist file access
+  block:
+    - name: Check access to key plist files
+      stat:
+        path: "{{ item.path | expanduser }}"
+      register: plist_access_check
+      loop: "{{ macos_enterprise.desktop_layout.plist_files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Test defaults command access
+      command: "defaults read com.apple.finder"
+      register: defaults_test
+      failed_when: false
+      changed_when: false
+
+    - name: Validate plist access
+      debug:
+        msg: |
+          Plist File Access:
+          {% for result in plist_access_check.results %}
+          - {{ result.item.description }}: {{ 'Accessible' if result.stat.exists else 'Not found (will be created when needed)' }}
+          {% endfor %}
+          
+          Defaults Command: {{ 'Working' if defaults_test.rc == 0 else 'Failed' }}
+  tags: ['verify', 'plist']
+
+- name: Test enterprise features
+  block:
+    - name: Test MDM detection
+      set_fact:
+        mdm_test_result: "{{ mdm_detected | default(false) }}"
+
+    - name: Test desktop layout functionality
+      stat:
+        path: "{{ macos_enterprise.desktop_layout.backup_dir }}"
+      register: desktop_functionality_test
+
+    - name: Test compliance checking
+      command: "{{ ansible_user_dir }}/.local/bin/dotsible-compliance-check"
+      register: compliance_test
+      failed_when: false
+      changed_when: false
+
+    - name: Display enterprise features test results
+      debug:
+        msg: |
+          Enterprise Features Test Results:
+          ================================
+          
+          MDM Detection: {{ 'Working' if mdm_detection_test.rc == 0 else 'Failed' }}
+          {% if mdm_detected is defined %}
+          - MDM Status: {{ 'Detected (' + mdm_type + ')' if mdm_detected else 'Not detected' }}
+          {% endif %}
+          
+          Desktop Layout Management: {{ 'Working' if desktop_functionality_test.stat.exists else 'Failed' }}
+          - Backup Directory: {{ macos_enterprise.desktop_layout.backup_dir }}
+          
+          Compliance Checking: {{ 'Working' if compliance_test.rc == 0 else 'Failed' }}
+          
+          System Integration: {{ 'Complete' if (path_check.rc == 0 and aliases_check.rc == 0) else 'Partial' }}
+  tags: ['verify', 'features']
+
+- name: Create verification report
+  copy:
+    content: |
+      Dotsible macOS Enterprise Configuration Verification Report
+      =========================================================
+      
+      Generated: {{ ansible_date_time.iso8601 }}
+      Hostname: {{ inventory_hostname }}
+      User: {{ ansible_user }}
+      macOS Version: {{ ansible_distribution_version }}
+      
+      MDM Detection:
+      -------------
+      Status: {{ 'Working' if mdm_detection_test.rc == 0 else 'Failed' }}
+      {% if mdm_detected is defined %}
+      MDM Detected: {{ mdm_detected }}
+      {% if mdm_detected %}
+      MDM Type: {{ mdm_type | default('unknown') }}
+      Restrictions Applied: {{ mdm_restrictions | default([]) | length }} operations
+      {% endif %}
+      {% endif %}
+      
+      Desktop Layout Management:
+      -------------------------
+      Backup Directory: {{ macos_enterprise.desktop_layout.backup_dir }}
+      Directory Accessible: {{ 'Yes' if desktop_functionality_test.stat.exists else 'No' }}
+      Scripts Installed: {{ 'Yes' if desktop_scripts_check.results | selectattr('stat.exists') | list | length == 4 else 'Partial' }}
+      
+      Enterprise Scripts:
+      ------------------
+      {% for script in enterprise_scripts_check.results %}
+      {{ script.item | basename }}: {{ 'Installed' if script.stat.exists else 'Missing' }}
+      {% endfor %}
+      
+      System Integration:
+      ------------------
+      PATH Configuration: {{ 'Correct' if path_check.rc == 0 else 'Needs attention' }}
+      Shell Aliases: {{ 'Loaded' if aliases_check.rc == 0 else 'Needs attention' }}
+      Defaults Access: {{ 'Working' if defaults_test.rc == 0 else 'Failed' }}
+      
+      Plist File Access:
+      -----------------
+      {% for result in plist_access_check.results %}
+      {{ result.item.description }}: {{ 'Accessible' if result.stat.exists else 'Will be created when needed' }}
+      {% endfor %}
+      
+      Overall Status:
+      --------------
+      {% set total_checks = 5 %}
+      {% set passed_checks = 0 %}
+      {% if mdm_detection_test.rc == 0 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if desktop_functionality_test.stat.exists %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if desktop_scripts_check.results | selectattr('stat.exists') | list | length == 4 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if enterprise_scripts_check.results | selectattr('stat.exists') | list | length == 3 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if defaults_test.rc == 0 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      
+      Verification Score: {{ passed_checks }}/{{ total_checks }} ({{ (passed_checks * 100 / total_checks) | round }}%)
+      
+      {% if passed_checks == total_checks %}
+      ✅ All enterprise features are working correctly
+      {% elif passed_checks >= 4 %}
+      ⚠️  Most features working, minor issues detected
+      {% else %}
+      ❌ Significant issues detected, review configuration
+      {% endif %}
+      
+      Next Steps:
+      ----------
+      {% if passed_checks < total_checks %}
+      1. Review any failed checks above
+      2. Restart your shell to load new PATH and aliases
+      3. Re-run verification: ansible-playbook site.yml --tags verify
+      {% else %}
+      1. Test desktop layout capture: dotsible-capture-desktop
+      2. Run system compliance check: dotsible-compliance-check
+      3. Review enterprise documentation: ~/.dotsible/README.md
+      {% endif %}
+      
+    dest: "{{ ansible_user_dir }}/.dotsible/enterprise_verification_{{ ansible_date_time.iso8601_basic_short }}.txt"
+    mode: '0644'
+  tags: ['verify', 'report']
+
+- name: Display verification completion
+  debug:
+    msg: |
+      Enterprise Configuration Verification Completed
+      ==============================================
+      
+      {% set total_checks = 5 %}
+      {% set passed_checks = 0 %}
+      {% if mdm_detection_test.rc == 0 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if desktop_functionality_test.stat.exists %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if desktop_scripts_check.results | selectattr('stat.exists') | list | length == 4 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if enterprise_scripts_check.results | selectattr('stat.exists') | list | length == 3 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      {% if defaults_test.rc == 0 %}{% set passed_checks = passed_checks + 1 %}{% endif %}
+      
+      Verification Score: {{ passed_checks }}/{{ total_checks }} ({{ (passed_checks * 100 / total_checks) | round }}%)
+      
+      {% if passed_checks == total_checks %}
+      ✅ All enterprise features verified successfully!
+      {% elif passed_checks >= 4 %}
+      ⚠️  Most features working correctly, minor issues detected
+      {% else %}
+      ❌ Some features need attention, check the verification report
+      {% endif %}
+      
+      Report saved to: ~/.dotsible/enterprise_verification_{{ ansible_date_time.iso8601_basic_short }}.txt
+      
+      Quick test commands:
+      - dotsible-detect-mdm
+      - dotsible-system-info
+      - dotsible-help
+  tags: ['verify', 'completion']

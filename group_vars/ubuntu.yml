@@ -1,0 +1,427 @@
+---
+# Ubuntu-specific configuration variables
+# These variables apply to all Ubuntu/Debian systems
+
+# OS Information
+os_family: "Debian"
+os_name: "Ubuntu"
+package_manager: "apt"
+
+# Package Management
+apt_config:
+  update_cache: true
+  cache_valid_time: 3600
+  install_recommends: false
+  install_suggests: false
+  autoremove: true
+  autoclean: true
+
+# Ubuntu-specific packages
+ubuntu_packages:
+  essential:
+    - apt-transport-https
+    - ca-certificates
+    - gnupg
+    - lsb-release
+    - software-properties-common
+    - build-essential
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - tree
+    - unzip
+    - zip
+
+  development:
+    - build-essential
+    - python3
+    - python3-pip
+    - python3-dev
+    - nodejs
+    - npm
+    - default-jdk
+    - maven
+    - gradle
+
+  gui:
+    - firefox
+    - code
+    - gnome-terminal
+    - nautilus
+    - gedit
+    - vlc
+    - gimp
+
+  server:
+    - openssh-server
+    - fail2ban
+    - ufw
+    - nginx
+    - apache2-utils
+    - certbot
+
+  docker:
+    - docker.io
+    - docker-compose
+    - containerd
+
+  gaming:
+    - steam-installer
+    - lutris
+    - wine
+    - winetricks
+
+  media:
+    - vlc
+    - audacity
+    - obs-studio
+    - ffmpeg
+    - imagemagick
+
+# Display Server Packages
+ubuntu_display_servers:
+  x11:
+    core:
+      - xorg
+      - xserver-xorg
+      - xserver-xorg-core
+      - xserver-xorg-input-all
+      - xserver-xorg-video-all
+      - xinit
+      - x11-xserver-utils
+      - x11-utils
+      - x11-apps
+
+    window_managers:
+      - i3-wm
+      - i3status
+      - i3lock
+      - awesome
+      - openbox
+      - fluxbox
+      - dwm
+
+    display_managers:
+      - lightdm
+      - lightdm-gtk-greeter
+      - gdm3
+      - sddm
+
+    utilities:
+      - xclip
+      - xsel
+      - arandr
+      - autorandr
+      - redshift
+      - compton
+      - picom
+
+  wayland:
+    core:
+      - wayland-protocols
+      - libwayland-client0
+      - libwayland-server0
+      - libwayland-dev
+      - wayland-utils
+
+    compositors:
+      - sway
+      - wayfire
+      - river
+      - labwc
+
+    sway_ecosystem:
+      - sway
+      - swaylock
+      - swayidle
+      - swaybg
+      - waybar
+      - wofi
+      - mako-notifier
+      - grim
+      - slurp
+      - wl-clipboard
+
+    display_managers:
+      - gdm3
+      - sddm
+
+    utilities:
+      - wlr-randr
+      - kanshi
+      - gammastep
+      - wdisplays
+
+# System Services
+ubuntu_services:
+  essential:
+    - ssh
+    - cron
+    - systemd-resolved
+
+  server:
+    - fail2ban
+    - ufw
+    - nginx
+
+  docker:
+    - docker
+    - containerd
+
+  # Display Server Services
+  x11:
+    - lightdm
+    - gdm3
+
+  wayland:
+    - gdm3
+    - sddm
+
+# Repositories
+ubuntu_repositories:
+  - repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    key_url: "https://download.docker.com/linux/ubuntu/gpg"
+    key_path: "/usr/share/keyrings/docker-archive-keyring.gpg"
+    state: present
+    when: "'docker' in features"
+
+  - repo: "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+    key_url: "https://packages.microsoft.com/keys/microsoft.asc"
+    key_path: "/usr/share/keyrings/microsoft.gpg"
+    state: present
+    when: "'development' in features"
+
+# Snap packages
+ubuntu_snaps:
+  development:
+    - code
+    - postman
+    - discord
+
+  media:
+    - vlc
+    - gimp
+    - obs-studio
+
+# Flatpak packages
+ubuntu_flatpaks:
+  - org.mozilla.firefox
+  - com.visualstudio.code
+  - org.gimp.GIMP
+  - com.obsproject.Studio
+
+# System Configuration
+ubuntu_system:
+  timezone: "UTC"
+  locale: "en_US.UTF-8"
+  keyboard: "us"
+
+  # Desktop Environment specific
+  desktop_environment: "{{ ansible_env.XDG_CURRENT_DESKTOP | default('') }}"
+
+  # Display Server Configuration
+  display_server: "{{ display_server_preference | default('x11') }}"  # Options: x11, wayland
+
+  # Security settings
+  ufw_enabled: true
+  fail2ban_enabled: true
+
+  # Performance settings
+  swappiness: 10
+
+  # Network settings
+  network_manager: true
+
+# File paths
+ubuntu_paths:
+  home: "/home/{{ ansible_user }}"
+  config: "/home/{{ ansible_user }}/.config"
+  local: "/home/{{ ansible_user }}/.local"
+  bin: "/home/{{ ansible_user }}/.local/bin"
+  applications: "/home/{{ ansible_user }}/.local/share/applications"
+  fonts: "/home/{{ ansible_user }}/.local/share/fonts"
+  themes: "/home/{{ ansible_user }}/.themes"
+  icons: "/home/{{ ansible_user }}/.icons"
+
+# Shell configuration
+ubuntu_shell:
+  default: "/bin/bash"
+  alternatives:
+    - "/bin/zsh"
+    - "/bin/fish"
+
+  # Terminal emulators
+  terminals:
+    - gnome-terminal
+    - alacritty
+    - terminator
+    - tilix
+
+# Desktop Environment and Display Server Compatibility
+ubuntu_desktop_environments:
+  gnome:
+    display_servers: ["x11", "wayland"]
+    packages:
+      - ubuntu-desktop
+      - gnome-shell
+      - gnome-session
+    services:
+      - gdm3
+    wayland_session: "gnome"
+    x11_session: "gnome-xorg"
+
+  kde:
+    display_servers: ["x11", "wayland"]
+    packages:
+      - kubuntu-desktop
+      - plasma-desktop
+      - kde-standard
+    services:
+      - sddm
+    wayland_session: "plasmawayland"
+    x11_session: "plasma"
+
+  xfce:
+    display_servers: ["x11"]
+    packages:
+      - xubuntu-desktop
+      - xfce4
+      - xfce4-goodies
+    services:
+      - lightdm
+    x11_session: "xfce"
+
+  i3:
+    display_servers: ["x11"]
+    packages:
+      - i3-wm
+      - i3status
+      - i3lock
+      - dmenu
+      - rofi
+    services:
+      - lightdm
+    x11_session: "i3"
+
+  sway:
+    display_servers: ["wayland"]
+    packages:
+      - sway
+      - swaylock
+      - swayidle
+      - swaybg
+      - waybar
+      - wofi
+      - mako-notifier
+    services: []
+    wayland_session: "sway"
+
+# Development tools
+ubuntu_dev_tools:
+  editors:
+    - vim
+    - nano
+    - code
+    - sublime-text
+
+  version_control:
+    - git
+    - subversion
+    - mercurial
+
+  build_tools:
+    - make
+    - cmake
+    - autotools-dev
+    - pkg-config
+
+# Compatibility settings
+ubuntu_compatibility:
+  minimum_version: "18.04"
+  supported_versions:
+    - "18.04"
+    - "20.04"
+    - "22.04"
+    - "24.04"
+
+  architecture_support:
+    - "x86_64"
+    - "aarch64"
+    - "armhf"
+
+# Ubuntu-specific dotfiles configuration
+ubuntu_dotfiles:
+  # OS-specific paths
+  paths:
+    shell_config: "/home/{{ ansible_user }}/.bashrc"
+    shell_profile: "/home/{{ ansible_user }}/.profile"
+    shell_aliases: "/home/{{ ansible_user }}/.bash_aliases"
+    zsh_config: "/home/{{ ansible_user }}/.zshrc"
+    fish_config: "/home/{{ ansible_user }}/.config/fish/config.fish"
+
+    # Application configs
+    git_config: "/home/{{ ansible_user }}/.gitconfig"
+    vim_config: "/home/{{ ansible_user }}/.vimrc"
+    tmux_config: "/home/{{ ansible_user }}/.tmux.conf"
+
+    # Desktop environment configs
+    gtk_config: "/home/{{ ansible_user }}/.config/gtk-3.0/settings.ini"
+    gnome_config: "/home/{{ ansible_user }}/.config/dconf"
+
+    # Development configs
+    ssh_config: "/home/{{ ansible_user }}/.ssh/config"
+    aws_config: "/home/{{ ansible_user }}/.aws/config"
+    docker_config: "/home/{{ ansible_user }}/.docker/config.json"
+
+  # File mappings (dotfiles repo path -> system path)
+  file_mappings:
+    "shell/bashrc": "{{ ubuntu_dotfiles.paths.shell_config }}"
+    "shell/profile": "{{ ubuntu_dotfiles.paths.shell_profile }}"
+    "shell/bash_aliases": "{{ ubuntu_dotfiles.paths.shell_aliases }}"
+    "shell/zshrc": "{{ ubuntu_dotfiles.paths.zsh_config }}"
+    "shell/fish/config.fish": "{{ ubuntu_dotfiles.paths.fish_config }}"
+    "git/gitconfig": "{{ ubuntu_dotfiles.paths.git_config }}"
+    "vim/vimrc": "{{ ubuntu_dotfiles.paths.vim_config }}"
+    "tmux/tmux.conf": "{{ ubuntu_dotfiles.paths.tmux_config }}"
+    "ssh/config": "{{ ubuntu_dotfiles.paths.ssh_config }}"
+    "aws/config": "{{ ubuntu_dotfiles.paths.aws_config }}"
+    "docker/config.json": "{{ ubuntu_dotfiles.paths.docker_config }}"
+
+  # Directory mappings
+  directory_mappings:
+    "config": "/home/{{ ansible_user }}/.config"
+    "local": "/home/{{ ansible_user }}/.local"
+    "bin": "/home/{{ ansible_user }}/.local/bin"
+    "fonts": "/home/{{ ansible_user }}/.local/share/fonts"
+    "themes": "/home/{{ ansible_user }}/.themes"
+    "icons": "/home/{{ ansible_user }}/.icons"
+
+  # Template variables for Ubuntu
+  template_vars:
+    package_manager: "apt"
+    shell_default: "/bin/bash"
+    terminal_default: "gnome-terminal"
+    editor_default: "vim"
+    browser_default: "firefox"
+
+    # System-specific settings
+    font_family: "Ubuntu Mono"
+    theme_variant: "dark"
+    icon_theme: "Adwaita"
+
+    # Development settings
+    python_version: "python3"
+    node_version: "node"
+    java_home: "/usr/lib/jvm/default-java"
+
+  # Services to restart after dotfiles changes
+  services_to_restart:
+    - "ssh"
+
+  # Commands to run after dotfiles installation
+  post_install_commands:
+    - "source ~/.bashrc"
+    - "fc-cache -fv"  # Refresh font cache
+    - "update-desktop-database ~/.local/share/applications"

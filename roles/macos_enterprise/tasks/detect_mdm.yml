@@ -1,0 +1,168 @@
+---
+# MDM Detection Tasks
+# Detects various MDM solutions and sets appropriate flags
+
+- name: Initialize MDM detection variables
+  set_fact:
+    mdm_detected: false
+    mdm_type: "none"
+    mdm_details: {}
+    mdm_restrictions: []
+  tags: ['mdm', 'detection', 'init']
+
+- name: Check for Jamf Pro MDM
+  block:
+    - name: Check for Jamf binary
+      stat:
+        path: "/usr/local/bin/jamf"
+      register: jamf_binary_check
+
+    - name: Check for Jamf plist
+      stat:
+        path: "/Library/Preferences/com.jamfsoftware.jamf.plist"
+      register: jamf_plist_check
+
+    - name: Get Jamf Pro information
+      command: "/usr/local/bin/jamf version"
+      register: jamf_version
+      failed_when: false
+      changed_when: false
+      when: jamf_binary_check.stat.exists
+
+    - name: Set Jamf Pro detection facts
+      set_fact:
+        mdm_detected: true
+        mdm_type: "jamf_pro"
+        mdm_details:
+          binary_path: "/usr/local/bin/jamf"
+          plist_exists: "{{ jamf_plist_check.stat.exists }}"
+          version: "{{ jamf_version.stdout | default('unknown') }}"
+      when: jamf_binary_check.stat.exists or jamf_plist_check.stat.exists
+  tags: ['mdm', 'detection', 'jamf']
+
+- name: Check for Microsoft Intune
+  block:
+    - name: Check for Intune agent
+      stat:
+        path: "/Library/Intune/Microsoft Intune Agent.app"
+      register: intune_agent_check
+
+    - name: Check for Intune Company Portal
+      stat:
+        path: "/Applications/Company Portal.app"
+      register: intune_portal_check
+
+    - name: Set Intune detection facts
+      set_fact:
+        mdm_detected: true
+        mdm_type: "microsoft_intune"
+        mdm_details:
+          agent_exists: "{{ intune_agent_check.stat.exists }}"
+          portal_exists: "{{ intune_portal_check.stat.exists }}"
+      when: intune_agent_check.stat.exists or intune_portal_check.stat.exists
+  tags: ['mdm', 'detection', 'intune']
+
+- name: Check for VMware Workspace ONE
+  block:
+    - name: Check for Workspace ONE Intelligent Hub
+      stat:
+        path: "/Applications/Workspace ONE Intelligent Hub.app"
+      register: workspace_one_check
+
+    - name: Set Workspace ONE detection facts
+      set_fact:
+        mdm_detected: true
+        mdm_type: "vmware_workspace_one"
+        mdm_details:
+          hub_exists: "{{ workspace_one_check.stat.exists }}"
+      when: workspace_one_check.stat.exists
+  tags: ['mdm', 'detection', 'workspace_one']
+
+- name: Check for other MDM solutions
+  block:
+    - name: Check for Kandji Agent
+      stat:
+        path: "/Library/Kandji/Kandji Agent.app"
+      register: kandji_check
+
+    - name: Check for Mosyle MDM
+      stat:
+        path: "/usr/local/bin/mosyle"
+      register: mosyle_check
+
+    - name: Check for Addigy Agent
+      stat:
+        path: "/Library/Addigy/auditor"
+      register: addigy_check
+
+    - name: Set other MDM detection facts
+      set_fact:
+        mdm_detected: true
+        mdm_type: "{{ item.type }}"
+        mdm_details: "{{ item.details }}"
+      when: item.condition
+      loop:
+        - type: "kandji"
+          condition: "{{ kandji_check.stat.exists }}"
+          details: { agent_path: "/Library/Kandji/Kandji Agent.app" }
+        - type: "mosyle"
+          condition: "{{ mosyle_check.stat.exists }}"
+          details: { binary_path: "/usr/local/bin/mosyle" }
+        - type: "addigy"
+          condition: "{{ addigy_check.stat.exists }}"
+          details: { agent_path: "/Library/Addigy/auditor" }
+      loop_control:
+        label: "{{ item.type }}"
+  tags: ['mdm', 'detection', 'other']
+
+- name: Check for configuration profiles
+  block:
+    - name: Get installed configuration profiles
+      command: "profiles -P"
+      register: profiles_output
+      failed_when: false
+      changed_when: false
+
+    - name: Parse configuration profiles
+      set_fact:
+        configuration_profiles: "{{ profiles_output.stdout_lines | default([]) }}"
+        has_configuration_profiles: "{{ (profiles_output.stdout_lines | default([]) | length) > 0 }}"
+
+    - name: Update MDM detection based on profiles
+      set_fact:
+        mdm_detected: true
+        mdm_type: "{{ mdm_type if mdm_type != 'none' else 'configuration_profiles' }}"
+        mdm_details: "{{ mdm_details | combine({'profiles_count': profiles_output.stdout_lines | default([]) | length}) }}"
+      when: has_configuration_profiles | bool
+  tags: ['mdm', 'detection', 'profiles']
+
+- name: Determine MDM restrictions
+  set_fact:
+    mdm_restrictions: "{{ macos_enterprise.mdm.skip_when_mdm_detected }}"
+  when: 
+    - mdm_detected | bool
+    - macos_enterprise.mdm.respect_mdm_settings | bool
+  tags: ['mdm', 'detection', 'restrictions']
+
+- name: Display MDM detection results
+  debug:
+    msg: |
+      MDM Detection Results:
+      =====================
+      MDM Detected: {{ mdm_detected }}
+      MDM Type: {{ mdm_type }}
+      MDM Details: {{ mdm_details }}
+      Configuration Profiles: {{ has_configuration_profiles | default(false) }}
+      Restrictions Applied: {{ mdm_restrictions | length }} operations will be skipped
+      
+      {% if mdm_detected and macos_enterprise.mdm.respect_mdm_settings %}
+      ⚠️  MDM detected - Some system-level operations will be skipped to avoid conflicts
+      {% endif %}
+  tags: ['mdm', 'detection', 'results']
+
+- name: Create MDM detection report
+  template:
+    src: mdm_detection_report.j2
+    dest: "{{ ansible_user_dir }}/.dotsible/mdm_detection_report.txt"
+    mode: '0644'
+  tags: ['mdm', 'detection', 'report']

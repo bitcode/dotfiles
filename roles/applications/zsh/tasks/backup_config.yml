@@ -50,7 +50,7 @@
       Backup Date: {{ ansible_date_time.iso8601 }}
       Backup Timestamp: {{ backup_timestamp }}
       Host: {{ inventory_hostname }}
-      User: {{ ansible_user }}
+      User: {{ ansible_env.USER | default(ansible_user_id) }}
       
       Backed Up Files:
       {% for item in zsh_config_files.results %}

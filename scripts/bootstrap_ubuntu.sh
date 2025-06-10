@@ -1,28 +1,57 @@
 #!/bin/bash
 # Ubuntu/Debian-Specific Bootstrap Script for Dotsible
+# Updates apt cache, installs Python/Ansible, and configures snap/flatpak
+
 set -euo pipefail
 
-# Colors
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-BLUE="\033[0;34m"
-YELLOW="\033[1;33m"
-NC="\033[0m"
+# Script configuration
+readonly SCRIPT_NAME="$(basename "$0")"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LOG_DIR="$HOME/.dotsible/logs"
+readonly LOG_FILE="$LOG_DIR/bootstrap_ubuntu_$(date +%Y%m%d_%H%M%S).log"
 
-# Logging
-LOG_DIR="$HOME/.dotsible/logs"
-LOG_FILE="$LOG_DIR/bootstrap_ubuntu_$(date +%Y%m%d_%H%M%S).log"
-mkdir -p "$LOG_DIR"
+# Colors for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
 
-log() { echo "$(date) [INFO] $*" | tee -a "$LOG_FILE"; }
-error() { echo -e "${RED}$(date) [ERROR] $*${NC}" | tee -a "$LOG_FILE" >&2; }
-success() { echo -e "${GREEN}$(date) [SUCCESS] $*${NC}" | tee -a "$LOG_FILE"; }
-info() { echo -e "${BLUE}$(date) [INFO] $*${NC}" | tee -a "$LOG_FILE"; }
-warning() { echo -e "${YELLOW}$(date) [WARN] $*${NC}" | tee -a "$LOG_FILE"; }
+# Configuration
+readonly MIN_PYTHON_VERSION="3.8"
+readonly MIN_ANSIBLE_VERSION="2.9"
 
+# Global variables
 ENVIRONMENT_TYPE="${1:-personal}"
-TARGET_PYTHON_VERSION="3.13.4"
-REQUIRED_PYTHON_MAJOR_MINOR="3.13"
+FORCE_REINSTALL=false
+VERBOSE=false
+
+# Logging functions
+setup_logging() {
+    mkdir -p "$LOG_DIR"
+    exec 1> >(tee -a "$LOG_FILE")
+    exec 2> >(tee -a "$LOG_FILE" >&2)
+}
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $*" | tee -a "$LOG_FILE" >/dev/null
+}
+
+error() {
+    echo -e "${RED}$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $*${NC}" | tee -a "$LOG_FILE" >&2
+}
+
+warning() {
+    echo -e "${YELLOW}$(date '+%Y-%m-%d %H:%M:%S') [WARN] $*${NC}" | tee -a "$LOG_FILE" >&2
+}
+
+success() {
+    echo -e "${GREEN}$(date '+%Y-%m-%d %H:%M:%S') [SUCCESS] $*${NC}" | tee -a "$LOG_FILE"
+}
+
+info() {
+    echo -e "${BLUE}$(date '+%Y-%m-%d %H:%M:%S') [INFO] $*${NC}" | tee -a "$LOG_FILE"
+}
 
 # Progress indicator
 show_progress() {
@@ -47,16 +76,19 @@ show_progress() {
 validate_ubuntu_system() {
     info "Validating Ubuntu/Debian system..."
     
+    # Check if running on Ubuntu/Debian
     if [[ ! -f /etc/lsb-release ]] && [[ ! -f /etc/debian_version ]]; then
         error "This script is designed for Ubuntu/Debian systems"
         exit 1
     fi
     
+    # Check if apt is available
     if ! command -v apt >/dev/null 2>&1; then
         error "apt package manager not found"
         exit 1
     fi
     
+    # Detect Ubuntu version
     if [[ -f /etc/lsb-release ]]; then
         local ubuntu_version
         ubuntu_version=$(grep DISTRIB_RELEASE /etc/lsb-release | cut -d= -f2)
@@ -73,12 +105,19 @@ validate_ubuntu_system() {
 # System update
 update_system() {
     info "Updating system packages..."
+    
+    # Update package cache
+    info "Updating package cache..."
     sudo apt update
+    
+    # Upgrade system packages
+    info "Upgrading system packages..."
     sudo apt upgrade -y
+    
     success "System update completed"
 }
 
-# Base development tools
+# Base development tools installation
 install_base_tools() {
     info "Installing base development tools..."
     
@@ -87,10 +126,9 @@ install_base_tools() {
         "git"
         "curl"
         "wget"
-        "python3"
-        "python3-pip"
-        "python3-venv"
-        "python3-dev"
+        "unzip"
+        "tar"
+        "gzip"
         "software-properties-common"
         "apt-transport-https"
         "ca-certificates"
@@ -111,123 +149,104 @@ install_base_tools() {
     success "Base development tools installed"
 }
 
-# Python version management - upgrade to Python 3.13
-manage_python_version() {
-    info "🐍 Managing Python version..."
-
-    # Check current Python version
-    local current_version=""
+# Python installation
+install_python() {
+    info "Installing Python..."
+    
+    # Check if Python 3.8+ is already available
+    local python_cmd=""
+    local python_version=""
+    
+    for cmd in python3 python python3.11 python3.10 python3.9 python3.8; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            python_version=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            if [[ -n "$python_version" ]]; then
+                if python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)" 2>/dev/null; then
+                    python_cmd="$cmd"
+                    success "Python found: $python_cmd (version $python_version)"
+                    return 0
+                fi
+            fi
+        fi
+    done
+    
+    info "Installing Python via apt..."
+    
+    # Install Python and pip
+    sudo apt install -y python3 python3-pip python3-venv python3-dev
+    
+    # Verify installation
     if command -v python3 >/dev/null 2>&1; then
-        current_version=$(python3 --version 2>&1 | cut -d' ' -f2)
-        info "Current Python: $current_version"
-    fi
-
-    # Check if we already have the target version
-    if [[ "$current_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
-        success "Python $REQUIRED_PYTHON_MAJOR_MINOR already installed"
-        return 0
-    fi
-
-    # Add deadsnakes PPA for newer Python versions
-    info "Adding deadsnakes PPA for Python 3.13..."
-    if ! grep -q "deadsnakes/ppa" /etc/apt/sources.list.d/* 2>/dev/null; then
-        sudo add-apt-repository -y ppa:deadsnakes/ppa
-        sudo apt update
+        python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        success "Python installed successfully: version $python_version"
+        
+        # Upgrade pip
+        info "Upgrading pip..."
+        python3 -m pip install --user --upgrade pip
     else
-        info "deadsnakes PPA already added"
+        error "Python installation failed"
+        exit 1
     fi
+}
 
-    # Install Python 3.13
-    info "Installing Python 3.13..."
-    local python_packages=(
-        "python3.13"
-        "python3.13-dev"
-        "python3.13-venv"
-        "python3.13-distutils"
+# Function to verify all required Ansible commands are available
+verify_ansible_commands() {
+    local expected_commands=(
+        "ansible"
+        "ansible-playbook"
+        "ansible-galaxy"
+        "ansible-vault"
+        "ansible-config"
+        "ansible-inventory"
+        "ansible-doc"
     )
 
-    for package in "${python_packages[@]}"; do
-        if dpkg -l | grep -q "^ii  $package "; then
-            success "Python package already installed: $package"
-        else
-            info "Installing Python package: $package"
-            sudo apt install -y "$package"
+    local missing_commands=()
+
+    for cmd in "${expected_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_commands+=("$cmd")
         fi
     done
 
-    # Install pip for Python 3.13
-    if ! python3.13 -m pip --version >/dev/null 2>&1; then
-        info "Installing pip for Python 3.13..."
-        curl -sS https://bootstrap.pypa.io/get-pip.py | python3.13
-    fi
-
-    # Update alternatives to make python3.13 the default python3
-    info "Updating Python alternatives..."
-    sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
-
-    # Verify installation
-    if command -v python3 >/dev/null 2>&1; then
-        local new_version=$(python3 --version 2>&1 | cut -d' ' -f2)
-        if [[ "$new_version" == "$REQUIRED_PYTHON_MAJOR_MINOR"* ]]; then
-            success "✅ Python $new_version installed successfully"
-        else
-            warning "⚠️  Python installed but version is $new_version (expected $REQUIRED_PYTHON_MAJOR_MINOR.x)"
-        fi
+    if [[ ${#missing_commands[@]} -eq 0 ]]; then
+        success "✅ All Ansible commands verified successfully"
+        return 0
     else
-        error "❌ Python installation failed"
-        exit 1
+        error "❌ Missing Ansible commands: ${missing_commands[*]}"
+        return 1
     fi
-
-    success "Python version management completed"
-}
-
-# Python and pip validation
-validate_python() {
-    info "Validating Python installation..."
-
-    if ! command -v python3 >/dev/null 2>&1; then
-        error "Python 3 not found"
-        exit 1
-    fi
-
-    if ! python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)" 2>/dev/null; then
-        error "Python 3.8+ required"
-        exit 1
-    fi
-
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        error "pip not working properly"
-        exit 1
-    fi
-
-    local python_version
-    python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    success "Python validation passed: version $python_version"
-
-    # Upgrade pip
-    info "Upgrading pip..."
-    python3 -m pip install --user --upgrade pip
 }
 
 # Ansible installation
 install_ansible() {
     info "Installing Ansible..."
     
+    # Check if Ansible is already installed
     if command -v ansible >/dev/null 2>&1; then
         local ansible_version
-        ansible_version=$(ansible --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        ansible_version=$(ansible --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
         success "Ansible already installed: version $ansible_version"
-        return 0
+
+        # Verify all commands are available
+        if verify_ansible_commands; then
+            return 0
+        else
+            warning "Ansible installation incomplete - missing subcommands"
+        fi
     fi
     
-    # Try apt first
+    # Try installing via apt first
+    info "Installing Ansible via apt..."
     if sudo apt install -y ansible; then
         success "Ansible installed via apt"
     else
+        # Fallback to pip installation
         warning "apt installation failed, trying pip..."
+        info "Installing Ansible via pip..."
         python3 -m pip install --user ansible
         
-        # Add pip user bin to PATH
+        # Add pip user bin to PATH if not already there
         local pip_user_bin="$HOME/.local/bin"
         if [[ -d "$pip_user_bin" ]] && [[ ":$PATH:" != *":$pip_user_bin:"* ]]; then
             export PATH="$pip_user_bin:$PATH"
@@ -235,112 +254,36 @@ install_ansible() {
         fi
     fi
     
+    # Verify installation
     if command -v ansible >/dev/null 2>&1; then
         local ansible_version
         ansible_version=$(ansible --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         success "Ansible installed successfully: version $ansible_version"
+
+        # Verify all commands are available
+        if ! verify_ansible_commands; then
+            error "Ansible installation incomplete - missing critical subcommands"
+            exit 1
+        fi
     else
         error "Ansible installation failed"
         exit 1
     fi
 }
 
-# pipx installation
-install_pipx() {
-    info "Installing pipx..."
-    
-    if command -v pipx >/dev/null 2>&1; then
-        local pipx_version
-        pipx_version=$(pipx --version 2>/dev/null || echo "unknown")
-        success "pipx already installed: version $pipx_version"
-        return 0
-    fi
-    
-    # Verify pip3 is working
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        error "pip3 is not working properly"
-        exit 1
-    fi
-    
-    info "Installing pipx via pip..."
-    python3 -m pip install --user pipx
-    
-    # Add pipx to PATH
-    local pip_user_bin="$HOME/.local/bin"
-    if [[ -d "$pip_user_bin" ]] && [[ ":$PATH:" != *":$pip_user_bin:"* ]]; then
-        export PATH="$pip_user_bin:$PATH"
-        info "Added $pip_user_bin to PATH"
-    fi
-    
-    # Configure pipx
-    if command -v pipx >/dev/null 2>&1; then
-        info "Configuring pipx environment..."
-        pipx ensurepath --force 2>/dev/null || true
-        
-        local pipx_version
-        pipx_version=$(pipx --version 2>/dev/null || echo "unknown")
-        success "pipx installed successfully: version $pipx_version"
-    else
-        error "pipx installation failed"
-        exit 1
-    fi
-}
-
-# Ansible development tools
-install_ansible_dev_tools() {
-    info "Installing Ansible development tools..."
-    
-    if ! command -v pipx >/dev/null 2>&1; then
-        error "pipx is required but not found"
-        exit 1
-    fi
-    
-    # Install community-ansible-dev-tools
-    if pipx list | grep -q "community-ansible-dev-tools" 2>/dev/null; then
-        success "community-ansible-dev-tools already installed"
-    else
-        info "Installing community-ansible-dev-tools via pipx..."
-        if pipx install community-ansible-dev-tools; then
-            success "community-ansible-dev-tools installed successfully"
-        else
-            error "community-ansible-dev-tools installation failed"
-            exit 1
-        fi
-    fi
-    
-    # Install ansible-lint
-    if pipx list | grep -q "ansible-lint" 2>/dev/null; then
-        success "ansible-lint already installed"
-    else
-        info "Installing ansible-lint via pipx..."
-        if pipx install ansible-lint; then
-            success "ansible-lint installed successfully"
-        else
-            error "ansible-lint installation failed"
-            exit 1
-        fi
-    fi
-    
-    # Verify installations
-    local tools=("community-ansible-dev-tools" "ansible-lint")
-    for tool in "${tools[@]}"; do
-        if command -v "$tool" >/dev/null 2>&1; then
-            success "$tool is accessible"
-        else
-            warning "$tool installed but not in PATH"
-        fi
-    done
-}
-
-# Configure snap
+# Snap installation and configuration
 configure_snap() {
     info "Configuring Snap package manager..."
     
+    # Check if snapd is installed
     if ! command -v snap >/dev/null 2>&1; then
         info "Installing snapd..."
         sudo apt install -y snapd
+        
+        # Enable snapd service
         sudo systemctl enable --now snapd.socket
         
+        # Create symlink for classic snap support
         if [[ ! -L /snap ]]; then
             sudo ln -s /var/lib/snapd/snap /snap
         fi
@@ -348,6 +291,7 @@ configure_snap() {
         success "Snap already installed"
     fi
     
+    # Verify snap installation
     if command -v snap >/dev/null 2>&1; then
         success "Snap configured successfully"
     else
@@ -355,25 +299,29 @@ configure_snap() {
     fi
 }
 
-# Configure flatpak
+# Flatpak installation and configuration
 configure_flatpak() {
     info "Configuring Flatpak package manager..."
     
+    # Check if flatpak is installed
     if ! command -v flatpak >/dev/null 2>&1; then
         info "Installing flatpak..."
         sudo apt install -y flatpak
         
+        # Add Flathub repository
         info "Adding Flathub repository..."
         flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     else
         success "Flatpak already installed"
         
+        # Ensure Flathub repository is added
         if ! flatpak remotes | grep -q flathub; then
             info "Adding Flathub repository..."
             flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         fi
     fi
     
+    # Verify flatpak installation
     if command -v flatpak >/dev/null 2>&1; then
         success "Flatpak configured successfully"
     else
@@ -381,10 +329,64 @@ configure_flatpak() {
     fi
 }
 
+# Configure Ubuntu-specific Ansible requirements
+configure_ubuntu_ansible() {
+    info "Configuring Ubuntu-specific Ansible requirements..."
+    
+    # Install additional Python packages
+    local packages=(
+        "requests"
+        "urllib3"
+        "certifi"
+        "pexpect"
+        "distro"
+    )
+    
+    for package in "${packages[@]}"; do
+        info "Installing Python package: $package"
+        python3 -m pip install --user "$package" || warning "Failed to install $package"
+    done
+    
+    # Create Ansible configuration directory
+    local ansible_config_dir="$HOME/.ansible"
+    if [[ ! -d "$ansible_config_dir" ]]; then
+        mkdir -p "$ansible_config_dir"
+        info "Created Ansible configuration directory: $ansible_config_dir"
+    fi
+    
+    # Create basic ansible.cfg if it doesn't exist
+    local ansible_cfg="$ansible_config_dir/ansible.cfg"
+    if [[ ! -f "$ansible_cfg" ]]; then
+        cat > "$ansible_cfg" << EOF
+[defaults]
+host_key_checking = False
+retry_files_enabled = False
+gathering = smart
+fact_caching = memory
+stdout_callback = yaml
+bin_ansible_callbacks = True
+become_ask_pass = False
+
+[ssh_connection]
+ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+become_ask_pass = False
+EOF
+        info "Created Ansible configuration: $ansible_cfg"
+    fi
+    
+    success "Ubuntu Ansible configuration completed"
+}
+
 # Configure sudo permissions
 configure_sudo() {
     info "Configuring sudo permissions..."
     
+    # Check if user is in sudo group
     if groups "$USER" | grep -q sudo; then
         success "User already in sudo group"
     else
@@ -393,6 +395,7 @@ configure_sudo() {
         success "User added to sudo group"
     fi
     
+    # Configure passwordless sudo for current user
     local sudoers_file="/etc/sudoers.d/$USER"
     if [[ ! -f "$sudoers_file" ]]; then
         info "Configuring passwordless sudo..."
@@ -402,6 +405,58 @@ configure_sudo() {
     else
         success "Sudo already configured for user"
     fi
+}
+
+# Environment-specific configuration
+configure_environment() {
+    local env_type="$1"
+    
+    info "Configuring for environment type: $env_type"
+    
+    case "$env_type" in
+        enterprise)
+            info "Applying enterprise-specific configurations..."
+            
+            # Install additional enterprise tools
+            local enterprise_packages=(
+                "openssh-server"
+                "rsync"
+                "htop"
+                "neofetch"
+                "tree"
+                "jq"
+            )
+            
+            for package in "${enterprise_packages[@]}"; do
+                if ! dpkg -l | grep -q "^ii  $package "; then
+                    info "Installing enterprise package: $package"
+                    sudo apt install -y "$package" || warning "Failed to install $package"
+                fi
+            done
+            ;;
+        personal)
+            info "Applying personal environment configurations..."
+            
+            # Install additional personal tools
+            local personal_packages=(
+                "neofetch"
+                "htop"
+                "tree"
+                "jq"
+                "vim"
+            )
+            
+            for package in "${personal_packages[@]}"; do
+                if ! dpkg -l | grep -q "^ii  $package "; then
+                    info "Installing personal package: $package"
+                    sudo apt install -y "$package" || warning "Failed to install $package"
+                fi
+            done
+            ;;
+        *)
+            warning "Unknown environment type: $env_type. Using default configuration."
+            ;;
+    esac
 }
 
 # Final validation
@@ -426,22 +481,6 @@ final_validation() {
         return 1
     fi
     
-    # Check pipx
-    if ! command -v pipx >/dev/null 2>&1; then
-        error "pipx validation failed"
-        return 1
-    fi
-    
-    # Check development tools
-    local dev_tools=("community-ansible-dev-tools" "ansible-lint")
-    for tool in "${dev_tools[@]}"; do
-        if command -v "$tool" >/dev/null 2>&1; then
-            success "$tool validation passed"
-        else
-            warning "$tool not found in PATH but may be installed via pipx"
-        fi
-    done
-    
     # Check snap (optional)
     if command -v snap >/dev/null 2>&1; then
         success "Snap available"
@@ -456,75 +495,55 @@ final_validation() {
         warning "Flatpak not available"
     fi
     
-    # Comprehensive Ansible command verification
-    local expected_commands=("ansible" "ansible-playbook" "ansible-galaxy" "ansible-vault")
-    local missing_commands=()
-
-    for cmd in "${expected_commands[@]}"; do
-        if ! command -v "$cmd" >/dev/null 2>&1; then
-            missing_commands+=("$cmd")
-        fi
-    done
-
-    if [[ ${#missing_commands[@]} -gt 0 ]]; then
-        warning "Missing Ansible commands: ${missing_commands[*]}"
-        warning "This may indicate an incomplete pipx installation"
-
-        # Try to fix with pipx force reinstall
-        if command -v pipx >/dev/null 2>&1; then
-            info "Attempting to fix Ansible installation..."
-            pipx install --force ansible >/dev/null 2>&1 || warning "Failed to force reinstall Ansible"
-        fi
-    else
-        success "All critical Ansible commands available"
-    fi
-
     # Test Ansible functionality
     if ! ansible localhost -m ping >/dev/null 2>&1; then
         warning "Ansible ping test failed, but installation appears successful"
     else
         success "Ansible functionality verified"
     fi
-
+    
     success "All validations passed!"
     return 0
 }
 
-# Main function
+# Main execution function
 main() {
-    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                UBUNTU BOOTSTRAP SCRIPT                      ║${NC}"
-    echo -e "${BLUE}║              Dotsible Environment Setup                     ║${NC}"
-    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    # Setup logging
+    setup_logging
     
-    log "Ubuntu bootstrap started for environment: $ENVIRONMENT_TYPE"
+    # Display banner
+    echo -e "${BLUE}"
+    cat << "EOF"
+╔══════════════════════════════════════════════════════════════╗
+║                UBUNTU BOOTSTRAP SCRIPT                      ║
+║              Dotsible Environment Setup                     ║
+╚══════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
     
-    local total_steps=11
+    log "Ubuntu bootstrap started"
+    log "Environment type: $ENVIRONMENT_TYPE"
+    log "Working directory: $(pwd)"
+    log "Script location: $SCRIPT_DIR"
+    
+    # Main bootstrap sequence
+    local total_steps=10
     local current_step=0
     
     show_progress $((++current_step)) $total_steps "Validating Ubuntu system..."
     validate_ubuntu_system
     
-    show_progress $((++current_step)) $total_steps "Updating system..."
+    show_progress $((++current_step)) $total_steps "Updating system packages..."
     update_system
     
     show_progress $((++current_step)) $total_steps "Installing base tools..."
     install_base_tools
-
-    show_progress $((++current_step)) $total_steps "Managing Python version..."
-    manage_python_version
-
-    show_progress $((++current_step)) $total_steps "Validating Python..."
-    validate_python
+    
+    show_progress $((++current_step)) $total_steps "Installing Python..."
+    install_python
     
     show_progress $((++current_step)) $total_steps "Installing Ansible..."
     install_ansible
-    
-    show_progress $((++current_step)) $total_steps "Installing pipx..."
-    install_pipx
-    
-    show_progress $((++current_step)) $total_steps "Installing Ansible dev tools..."
-    install_ansible_dev_tools
     
     show_progress $((++current_step)) $total_steps "Configuring Snap..."
     configure_snap
@@ -532,12 +551,19 @@ main() {
     show_progress $((++current_step)) $total_steps "Configuring Flatpak..."
     configure_flatpak
     
+    show_progress $((++current_step)) $total_steps "Configuring Ansible..."
+    configure_ubuntu_ansible
+    
     show_progress $((++current_step)) $total_steps "Configuring sudo..."
     configure_sudo
+    
+    show_progress $((++current_step)) $total_steps "Configuring environment..."
+    configure_environment "$ENVIRONMENT_TYPE"
     
     show_progress $total_steps $total_steps "Performing final validation..."
     final_validation
     
+    # Success message
     echo
     success "Ubuntu bootstrap completed successfully!"
     echo
@@ -545,25 +571,22 @@ main() {
     echo "  - System packages: Updated and build-essential installed"
     echo "  - Python: $(python3 --version)"
     echo "  - Ansible: $(ansible --version | head -1)"
-    if command -v pipx >/dev/null 2>&1; then
-        echo "  - pipx: $(pipx --version 2>/dev/null || echo 'installed')"
-    fi
-    if command -v community-ansible-dev-tools >/dev/null 2>&1; then
-        echo "  - community-ansible-dev-tools: $(community-ansible-dev-tools --version 2>/dev/null || echo 'installed')"
-    fi
-    if command -v ansible-lint >/dev/null 2>&1; then
-        echo "  - ansible-lint: $(ansible-lint --version 2>/dev/null || echo 'installed')"
-    fi
     if command -v snap >/dev/null 2>&1; then
-        echo "  - Snap: $(snap version | head -1 2>/dev/null || echo 'installed')"
+        echo "  - Snap: $(snap version | head -1)"
     fi
     if command -v flatpak >/dev/null 2>&1; then
-        echo "  - Flatpak: $(flatpak --version 2>/dev/null || echo 'installed')"
+        echo "  - Flatpak: $(flatpak --version)"
     fi
     echo
-    info "Environment: $ENVIRONMENT_TYPE"
-    info "Log: $LOG_FILE"
+    info "Environment type: $ENVIRONMENT_TYPE"
+    info "Log file: $LOG_FILE"
+    
+    log "Ubuntu bootstrap completed successfully"
+    exit 0
 }
 
-trap 'error "Ubuntu bootstrap failed at line $LINENO"; exit 1' ERR
+# Error handling
+trap 'error "Ubuntu bootstrap failed at line $LINENO. Check log: $LOG_FILE"; exit 1' ERR
+
+# Execute main function
 main "$@"

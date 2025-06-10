@@ -1,0 +1,15 @@
+---
+# Test playbook for dotfiles conditional deployment
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    profile: developer
+    dotfiles_enabled: true
+    ansible_user: mdrozrosario
+  
+  roles:
+    - role: common
+      tags: ['common']
+    - role: dotfiles
+      tags: ['dotfiles', 'conditional']

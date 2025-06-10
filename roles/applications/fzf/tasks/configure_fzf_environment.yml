@@ -1,0 +1,35 @@
+---
+# Configure FZF environment variables with idempotent checks
+
+- name: Check if FZF environment variables are configured
+  shell: grep -q "FZF_DEFAULT_OPTS\|FZF_DEFAULT_COMMAND" {{ shell_config_file }}
+  register: fzf_env_check
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF environment variables status
+  debug:
+    msg: "FZF Environment: {{ '✅ CONFIGURED' if fzf_env_check.rc == 0 else '❌ NOT CONFIGURED' }}"
+
+- name: Configure FZF environment variables
+  blockinfile:
+    path: "{{ shell_config_file }}"
+    marker: "# {mark} FZF ENVIRONMENT VARIABLES"
+    block: |
+      # FZF Environment Variables
+      {% for var_name, var_value in fzf_environment_vars.items() %}
+      export {{ var_name }}="{{ var_value }}"
+      {% endfor %}
+    create: yes
+    backup: yes
+  when: fzf_env_check.rc != 0
+
+- name: Verify FZF environment variables configuration
+  shell: grep -c "export FZF_" {{ shell_config_file }}
+  register: fzf_env_verify
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF environment variables verification
+  debug:
+    msg: "FZF Environment: {{ '✅ VERIFIED (' + fzf_env_verify.stdout + ' variables)' if fzf_env_verify.rc == 0 and fzf_env_verify.stdout|int > 0 else '❌ NOT FOUND' }}"

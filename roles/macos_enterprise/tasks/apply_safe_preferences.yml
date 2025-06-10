@@ -1,0 +1,180 @@
+---
+# Apply Enterprise-Safe System Preferences
+# Only applies user-level preferences that won't conflict with MDM
+
+- name: Check if operation is safe to perform
+  set_fact:
+    operation_safe: "{{ not (mdm_detected | default(false)) or not (macos_enterprise.mdm.respect_mdm_settings | bool) or macos_enterprise.mdm.force_ignore_mdm | bool }}"
+  tags: ['preferences', 'safety_check']
+
+- name: Display safety check results
+  debug:
+    msg: |
+      Preference Application Safety Check
+      ==================================
+      MDM Detected: {{ mdm_detected | default(false) }}
+      Respect MDM Settings: {{ macos_enterprise.mdm.respect_mdm_settings | bool }}
+      Force Ignore MDM: {{ macos_enterprise.mdm.force_ignore_mdm | bool }}
+      Operation Safe: {{ operation_safe }}
+
+      {% if not operation_safe %}
+      ⚠️  Skipping system preference modifications due to MDM detection
+      {% endif %}
+  tags: ['preferences', 'safety_info']
+
+- name: Apply user-level preferences (safe with MDM)
+  block:
+    - name: Apply Finder user preferences
+      command: "defaults write com.apple.finder {{ item.key }} {{ item.type_flag }} {{ item.value }}"
+      loop:
+        - { key: "ShowPathbar", type_flag: "-bool", value: "true" }
+        - { key: "ShowStatusBar", type_flag: "-bool", value: "true" }
+        - { key: "AppleShowAllFiles", type_flag: "-bool", value: "{{ macos_system.finder.show_hidden_files | lower }}" }
+        - { key: "FXDefaultSearchScope", type_flag: "-string", value: "SCcf" }
+        - { key: "FXEnableExtensionChangeWarning", type_flag: "-bool", value: "false" }
+      loop_control:
+        label: "{{ item.key }}"
+      changed_when: true
+      tags: ['preferences', 'finder']
+
+    - name: Apply Dock user preferences
+      command: "defaults write com.apple.dock {{ item.key }} {{ item.type_flag }} {{ item.value }}"
+      loop:
+        - { key: "autohide", type_flag: "-bool", value: "{{ macos_system.dock.autohide | lower }}" }
+        - { key: "tilesize", type_flag: "-int", value: "{{ macos_system.dock.tilesize }}" }
+        - { key: "magnification", type_flag: "-bool", value: "{{ macos_system.dock.magnification | lower }}" }
+        - { key: "orientation", type_flag: "-string", value: "{{ macos_system.dock.position }}" }
+        - { key: "minimize-to-application", type_flag: "-bool", value: "true" }
+        - { key: "show-process-indicators", type_flag: "-bool", value: "true" }
+      loop_control:
+        label: "{{ item.key }}"
+      changed_when: true
+      tags: ['preferences', 'dock']
+
+    - name: Apply global user preferences
+      command: "defaults write NSGlobalDomain {{ item.key }} {{ item.type_flag }} {{ item.value }}"
+      loop:
+        - { key: "AppleShowAllExtensions", type_flag: "-bool", value: "true" }
+        - { key: "AppleShowScrollBars", type_flag: "-string", value: "Always" }
+        - { key: "NSDocumentSaveNewDocumentsToCloud", type_flag: "-bool", value: "false" }
+        - { key: "NSTableViewDefaultSizeMode", type_flag: "-int", value: "2" }
+        - { key: "AppleKeyboardUIMode", type_flag: "-int", value: "3" }
+        - { key: "ApplePressAndHoldEnabled", type_flag: "-bool", value: "false" }
+        - { key: "KeyRepeat", type_flag: "-int", value: "2" }
+        - { key: "InitialKeyRepeat", type_flag: "-int", value: "15" }
+      loop_control:
+        label: "{{ item.key }}"
+      changed_when: true
+      tags: ['preferences', 'global']
+
+    - name: Apply development-friendly preferences
+      command: "defaults write {{ item.domain }} {{ item.key }} {{ item.type_flag }} {{ item.value }}"
+      loop:
+        - { domain: "com.apple.screencapture", key: "location", type_flag: "-string", value: "{{ ansible_user_dir }}/Desktop" }
+        - { domain: "com.apple.screencapture", key: "type", type_flag: "-string", value: "png" }
+        - { domain: "com.apple.screencapture", key: "disable-shadow", type_flag: "-bool", value: "true" }
+        - { domain: "com.apple.ActivityMonitor", key: "IconType", type_flag: "-int", value: "5" }
+        - { domain: "com.apple.ActivityMonitor", key: "ShowCategory", type_flag: "-int", value: "0" }
+        - { domain: "com.apple.TextEdit", key: "RichText", type_flag: "-int", value: "0" }
+        - { domain: "com.apple.TextEdit", key: "PlainTextEncoding", type_flag: "-int", value: "4" }
+        - { domain: "com.apple.TextEdit", key: "PlainTextEncodingForWrite", type_flag: "-int", value: "4" }
+      loop_control:
+        label: "{{ item.domain }}.{{ item.key }}"
+      changed_when: true
+      when: macos_apply_developer_preferences | default(true) | bool
+      tags: ['preferences', 'development']
+
+  when: operation_safe | bool
+  tags: ['preferences', 'user_level']
+
+- name: Apply system-level preferences (only if no MDM or forced)
+  block:
+    - name: Apply system security preferences
+      command: "sudo defaults write {{ item.domain }} {{ item.key }} {{ item.type_flag }} {{ item.value }}"
+      loop:
+        - { domain: "/Library/Preferences/com.apple.loginwindow", key: "GuestEnabled", type_flag: "-bool", value: "false" }
+        - { domain: "/Library/Preferences/com.apple.loginwindow", key: "SHOWFULLNAME", type_flag: "-bool", value: "true" }
+        - { domain: "/Library/Preferences/SystemConfiguration/com.apple.smb.server", key: "NetBIOSName", type_flag: "-string", value: "{{ inventory_hostname }}" }
+      loop_control:
+        label: "{{ item.domain }}.{{ item.key }}"
+      changed_when: true
+      become: yes
+      when:
+        - macos_apply_system_preferences | default(false) | bool
+        - "'system_preferences_modification' not in (mdm_restrictions | default([]))"
+      tags: ['preferences', 'system_level']
+
+    - name: Apply hostname changes
+      hostname:
+        name: "{{ inventory_hostname }}"
+      become: yes
+      when:
+        - macos_set_hostname | default(false) | bool
+        - "'hostname_changes' not in (mdm_restrictions | default([]))"
+      tags: ['preferences', 'hostname']
+
+  when:
+    - operation_safe | bool
+    - not (mdm_detected | default(false)) or macos_enterprise.mdm.force_ignore_mdm | bool
+  tags: ['preferences', 'system_level']
+
+- name: Restart affected services
+  block:
+    - name: Restart Finder
+      command: "killall Finder"
+      failed_when: false
+      changed_when: false
+
+    - name: Restart Dock
+      command: "killall Dock"
+      failed_when: false
+      changed_when: false
+
+    - name: Restart SystemUIServer
+      command: "killall SystemUIServer"
+      failed_when: false
+      changed_when: false
+
+    - name: Wait for services to restart
+      pause:
+        seconds: 2
+  when: operation_safe | bool
+  tags: ['preferences', 'restart_services']
+
+- name: Create preferences application report
+  copy:
+    content: |
+      Preferences Application Report
+      =============================
+      Timestamp: {{ ansible_date_time.iso8601 }}
+      MDM Detected: {{ mdm_detected | default(false) }}
+      Operation Safe: {{ operation_safe }}
+      Restrictions Applied: {{ mdm_restrictions | default([]) | length }} operations skipped
+
+      {% if mdm_restrictions is defined and mdm_restrictions | length > 0 %}
+      Skipped Operations:
+      {% for restriction in mdm_restrictions %}
+      - {{ restriction }}
+      {% endfor %}
+      {% endif %}
+    dest: "{{ ansible_user_dir }}/.dotsible/preferences_report_{{ ansible_date_time.iso8601_basic_short }}.txt"
+    mode: '0644'
+  tags: ['preferences', 'report']
+
+- name: Display preferences application results
+  debug:
+    msg: |
+      Preferences Application Results
+      ==============================
+      Operation Safe: {{ operation_safe }}
+      MDM Detected: {{ mdm_detected | default(false) }}
+      Restrictions Applied: {{ mdm_restrictions | default([]) | length }} operations skipped
+
+      {% if operation_safe %}
+      ✅ User preferences have been applied successfully
+      {% else %}
+      ⚠️  Some preferences were skipped due to MDM restrictions
+      {% endif %}
+
+      Changes will take effect after restarting applications or logging out/in.
+  tags: ['preferences', 'results']

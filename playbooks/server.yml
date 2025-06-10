@@ -1,0 +1,88 @@
+---
+# Server configuration playbook
+# This playbook configures headless server environments with essential services and tools
+
+- name: Configure server environments
+  hosts: servers
+  become: yes
+  gather_facts: yes
+  
+  pre_tasks:
+    - name: Display server configuration info
+      debug:
+        msg: |
+          Configuring server: {{ inventory_hostname }}
+          Profile: {{ profile | default('server') }}
+          Features: {{ features | default([]) | join(', ') }}
+          OS: {{ ansible_os_family }} {{ ansible_distribution }} {{ ansible_distribution_version }}
+    
+    - name: Validate server requirements
+      assert:
+        that:
+          - ansible_os_family in ['Debian', 'RedHat', 'Archlinux']
+          - ansible_virtualization_type is defined
+        fail_msg: "Unsupported server system: {{ ansible_os_family }}"
+        success_msg: "Server validation passed"
+    
+    - name: Setup package manager
+      include_role:
+        name: package_manager
+      tags: ['package_manager', 'setup']
+  
+  roles:
+    - role: common
+      tags: ['common', 'base']
+    
+    - role: dotfiles
+      tags: ['dotfiles', 'config']
+      when: manage_dotfiles | default(true) | bool
+    
+    - role: "profiles/{{ profile | default('server') }}"
+      tags: ['profile', 'services']
+      when: profile is defined
+  
+  post_tasks:
+    - name: Verify essential server tools
+      command: "which {{ item }}"
+      register: tool_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ essential_server_tools | default(['git', 'vim', 'htop', 'curl']) }}"
+      tags: ['verify']
+    
+    - name: Display missing tools
+      debug:
+        msg: "Warning: {{ item.item }} not found in PATH"
+      loop: "{{ tool_check.results }}"
+      when: item.rc != 0
+      tags: ['verify']
+    
+    - name: Check system services
+      systemd:
+        name: "{{ item }}"
+      register: service_check
+      failed_when: false
+      loop: "{{ essential_services | default(['ssh', 'cron']) }}"
+      tags: ['verify']
+    
+    - name: Generate server report
+      template:
+        src: server_report.j2
+        dest: "/tmp/dotsible_server_report_{{ inventory_hostname }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      become: no
+      tags: ['report']
+    
+    - name: Display completion message
+      debug:
+        msg: |
+          Server configuration completed successfully!
+          Profile: {{ profile | default('server') }}
+          Report saved to: /tmp/dotsible_server_report_{{ inventory_hostname }}.txt
+          
+          Next steps:
+          - Review the server report
+          - Test services and configurations
+          - Setup monitoring and backups
+          - Run maintenance tasks: ansible-playbook site.yml --extra-vars "maintenance=true"

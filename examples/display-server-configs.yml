@@ -1,0 +1,121 @@
+# Display Server Configuration Examples
+# This file contains example configurations for different display server setups
+
+# Example 1: X11 with GNOME (Ubuntu/Arch Linux)
+x11_gnome_config:
+  display_server_preference: x11
+  desktop_environment: gnome
+  profile: developer
+  features:
+    - display_server_support
+    - development_tools
+    - code_editor
+
+# Example 2: Wayland with GNOME (Ubuntu/Arch Linux)
+wayland_gnome_config:
+  display_server_preference: wayland
+  desktop_environment: gnome
+  profile: developer
+  features:
+    - display_server_support
+    - development_tools
+    - code_editor
+
+# Example 3: X11 with i3 tiling window manager (Ubuntu/Arch Linux)
+x11_i3_config:
+  display_server_preference: x11
+  desktop_environment: i3
+  profile: developer
+  features:
+    - display_server_support
+    - development_tools
+    - advanced_shell
+
+# Example 4: Wayland with Sway tiling compositor (Ubuntu/Arch Linux)
+wayland_sway_config:
+  display_server_preference: wayland
+  desktop_environment: sway
+  profile: developer
+  features:
+    - display_server_support
+    - development_tools
+    - advanced_shell
+
+# Example 5: Gaming setup with X11 (Ubuntu/Arch Linux)
+gaming_x11_config:
+  display_server_preference: x11
+  desktop_environment: gnome
+  profile: gaming
+  features:
+    - display_server_support
+    - gaming_optimizations
+    - graphics_drivers
+
+# Example 6: Hyprland setup (Arch Linux only)
+hyprland_config:
+  display_server_preference: wayland
+  desktop_environment: hyprland
+  profile: developer
+  features:
+    - display_server_support
+    - development_tools
+    - graphics_acceleration
+
+# Example 7: Designer workstation with Wayland
+designer_wayland_config:
+  display_server_preference: wayland
+  desktop_environment: gnome
+  profile: designer
+  features:
+    - display_server_support
+    - color_management
+    - graphics_acceleration
+
+# Example 8: Minimal setup with X11
+minimal_x11_config:
+  display_server_preference: x11
+  desktop_environment: xfce
+  profile: minimal
+  features:
+    - basic_shell
+    - git_config
+
+# Usage Examples:
+# 
+# 1. Use with ansible-playbook command line:
+#    ansible-playbook site.yml --extra-vars "@examples/display-server-configs.yml" --extra-vars "config=wayland_gnome_config"
+#
+# 2. Include in inventory group_vars:
+#    Copy the desired configuration to group_vars/workstations.yml
+#
+# 3. Include in host_vars:
+#    Copy the desired configuration to host_vars/hostname.yml
+#
+# 4. Command line override:
+#    ansible-playbook site.yml -e "display_server_preference=wayland desktop_environment=sway profile=developer"
+
+# Host-specific examples for inventory files:
+
+# inventories/local/group_vars/workstations.yml
+workstation_defaults:
+  display_server_preference: x11
+  desktop_environment: gnome
+  profile: developer
+
+# inventories/local/host_vars/dev-laptop.yml
+dev_laptop_config:
+  display_server_preference: wayland
+  desktop_environment: sway
+  profile: developer
+
+# inventories/local/host_vars/gaming-rig.yml
+gaming_rig_config:
+  display_server_preference: x11
+  desktop_environment: gnome
+  profile: gaming
+
+# inventories/local/host_vars/design-workstation.yml
+design_workstation_config:
+  display_server_preference: wayland
+  desktop_environment: gnome
+  profile: designer

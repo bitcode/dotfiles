@@ -55,7 +55,13 @@
 
 # Check if zoxide is installed
 - name: Check if zoxide is available
-  command: which zoxide
+  shell: |
+    # Source Homebrew environment on macOS
+    if [[ "{{ ansible_os_family }}" == "Darwin" ]] && [[ -f /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    # Check if zoxide is available
+    command -v zoxide >/dev/null 2>&1
   register: zoxide_check
   failed_when: false
   changed_when: false
@@ -82,10 +88,18 @@
   tags: ['zoxide', 'shell', 'zsh']
 
 - name: Check if zoxide is already configured in .zshrc
-  shell: grep -q "zoxide init" "{{ ansible_user_dir }}/.zshrc" 2>/dev/null
+  shell: grep -q "ANSIBLE MANAGED BLOCK - Zoxide Configuration" "{{ ansible_user_dir }}/.zshrc" 2>/dev/null
   register: zoxide_zsh_configured
   failed_when: false
   changed_when: false
+  tags: ['zoxide', 'shell', 'zsh']
+
+- name: Remove any existing manual zoxide configuration
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    regexp: '^eval "\$\(zoxide init zsh\)"'
+    state: absent
+  when: zoxide_zsh_configured.rc != 0
   tags: ['zoxide', 'shell', 'zsh']
 
 - name: Add zoxide configuration to .zshrc
@@ -94,11 +108,19 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK - Zoxide Configuration"
     block: |
       # Zoxide - Smart directory navigation
+      # Ensure Homebrew environment is available on macOS
+      {% if ansible_os_family == "Darwin" %}
+      if [[ -f /opt/homebrew/bin/brew ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+      fi
+      {% endif %}
+      # Initialize zoxide if available
       if command -v zoxide >/dev/null 2>&1; then
         eval "$(zoxide init zsh)"
       fi
     create: yes
-  when: 
+    insertafter: EOF
+  when:
     - zoxide_check.rc == 0
     - zoxide_zsh_configured.rc != 0
   tags: ['zoxide', 'shell', 'zsh']
@@ -183,6 +205,11 @@
 # Test zoxide functionality
 - name: Test zoxide functionality
   shell: |
+    # Source Homebrew environment on macOS
+    if [[ "{{ ansible_os_family }}" == "Darwin" ]] && [[ -f /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    # Test zoxide functionality
     if command -v zoxide >/dev/null 2>&1; then
       zoxide --version
     else

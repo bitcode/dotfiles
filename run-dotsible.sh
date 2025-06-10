@@ -285,6 +285,7 @@ run_bootstrap_if_needed() {
         if [[ -f "$bootstrap_script" ]]; then
             print_color "$CYAN" "🔧 Executing: $bootstrap_script"
 
+            local original_dry_run="$DRY_RUN"
             # Set dry run environment variable for bootstrap script
             if [[ "$DRY_RUN" == "true" ]]; then
                 export DRY_RUN=true
@@ -310,8 +311,8 @@ run_bootstrap_if_needed() {
                 fi
             fi
 
-            # Unset dry run environment variable
-            unset DRY_RUN
+            # Restore dry run environment variable
+            DRY_RUN="$original_dry_run"
 
             # Post-bootstrap validation
             print_color "$CYAN" "🔍 Validating bootstrap results..."
@@ -335,7 +336,7 @@ run_bootstrap_if_needed() {
                     print_color "$RED" "❌ Bootstrap validation failed - Ansible installation incomplete"
                     echo
                     print_color "$CYAN" "💡 This is a known issue with Ansible 11.6.0 via pipx."
-                    print_color "$CYAN" "💡 Manual fix: pipx install --force ansible"
+                    print_color "$CYAN" "💡 Manual fix: pipx install --force --include-deps ansible"
                     exit 1
                 fi
             fi
@@ -871,8 +872,8 @@ repair_ansible_installation() {
     if pipx list 2>/dev/null | grep -q ansible; then
         print_color "$CYAN" "🔄 Ansible found in pipx but commands missing. Force reinstalling..."
 
-        # Force reinstall
-        if pipx install --force ansible &> /dev/null; then
+        # Force reinstall with --include-deps flag
+        if pipx install --force --include-deps ansible &> /dev/null; then
             print_color "$GREEN" "✅ Ansible force reinstallation completed"
 
             # Fix PATH again after reinstallation
@@ -908,7 +909,7 @@ validate_requirements() {
             echo
             print_color "$CYAN" "💡 Manual troubleshooting steps:"
             echo "  1. Check pipx installation: pipx list"
-            echo "  2. Force reinstall Ansible: pipx install --force ansible"
+            echo "  2. Force reinstall Ansible: pipx install --force --include-deps ansible"
             echo "  3. Ensure PATH includes ~/.local/bin: export PATH=\"\$HOME/.local/bin:\$PATH\""
             echo "  4. Restart terminal and try again"
             echo "  5. Alternative: pip3 install --user ansible"
@@ -1162,7 +1163,7 @@ main() {
         echo "  1. Restart your terminal"
         echo "  2. Run: export PATH=\"\$HOME/.local/bin:\$PATH\""
         echo "  3. Verify: ansible-playbook --version"
-        echo "  4. If still failing, run: pipx install --force ansible"
+        echo "  4. If still failing, run: pipx install --force --include-deps ansible"
         exit 1
     fi
 

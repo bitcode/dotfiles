@@ -1,0 +1,134 @@
+---
+# Install FZF via platform-specific package managers with idempotent checks
+
+- name: Install FZF on macOS via Homebrew
+  block:
+    - name: Check if FZF is installed via Homebrew
+      shell: brew list fzf 2>/dev/null
+      register: homebrew_fzf_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display Homebrew FZF status
+      debug:
+        msg: "FZF (Homebrew): {{ '✅ INSTALLED' if homebrew_fzf_check.rc == 0 else '❌ MISSING' }}"
+
+    - name: Install FZF via Homebrew
+      community.general.homebrew:
+        name: fzf
+        state: present
+      when: homebrew_fzf_check.rc != 0
+      register: homebrew_fzf_install
+
+    - name: Display FZF installation result
+      debug:
+        msg: "FZF (Homebrew): {{ '🔄 CHANGED - Installed' if homebrew_fzf_install.changed else '✅ ALREADY INSTALLED' }}"
+      when: homebrew_fzf_check.rc != 0
+
+    - name: Install FZF shell integration via Homebrew
+      shell: $(brew --prefix)/opt/fzf/install --all --no-update-rc
+      when: homebrew_fzf_check.rc != 0 or homebrew_fzf_install.changed
+      register: fzf_shell_install
+      failed_when: false
+
+  when: ansible_os_family == "Darwin"
+  tags: ['fzf', 'macos', 'homebrew']
+
+- name: Install FZF on Arch Linux via pacman
+  block:
+    - name: Check if FZF is installed via pacman
+      shell: pacman -Q fzf 2>/dev/null
+      register: pacman_fzf_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display pacman FZF status
+      debug:
+        msg: "FZF (pacman): {{ '✅ INSTALLED' if pacman_fzf_check.rc == 0 else '❌ MISSING' }}"
+
+    - name: Install FZF via pacman
+      pacman:
+        name: fzf
+        state: present
+      become: yes
+      when: pacman_fzf_check.rc != 0
+      register: pacman_fzf_install
+
+    - name: Display FZF installation result
+      debug:
+        msg: "FZF (pacman): {{ '🔄 CHANGED - Installed' if pacman_fzf_install.changed else '✅ ALREADY INSTALLED' }}"
+      when: pacman_fzf_check.rc != 0
+
+  when: ansible_distribution == "Archlinux"
+  tags: ['fzf', 'archlinux', 'pacman']
+
+- name: Install FZF on Ubuntu/Debian via apt
+  block:
+    - name: Check if FZF is installed via apt
+      shell: dpkg -l | grep "^ii  fzf "
+      register: apt_fzf_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display apt FZF status
+      debug:
+        msg: "FZF (apt): {{ '✅ INSTALLED' if apt_fzf_check.rc == 0 else '❌ MISSING' }}"
+
+    - name: Install FZF via apt
+      apt:
+        name: fzf
+        state: present
+        update_cache: yes
+      become: yes
+      when: apt_fzf_check.rc != 0
+      register: apt_fzf_install
+
+    - name: Display FZF installation result
+      debug:
+        msg: "FZF (apt): {{ '🔄 CHANGED - Installed' if apt_fzf_install.changed else '✅ ALREADY INSTALLED' }}"
+      when: apt_fzf_check.rc != 0
+
+  when: ansible_os_family == "Debian"
+  tags: ['fzf', 'ubuntu', 'debian', 'apt']
+
+- name: Install FZF on Windows via Chocolatey
+  block:
+    - name: Check if FZF is installed via Chocolatey
+      win_shell: choco list --local-only fzf
+      register: choco_fzf_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display Chocolatey FZF status
+      debug:
+        msg: "FZF (Chocolatey): {{ '✅ INSTALLED' if 'fzf' in choco_fzf_check.stdout else '❌ MISSING' }}"
+
+    - name: Install FZF via Chocolatey
+      win_chocolatey:
+        name: fzf
+        state: present
+      when: "'fzf' not in choco_fzf_check.stdout"
+      register: choco_fzf_install
+
+    - name: Display FZF installation result
+      debug:
+        msg: "FZF (Chocolatey): {{ '🔄 CHANGED - Installed' if choco_fzf_install.changed else '✅ ALREADY INSTALLED' }}"
+      when: "'fzf' not in choco_fzf_check.stdout"
+
+  when: ansible_os_family == "Windows"
+  tags: ['fzf', 'windows', 'chocolatey']
+
+- name: Verify FZF installation after package install
+  shell: command -v fzf
+  register: fzf_verify_check
+  failed_when: false
+  changed_when: false
+
+- name: Display FZF verification result
+  debug:
+    msg: "FZF Verification: {{ '✅ SUCCESS - FZF is accessible' if fzf_verify_check.rc == 0 else '❌ FAILED - FZF not found in PATH' }}"
+
+- name: Set FZF installation fact
+  set_fact:
+    fzf_installed_via_package: true
+  when: fzf_verify_check.rc == 0

@@ -1,0 +1,518 @@
+---
+# Arch Linux-specific configuration variables
+# These variables apply to all Arch Linux systems
+
+# OS Information
+os_family: "Archlinux"
+os_name: "Arch Linux"
+package_manager: "pacman"
+
+# Package Management
+pacman_config:
+  update_cache: true
+  upgrade: false
+  force: false
+
+# AUR helper configuration
+aur_helper: "yay"
+aur_helper_packages:
+  - base-devel
+  - git
+
+# Arch Linux-specific packages
+archlinux_packages:
+  essential:
+    - base-devel
+    - git
+    - curl
+    - wget
+    - vim
+    - htop
+    - tree
+    - unzip
+    - zip
+    - pacman-contrib
+    - reflector
+
+  development:
+    - base-devel
+    - python
+    - python-pip
+    - nodejs
+    - npm
+    - jdk-openjdk
+    - maven
+    - gradle
+    - rust
+    - go
+
+  gui:
+    - firefox
+    - code
+    - alacritty
+    - thunar
+    - gedit
+    - vlc
+    - gimp
+    - xorg-server
+    - xorg-xinit
+
+  server:
+    - openssh
+    - fail2ban
+    - ufw
+    - nginx
+    - apache
+    - certbot
+
+  docker:
+    - docker
+    - docker-compose
+    - containerd
+
+  gaming:
+    - steam
+    - lutris
+    - wine
+    - winetricks
+    - gamemode
+
+  media:
+    - vlc
+    - audacity
+    - obs-studio
+    - ffmpeg
+    - imagemagick
+    - gstreamer
+    - gst-plugins-good
+    - gst-plugins-bad
+    - gst-plugins-ugly
+
+# Display Server Packages
+archlinux_display_servers:
+  x11:
+    core:
+      - xorg-server
+      - xorg-xinit
+      - xorg-xauth
+      - xorg-xrandr
+      - xorg-xsetroot
+      - xorg-xwininfo
+      - xorg-xprop
+      - xorg-xdpyinfo
+      - xorg-xlsclients
+      - xorg-xev
+
+    window_managers:
+      - i3-wm
+      - i3status
+      - i3lock
+      - awesome
+      - openbox
+      - fluxbox
+      - dwm
+      - bspwm
+      - herbstluftwm
+
+    display_managers:
+      - lightdm
+      - lightdm-gtk-greeter
+      - gdm
+      - sddm
+      - ly
+
+    utilities:
+      - xclip
+      - xsel
+      - arandr
+      - autorandr
+      - redshift
+      - picom
+      - dunst
+      - rofi
+      - dmenu
+
+  wayland:
+    core:
+      - wayland
+      - wayland-protocols
+      - wayland-utils
+      - xorg-xwayland
+
+    compositors:
+      - sway
+      - wayfire
+      - river
+      - labwc
+      - hyprland
+
+    sway_ecosystem:
+      - sway
+      - swaylock
+      - swayidle
+      - swaybg
+      - waybar
+      - wofi
+      - mako
+      - grim
+      - slurp
+      - wl-clipboard
+      - kanshi
+
+    display_managers:
+      - gdm
+      - sddm
+      - ly
+
+    utilities:
+      - wlr-randr
+      - gammastep
+      - wdisplays
+      - wev
+
+# AUR packages
+archlinux_aur_packages:
+  development:
+    - visual-studio-code-bin
+    - postman-bin
+    - discord
+    - slack-desktop
+    - jetbrains-toolbox
+    - sublime-text-4
+    - insomnia-bin
+    - dbeaver
+    - mongodb-compass
+
+  gaming:
+    - steam-native-runtime
+    - lutris-git
+    - heroic-games-launcher-bin
+    - gamemode-git
+    - mangohud
+    - goverlay-bin
+
+  media:
+    - spotify
+    - youtube-dl-git
+    - obs-studio-git
+    - davinci-resolve
+    - blender-git
+    - krita-git
+
+  system:
+    - yay
+    - paru
+    - timeshift
+    - timeshift-autosnap
+    - grub-btrfs
+    - snapper-gui-git
+
+  fonts:
+    - ttf-ms-fonts
+    - nerd-fonts-complete
+    - ttf-google-fonts-git
+    - adobe-source-fonts
+
+  productivity:
+    - notion-app
+    - obsidian
+    - typora
+    - mailspring
+    - todoist-nativefier
+
+# Custom AUR packages with build options
+archlinux_custom_aur_packages:
+  - name: "dwm"
+    custom_options:
+      - regexp: "^static const unsigned int borderpx"
+        line: "static const unsigned int borderpx = 2;"
+    makepkg_args: "--skipinteg"
+
+  - name: "st"
+    custom_options:
+      - regexp: "^static char \\*font ="
+        line: 'static char *font = "Liberation Mono:pixelsize=14:antialias=true:autohint=true";'
+
+# Source compilation packages
+archlinux_source_packages:
+  - name: "neovim"
+    repo: "https://github.com/neovim/neovim.git"
+    track_latest: true
+    build_system: "cmake"
+    cmake_args: "-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local"
+    binary_name: "nvim"
+    version_command: "nvim --version"
+    build_deps:
+      - cmake
+      - unzip
+      - ninja
+      - tree-sitter
+      - curl
+
+  - name: "tmux"
+    repo: "https://github.com/tmux/tmux.git"
+    track_latest: true
+    build_system: "autotools"
+    autogen: true
+    configure_args: "--prefix=/usr/local"
+    binary_name: "tmux"
+    build_deps:
+      - libevent
+      - ncurses
+
+  - name: "alacritty"
+    repo: "https://github.com/alacritty/alacritty.git"
+    track_latest: true
+    build_system: "cargo"
+    build_command: "cargo build --release"
+    install_command: "cargo install --path . --root /usr/local"
+    binary_name: "alacritty"
+    build_deps:
+      - rust
+      - cargo
+      - cmake
+      - fontconfig
+      - freetype2
+      - libxcb
+      - libxkbcommon
+
+  - name: "ripgrep"
+    repo: "https://github.com/BurntSushi/ripgrep.git"
+    track_latest: true
+    build_system: "cargo"
+    build_command: "cargo build --release"
+    install_command: "cargo install --path . --root /usr/local"
+    binary_name: "rg"
+    build_deps:
+      - rust
+      - cargo
+
+# Version management for source packages
+archlinux_version_management:
+  track_latest: true
+  update_frequency: "weekly"
+  version_file: "{{ ansible_env.HOME }}/.ansible_source_versions.yml"
+  backup_versions: true
+
+# System Services
+archlinux_services:
+  essential:
+    - sshd
+    - cronie
+    - systemd-resolved
+    - systemd-timesyncd
+
+  server:
+    - fail2ban
+    - ufw
+    - nginx
+
+  docker:
+    - docker
+    - containerd
+
+  desktop:
+    - NetworkManager
+    - bluetooth
+
+  # Display Server Services
+  x11:
+    - lightdm
+    - gdm
+    - sddm
+
+  wayland:
+    - gdm
+    - sddm
+
+# Repositories
+archlinux_repositories:
+  multilib:
+    enabled: true
+    required_for:
+      - gaming
+      - wine
+      - steam
+
+  # Custom repositories can be added here
+  # chaotic-aur:
+  #   server: "https://cdn-mirror.chaotic.cx/$repo/$arch"
+  #   key: "3056513887B78AEB"
+
+# Mirrors
+archlinux_mirrors:
+  update_mirrors: true
+  country: "US"
+  protocol: "https"
+  sort_by: "rate"
+  save_to: "/etc/pacman.d/mirrorlist"
+
+# System Configuration
+archlinux_system:
+  timezone: "UTC"
+  locale: "en_US.UTF-8"
+  keyboard: "us"
+
+  # Boot loader
+  bootloader: "systemd-boot"
+
+  # Display Server Configuration
+  display_server: "{{ display_server_preference | default('x11') }}"  # Options: x11, wayland
+
+  # Security settings
+  ufw_enabled: true
+  fail2ban_enabled: true
+
+  # Performance settings
+  swappiness: 10
+
+  # Network settings
+  network_manager: "NetworkManager"
+
+# File paths
+archlinux_paths:
+  home: "/home/{{ ansible_user }}"
+  config: "/home/{{ ansible_user }}/.config"
+  local: "/home/{{ ansible_user }}/.local"
+  bin: "/home/{{ ansible_user }}/.local/bin"
+  applications: "/home/{{ ansible_user }}/.local/share/applications"
+  fonts: "/home/{{ ansible_user }}/.local/share/fonts"
+  themes: "/home/{{ ansible_user }}/.themes"
+  icons: "/home/{{ ansible_user }}/.icons"
+
+# Shell configuration
+archlinux_shell:
+  default: "/bin/bash"
+  alternatives:
+    - "/bin/zsh"
+    - "/bin/fish"
+
+  # Terminal emulators
+  terminals:
+    - alacritty
+    - kitty
+    - termite
+    - st
+
+# Desktop Environments and Display Server Compatibility
+archlinux_desktop_environments:
+  gnome:
+    display_servers: ["x11", "wayland"]
+    packages:
+      - gnome
+      - gnome-extra
+    services:
+      - gdm
+    wayland_session: "gnome"
+    x11_session: "gnome-xorg"
+
+  kde:
+    display_servers: ["x11", "wayland"]
+    packages:
+      - plasma
+      - kde-applications
+    services:
+      - sddm
+    wayland_session: "plasmawayland"
+    x11_session: "plasma"
+
+  xfce:
+    display_servers: ["x11"]
+    packages:
+      - xfce4
+      - xfce4-goodies
+    services:
+      - lightdm
+    x11_session: "xfce"
+
+  i3:
+    display_servers: ["x11"]
+    packages:
+      - i3-wm
+      - i3status
+      - i3lock
+      - dmenu
+      - rofi
+    services:
+      - lightdm
+    x11_session: "i3"
+
+  sway:
+    display_servers: ["wayland"]
+    packages:
+      - sway
+      - swaylock
+      - swayidle
+      - swaybg
+      - waybar
+      - wofi
+      - mako
+    services: []
+    wayland_session: "sway"
+
+  hyprland:
+    display_servers: ["wayland"]
+    packages:
+      - hyprland
+      - waybar
+      - wofi
+      - mako
+      - grim
+      - slurp
+    services: []
+    wayland_session: "hyprland"
+
+# Development tools
+archlinux_dev_tools:
+  editors:
+    - vim
+    - nano
+    - code
+    - emacs
+
+  version_control:
+    - git
+    - subversion
+    - mercurial
+
+  build_tools:
+    - make
+    - cmake
+    - autoconf
+    - automake
+    - pkg-config
+
+# Gaming configuration
+archlinux_gaming:
+  enable_multilib: true
+  steam_native: true
+  wine_staging: true
+  gamemode: true
+
+  # Graphics drivers
+  nvidia_drivers:
+    - nvidia
+    - nvidia-utils
+    - lib32-nvidia-utils
+
+  amd_drivers:
+    - mesa
+    - lib32-mesa
+    - vulkan-radeon
+    - lib32-vulkan-radeon
+
+# Compatibility settings
+archlinux_compatibility:
+  rolling_release: true
+  update_frequency: "weekly"
+
+  architecture_support:
+    - "x86_64"
+    - "aarch64"
+
+  # Kernel options
+  kernel_options:
+    - linux
+    - linux-lts
+    - linux-zen
+    - linux-hardened

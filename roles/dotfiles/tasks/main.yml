@@ -26,14 +26,20 @@
   when: dotfiles_source_check.stat.exists
   tags: ['dotfiles', 'backup']
 
+- name: Check if .zshrc exists for backup
+  stat:
+    path: "{{ ansible_user_dir }}/.zshrc"
+  register: zshrc_stat
+  tags: ['dotfiles', 'backup']
+
 - name: Backup existing .zshrc if it exists
   copy:
     src: "{{ ansible_user_dir }}/.zshrc"
     dest: "{{ ansible_user_dir }}/.dotsible/backups/.zshrc.{{ ansible_date_time.epoch }}.bak"
     backup: no
-  when: 
+  when:
     - dotfiles_source_check.stat.exists
-    - ansible_user_dir + '/.zshrc' is file
+    - zshrc_stat.stat.exists
   failed_when: false
   tags: ['dotfiles', 'backup']
 

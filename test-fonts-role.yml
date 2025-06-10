@@ -1,0 +1,24 @@
+---
+# Simple test playbook for fonts role
+- name: Test Fonts Role Directly
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    profile: "minimal"
+    
+  tasks:
+    - name: Display test information
+      debug:
+        msg: |
+          === Testing Fonts Role Directly ===
+          Platform: {{ ansible_os_family }}
+          Distribution: {{ ansible_distribution | default('N/A') }}
+          Profile: {{ profile }}
+          User: {{ ansible_user_id }}
+          Home: {{ ansible_user_dir }}
+          ===================================
+
+    - name: Include fonts role
+      include_role:
+        name: applications/fonts
+      tags: ['fonts']
