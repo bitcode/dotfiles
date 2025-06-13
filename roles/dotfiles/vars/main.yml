@@ -1,12 +1,22 @@
 ---
-# Simplified dotfiles role variables
+# Enhanced GNU Stow-based dotfiles role variables
 
-# Basic dotfiles configuration
+# GNU Stow dotfiles configuration
 dotfiles:
   enabled: true
   local_path: "{{ playbook_dir }}/files/dotfiles"
   backup_existing: true
   backup_directory: "{{ ansible_user_dir }}/.dotsible/backups"
+
+  # GNU Stow specific options
+  symlink_strategy: "force"  # Options: force, adopt, skip
+  create_directories: true
+  cleanup_broken_links: true
+
+  # Deployment options
+  dry_run: false
+  verbose: true
+  target_directory: "{{ ansible_user_dir }}"
 
 # Common directories to ensure exist
 dotfiles_common_directories:
@@ -15,10 +25,43 @@ dotfiles_common_directories:
   - "{{ ansible_user_dir }}/.dotsible"
   - "{{ ansible_user_dir }}/.dotsible/backups"
 
-# File mappings for deployment
-dotfiles_file_mappings:
-  zsh: "{{ ansible_user_dir }}/.zshrc"
-  git: "{{ ansible_user_dir }}/.gitconfig"
-  tmux: "{{ ansible_user_dir }}/.tmux.conf"
-  starship: "{{ ansible_user_dir }}/.config/starship.toml"
-  nvim: "{{ ansible_user_dir }}/.config/nvim/"
+# Priority applications for deployment (deployed first)
+dotfiles_priority_apps:
+  - zsh
+  - git
+  - tmux
+
+# Cross-platform application mappings
+dotfiles_app_mappings:
+  zsh:
+    target: "{{ ansible_user_dir }}/.zshrc"
+    required: true
+    platforms: ['Darwin', 'Linux']
+  git:
+    target: "{{ ansible_user_dir }}/.gitconfig"
+    required: true
+    platforms: ['Darwin', 'Linux', 'Windows']
+  tmux:
+    target: "{{ ansible_user_dir }}/.tmux.conf"
+    required: false
+    platforms: ['Darwin', 'Linux']
+  nvim:
+    target: "{{ ansible_user_dir }}/.config/nvim/"
+    required: false
+    platforms: ['Darwin', 'Linux', 'Windows']
+  starship:
+    target: "{{ ansible_user_dir }}/.config/starship.toml"
+    required: false
+    platforms: ['Darwin', 'Linux', 'Windows']
+  alacritty:
+    target: "{{ ansible_user_dir }}/.config/alacritty/"
+    required: false
+    platforms: ['Darwin', 'Linux', 'Windows']
+
+# GNU Stow command options
+stow_options:
+  default_flags: "--target={{ ansible_user_dir }}"
+  dry_run_flags: "--dry-run --verbose"
+  force_flags: "--restow"
+  adopt_flags: "--adopt"
+  delete_flags: "--delete"

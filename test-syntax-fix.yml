@@ -1,0 +1,23 @@
+---
+# Test playbook to validate the syntax fix
+- name: Test Syntax Fix
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    dotfiles:
+      enabled: true
+      local_path: "{{ playbook_dir }}/files/dotfiles"
+      backup_existing: true
+      backup_directory: "{{ ansible_user_dir }}/.dotsible/backups"
+      symlink_strategy: "force"
+
+  tasks:
+    - name: "🔧 TEST: Syntax Fix Validation"
+      debug:
+        msg: "Testing the fixed Jinja2 template syntax for GNU Stow deployment"
+      tags: ['test']
+
+    - name: Include the fixed dotfiles role
+      include_role:
+        name: dotfiles
+      tags: ['dotfiles']

@@ -1,0 +1,129 @@
+---
+# Test Go Installation via Ansible
+- name: Test Go Installation on macOS
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    go_packages:
+      - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+      - "golang.org/x/tools/cmd/goimports@latest"
+      - "golang.org/x/tools/cmd/godoc@latest"
+      - "github.com/go-delve/delve/cmd/dlv@latest"
+      - "honnef.co/go/tools/cmd/staticcheck@latest"
+      - "golang.org/x/tools/cmd/gopls@latest"
+      - "github.com/fatih/gomodifytags@latest"
+      - "github.com/josharian/impl@latest"
+
+  tasks:
+    # === GO INSTALLATION ===
+    - name: Check if Go is available in PATH
+      shell: go version 2>/dev/null
+      register: go_path_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check if Go is installed via Homebrew
+      shell: brew list go 2>/dev/null
+      register: go_homebrew_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display Go installation status
+      debug:
+        msg: "🐹 Go: {{ '✅ INSTALLED (' + go_path_check.stdout.strip() + ')' if go_path_check.rc == 0 else '❌ NOT INSTALLED' }}"
+
+    - name: Install Go via Homebrew (preferred method)
+      homebrew:
+        name: go
+        state: present
+      when: 
+        - go_path_check.rc != 0
+        - go_homebrew_check.rc != 0
+      register: go_homebrew_install
+
+    - name: Verify Go installation after Homebrew install
+      shell: go version 2>/dev/null
+      register: go_verify_homebrew
+      failed_when: false
+      changed_when: false
+      when: go_homebrew_install is defined and go_homebrew_install.changed
+
+    - name: Final Go installation verification
+      shell: go version 2>/dev/null || /usr/local/go/bin/go version 2>/dev/null || /opt/homebrew/bin/go version 2>/dev/null
+      register: go_final_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display final Go installation result
+      debug:
+        msg: "🐹 Go Final Status: {{ '✅ INSTALLED (' + go_final_check.stdout.strip() + ')' if go_final_check.rc == 0 else '❌ INSTALLATION FAILED' }}"
+
+    # === GO PACKAGES ===
+    - name: Check if Go is available for go packages
+      shell: go version
+      register: go_available_check
+      failed_when: false
+      changed_when: false
+
+    - name: Check which go packages are already installed
+      shell: |
+        package_name=$(echo "{{ item }}" | sed 's/@latest$//' | sed 's/.*\///')
+        go list -m all 2>/dev/null | grep "{{ item.split('@')[0] }}" || echo "NOT_FOUND"
+      register: go_package_check
+      failed_when: false
+      changed_when: false
+      loop: "{{ go_packages }}"
+      when: go_available_check.rc == 0
+
+    - name: Display go package status
+      debug:
+        msg: "🐹 {{ item.item }}: {{ '✅ INSTALLED' if 'NOT_FOUND' not in item.stdout else '❌ MISSING' }}"
+      loop: "{{ go_package_check.results }}"
+      when:
+        - go_available_check.rc == 0
+        - go_package_check.results is defined
+        - "'NOT_FOUND' in item.stdout"  # Only show missing packages
+
+    - name: Install missing go packages
+      shell: go install {{ item.item }}
+      when:
+        - go_available_check.rc == 0
+        - go_package_check.results is defined
+        - "'NOT_FOUND' in item.stdout"
+      loop: "{{ go_package_check.results }}"
+      register: go_install_result
+      environment:
+        GOPATH: "{{ ansible_env.HOME }}/go"
+        GOBIN: "{{ ansible_env.HOME }}/go/bin"
+
+    - name: Go packages summary
+      debug:
+        msg: |
+          🐹 Go Packages Summary:
+          • Total packages: {{ go_packages | length }}
+          • Already installed: {{ go_package_check.results | selectattr('stdout', 'not containing', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
+          • Newly installed: {{ go_package_check.results | selectattr('stdout', 'containing', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
+          • Tools installed in: ~/go/bin/
+      when: go_available_check.rc == 0
+
+    - name: Test installed Go tools
+      shell: "{{ ansible_env.HOME }}/go/bin/{{ item }} --version 2>/dev/null || {{ ansible_env.HOME }}/go/bin/{{ item }} version 2>/dev/null || echo 'VERSION_CHECK_FAILED'"
+      register: go_tools_test
+      failed_when: false
+      changed_when: false
+      loop:
+        - golangci-lint
+        - goimports
+        - dlv
+        - staticcheck
+        - gopls
+      when: go_available_check.rc == 0
+
+    - name: Display Go tools test results
+      debug:
+        msg: "🔧 {{ item.item }}: {{ '✅ WORKING' if 'VERSION_CHECK_FAILED' not in item.stdout else '❌ NOT WORKING' }}"
+      loop: "{{ go_tools_test.results }}"
+      when:
+        - go_available_check.rc == 0
+        - go_tools_test.results is defined

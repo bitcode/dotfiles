@@ -1,102 +1,154 @@
 ---
-# Simplified Dotfiles role for immediate ZSH ecosystem fix
-# This role deploys essential dotfiles to support the ZSH configuration
+# Enhanced GNU Stow-based Dotfiles Deployment Role
+# This role uses GNU Stow for proper symlink management of dotfiles
+# CRITICAL: All stow commands MUST be executed from the correct working directory
 
-- name: "📁 DOTFILES DEPLOYMENT"
+- name: "GNU STOW DOTFILES DEPLOYMENT"
   debug:
-    msg: "Deploying essential dotfiles for {{ ansible_os_family }}"
+    msg: "Deploying dotfiles using GNU Stow for {{ ansible_os_family }}"
   tags: ['dotfiles', 'banner']
+
+# CRITICAL: Clean up incorrect nested structure first
+- name: Remove nested config directory if it exists
+  file:
+    path: "{{ ansible_user_dir }}/.config/.config"
+    state: absent
+  register: nested_config_removal
+  tags: ['dotfiles', 'cleanup', 'critical']
+
+- name: Display nested config cleanup result
+  debug:
+    msg: "{{ 'Removed nested .config structure' if nested_config_removal.changed else 'No nested .config structure found' }}"
+  tags: ['dotfiles', 'cleanup']
+
+- name: Remove broken symlinks from config directory
+  shell: |
+    CONFIG_DIR="{{ ansible_user_dir }}/.config"
+    if [ -d "$CONFIG_DIR" ]; then
+      echo "Checking for broken symlinks in $CONFIG_DIR"
+      # Find and remove broken symlinks
+      find "$CONFIG_DIR" -maxdepth 2 -type l -exec test ! -e {} \; -delete 2>/dev/null || true
+      echo "Broken symlinks cleanup completed"
+    else
+      echo "Config directory does not exist yet"
+    fi
+  args:
+    executable: /bin/zsh
+  register: broken_links_cleanup
+  changed_when: false
+  tags: ['dotfiles', 'cleanup']
+
+- name: Display critical cleanup results
+  debug:
+    msg: "{{ critical_cleanup.stdout_lines }}"
+  when: critical_cleanup is defined
+  tags: ['dotfiles', 'cleanup']
+
+- name: Check if GNU Stow is installed
+  shell: |
+    # Check common stow locations
+    if command -v stow >/dev/null 2>&1; then
+      echo "stow found in PATH: $(which stow)"
+      exit 0
+    elif [ -x "/opt/homebrew/bin/stow" ]; then
+      echo "stow found at: /opt/homebrew/bin/stow"
+      exit 0
+    elif [ -x "/usr/local/bin/stow" ]; then
+      echo "stow found at: /usr/local/bin/stow"
+      exit 0
+    else
+      echo "stow not found"
+      exit 1
+    fi
+  register: stow_check
+  failed_when: false
+  changed_when: false
+  tags: ['dotfiles', 'check']
+
+- name: Set stow command path
+  set_fact:
+    stow_command: "{{ '/opt/homebrew/bin/stow' if ansible_os_family == 'Darwin' else 'stow' }}"
+  when: stow_check.rc == 0
+  tags: ['dotfiles', 'check']
+
+- name: Display GNU Stow status
+  debug:
+    msg: "GNU Stow: {{ '✅ INSTALLED' if stow_check.rc == 0 else '❌ MISSING' }}"
+  tags: ['dotfiles', 'status']
+
+- name: Install GNU Stow if missing (macOS)
+  homebrew:
+    name: stow
+    state: present
+  when:
+    - ansible_os_family == "Darwin"
+    - stow_check.rc != 0
+  register: stow_install_result
+  tags: ['dotfiles', 'install']
+
+- name: Install GNU Stow if missing (Ubuntu/Debian)
+  apt:
+    name: stow
+    state: present
+    update_cache: yes
+  become: yes
+  when:
+    - ansible_os_family == "Debian"
+    - stow_check.rc != 0
+  register: stow_install_result
+  tags: ['dotfiles', 'install']
+
+- name: Install GNU Stow if missing (Arch Linux)
+  pacman:
+    name: stow
+    state: present
+  become: yes
+  when:
+    - ansible_distribution == "Archlinux"
+    - stow_check.rc != 0
+  register: stow_install_result
+  tags: ['dotfiles', 'install']
+
+- name: Re-check GNU Stow after installation
+  command: which stow
+  register: stow_recheck
+  failed_when: false
+  changed_when: false
+  when: stow_install_result is defined and stow_install_result.changed
+  tags: ['dotfiles', 'check']
+
+- name: Update stow_check result if installation succeeded
+  set_fact:
+    stow_check: "{{ stow_recheck }}"
+  when:
+    - stow_install_result is defined
+    - stow_install_result.changed
+    - stow_recheck is defined
+  tags: ['dotfiles', 'check']
 
 - name: Check if dotfiles source directory exists
   stat:
-    path: "{{ playbook_dir }}/files/dotfiles"
+    path: "{{ dotfiles.local_path | default(playbook_dir + '/files/dotfiles') }}"
   register: dotfiles_source_check
   tags: ['dotfiles', 'check']
 
+- name: Set dotfiles path variable
+  set_fact:
+    dotfiles_path: "{{ dotfiles.local_path | default(playbook_dir + '/files/dotfiles') }}"
+  tags: ['dotfiles', 'setup']
+
 - name: Display dotfiles source status
   debug:
-    msg: "Dotfiles source: {{ '✅ FOUND' if dotfiles_source_check.stat.exists else '❌ MISSING' }}: {{ playbook_dir }}/files/dotfiles"
+    msg: "Dotfiles source: {{ '✅ FOUND' if dotfiles_source_check.stat.exists else '❌ MISSING' }}: {{ dotfiles_path }}"
   tags: ['dotfiles', 'status']
 
 - name: Create backup directory
   file:
-    path: "{{ ansible_user_dir }}/.dotsible/backups"
+    path: "{{ dotfiles.backup_directory | default(ansible_user_dir + '/.dotsible/backups') }}"
     state: directory
     mode: '0755'
   when: dotfiles_source_check.stat.exists
   tags: ['dotfiles', 'backup']
-
-- name: Check if .zshrc exists for backup
-  stat:
-    path: "{{ ansible_user_dir }}/.zshrc"
-  register: zshrc_stat
-  tags: ['dotfiles', 'backup']
-
-- name: Backup existing .zshrc if it exists
-  copy:
-    src: "{{ ansible_user_dir }}/.zshrc"
-    dest: "{{ ansible_user_dir }}/.dotsible/backups/.zshrc.{{ ansible_date_time.epoch }}.bak"
-    backup: no
-  when:
-    - dotfiles_source_check.stat.exists
-    - zshrc_stat.stat.exists
-  failed_when: false
-  tags: ['dotfiles', 'backup']
-
-- name: Deploy ZSH configuration file
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/zsh/.zshrc"
-    dest: "{{ ansible_user_dir }}/.zshrc"
-    mode: '0644'
-    backup: yes
-  when: dotfiles_source_check.stat.exists
-  register: zshrc_deployed
-  tags: ['dotfiles', 'zsh']
-
-- name: Check for other dotfiles to deploy
-  find:
-    paths: "{{ playbook_dir }}/files/dotfiles"
-    file_type: directory
-    depth: 1
-  register: available_dotfiles
-  when: dotfiles_source_check.stat.exists
-  tags: ['dotfiles', 'discovery']
-
-- name: Deploy starship configuration
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/starship/"
-    dest: "{{ ansible_user_dir }}/.config/"
-    mode: '0644'
-    backup: yes
-  when: 
-    - dotfiles_source_check.stat.exists
-    - "'starship' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
-  failed_when: false
-  tags: ['dotfiles', 'starship']
-
-- name: Deploy git configuration
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/git/.gitconfig"
-    dest: "{{ ansible_user_dir }}/.gitconfig"
-    mode: '0644'
-    backup: yes
-  when: 
-    - dotfiles_source_check.stat.exists
-    - "'git' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
-  failed_when: false
-  tags: ['dotfiles', 'git']
-
-- name: Deploy tmux configuration
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/tmux/.tmux.conf"
-    dest: "{{ ansible_user_dir }}/.tmux.conf"
-    mode: '0644'
-    backup: yes
-  when: 
-    - dotfiles_source_check.stat.exists
-    - "'tmux' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
-  failed_when: false
-  tags: ['dotfiles', 'tmux']
 
 - name: Create .config directory if it doesn't exist
   file:
@@ -106,34 +158,553 @@
   when: dotfiles_source_check.stat.exists
   tags: ['dotfiles', 'config']
 
-- name: Deploy neovim configuration
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/nvim/"
-    dest: "{{ ansible_user_dir }}/.config/nvim/"
-    mode: '0644'
-    backup: yes
-  when: 
+- name: Discover available dotfiles applications
+  find:
+    paths: "{{ dotfiles_path }}"
+    file_type: directory
+    depth: 1
+  register: available_dotfiles
+  when: dotfiles_source_check.stat.exists
+  tags: ['dotfiles', 'discovery']
+
+- name: Set available applications list
+  set_fact:
+    dotfiles_apps: "{{ available_dotfiles.files | map(attribute='path') | map('basename') | list }}"
+  when:
     - dotfiles_source_check.stat.exists
-    - "'nvim' in (available_dotfiles.files | map(attribute='path') | map('basename') | list)"
-  failed_when: false
-  tags: ['dotfiles', 'nvim']
+    - available_dotfiles is defined
+  tags: ['dotfiles', 'discovery']
 
-- name: Verify dotfiles deployment
-  stat:
-    path: "{{ ansible_user_dir }}/.zshrc"
-  register: zshrc_verify
-  tags: ['dotfiles', 'verify']
+- name: Filter applications for GNU Stow compatibility
+  set_fact:
+    stow_compatible_apps: "{{ dotfiles_apps | select('match', '^(nvim|starship|alacritty|zsh|tmux|git)$') | list }}"
+  when: dotfiles_apps is defined
+  tags: ['dotfiles', 'discovery']
 
-- name: Display dotfiles deployment summary
+- name: Display available applications
   debug:
     msg: |
-      Dotfiles Deployment Summary:
-      • Source: {{ playbook_dir }}/files/dotfiles
-      • .zshrc: {{ '✅ DEPLOYED' if zshrc_verify.stat.exists else '❌ MISSING' }}
-      • Available applications: {{ available_dotfiles.files | length if available_dotfiles is defined else 0 }}
-      • Backup directory: ~/.dotsible/backups/
-      
-      {% if zshrc_deployed is defined and zshrc_deployed.changed %}
-      🔄 .zshrc was updated - restart your shell to apply changes
+      📦 Dotfiles Discovery Results:
+      • Total applications found: {{ dotfiles_apps | length if dotfiles_apps is defined else 0 }}
+      • All applications: {{ dotfiles_apps | join(', ') if dotfiles_apps is defined else 'None' }}
+      • GNU Stow compatible: {{ stow_compatible_apps | join(', ') if stow_compatible_apps is defined else 'None' }}
+      • Will deploy: {{ stow_compatible_apps | length if stow_compatible_apps is defined else 0 }} applications
+  when: dotfiles_apps is defined
+  tags: ['dotfiles', 'discovery']
+
+# Backup existing files before stow deployment
+- name: Check for existing dotfiles that would conflict
+  shell: |
+    cd "{{ dotfiles_path }}"
+    for app in {{ dotfiles_apps | join(' ') }}; do
+      if [ -d "$app" ]; then
+        echo "Checking conflicts for $app..."
+        stow --dry-run --target="{{ ansible_user_dir }}" "$app" 2>&1 | grep -E "(existing|conflict)" || true
+      fi
+    done
+  args:
+    executable: /bin/zsh
+  register: stow_conflicts
+  when:
+    - dotfiles_source_check.stat.exists
+    - stow_check.rc == 0
+    - dotfiles_apps is defined
+  changed_when: false
+  failed_when: false
+  tags: ['dotfiles', 'conflicts']
+
+- name: Display conflict analysis
+  debug:
+    msg: "{{ stow_conflicts.stdout_lines }}"
+  when:
+    - stow_conflicts is defined
+    - stow_conflicts.stdout_lines | length > 0
+  tags: ['dotfiles', 'conflicts']
+
+- name: Backup conflicting files
+  shell: |
+    backup_dir="{{ dotfiles.backup_directory | default(ansible_user_dir + '/.dotsible/backups') }}"
+    timestamp=$(date +%Y%m%d-%H%M%S)
+
+    # Common files that might conflict
+    for file in .zshrc .gitconfig .tmux.conf; do
+      if [ -f "{{ ansible_user_dir }}/$file" ] && [ ! -L "{{ ansible_user_dir }}/$file" ]; then
+        echo "Backing up existing $file"
+        cp "{{ ansible_user_dir }}/$file" "$backup_dir/$file.$timestamp.bak"
+      fi
+    done
+
+    # Config directories that might conflict
+    for dir in nvim starship alacritty; do
+      if [ -d "{{ ansible_user_dir }}/.config/$dir" ] && [ ! -L "{{ ansible_user_dir }}/.config/$dir" ]; then
+        echo "Backing up existing .config/$dir"
+        tar -czf "$backup_dir/config-$dir.$timestamp.tar.gz" -C "{{ ansible_user_dir }}/.config" "$dir" 2>/dev/null || true
+      fi
+    done
+  args:
+    executable: /bin/zsh
+  register: backup_result
+  when:
+    - dotfiles_source_check.stat.exists
+    - dotfiles.backup_existing | default(true) | bool
+  changed_when: backup_result.stdout != ""
+  tags: ['dotfiles', 'backup']
+
+- name: Display backup results
+  debug:
+    msg: "{{ backup_result.stdout_lines }}"
+  when:
+    - backup_result is defined
+    - backup_result.stdout_lines | length > 0
+  tags: ['dotfiles', 'backup']
+
+# Clean up inconsistent symlinks before deployment
+- name: Clean up inconsistent symlinks and files
+  shell: |
+    echo "🧹 Cleaning up inconsistent symlinks and files..."
+
+    # Remove symlinks pointing to wrong paths (dotsible instead of dotfiles)
+    for item in ~/.config/git ~/.gitconfig; do
+      if [ -L "$item" ]; then
+        target=$(readlink "$item")
+        if [[ "$target" == *"/dotsible/"* ]]; then
+          echo "Removing incorrect symlink: $item → $target"
+          rm "$item"
+        fi
+      fi
+    done
+
+    # Remove regular files that should be symlinks
+    for item in ~/.config/starship.toml ~/.zshrc ~/.tmux.conf; do
+      if [ -f "$item" ] && [ ! -L "$item" ]; then
+        echo "Removing regular file (should be symlink): $item"
+        mv "$item" "$item.backup.$(date +%s)"
+      fi
+    done
+
+    # Clean up backup file pollution
+    echo "Cleaning up backup files..."
+    find ~ -maxdepth 1 -name ".zshrc.*~" -type f | head -20 | while read file; do
+      echo "Removing backup: $file"
+      rm "$file"
+    done
+
+    echo "✅ Cleanup completed"
+  args:
+    executable: /bin/zsh
+  register: cleanup_result
+  when:
+    - dotfiles_source_check.stat.exists
+    - stow_check.rc == 0
+  changed_when: "'Removing' in cleanup_result.stdout"
+  tags: ['dotfiles', 'cleanup']
+
+- name: Display cleanup results
+  debug:
+    msg: "{{ cleanup_result.stdout_lines }}"
+  when:
+    - cleanup_result is defined
+    - cleanup_result.stdout_lines is defined
+    - cleanup_result.stdout_lines | length > 0
+  tags: ['dotfiles', 'cleanup']
+
+# GNU Stow deployment with proper working directory
+- name: Set stow deployment variables
+  set_fact:
+    stow_target: "{{ ansible_user_dir }}"
+    stow_flags: "{{ '--restow' if dotfiles.symlink_strategy | default('force') == 'force' else '' }}"
+    stow_strategy: "{{ dotfiles.symlink_strategy | default('force') }}"
+  when:
+    - dotfiles_source_check.stat.exists
+    - stow_check.rc == 0
+    - dotfiles_apps is defined
+  tags: ['dotfiles', 'deploy']
+
+# CRITICAL: Ensure we have the exact correct working directory
+- name: "CRITICAL - Verify correct stow root directory"
+  shell: |
+    STOW_ROOT="/Users/mdrozrosario/dotfiles/files/dotfiles"
+
+    echo "Verifying stow root directory..."
+    echo "Expected: $STOW_ROOT"
+    echo "Actual: {{ dotfiles_path }}"
+
+    if [ "{{ dotfiles_path }}" != "$STOW_ROOT" ]; then
+      echo "CRITICAL ERROR: Wrong dotfiles path!"
+      echo "   Expected: $STOW_ROOT"
+      echo "   Got: {{ dotfiles_path }}"
+      exit 1
+    fi
+
+    if [ ! -d "$STOW_ROOT" ]; then
+      echo "CRITICAL ERROR: Stow root directory does not exist: $STOW_ROOT"
+      exit 1
+    fi
+
+    cd "$STOW_ROOT"
+    echo "Working directory verified: $(pwd)"
+
+    echo "Available applications in stow root:"
+    for app in */; do
+      if [ -d "$app" ]; then
+        app_name=$(basename "$app")
+        echo "  - $app_name"
+
+        # Check structure
+        if [ -d "$app/.config" ]; then
+          echo "    -> .config/ structure (correct for stow)"
+        elif [ -f "$app/.${app_name}rc" ] || [ -f "$app/.${app_name}.conf" ]; then
+          echo "    -> direct file structure (correct for stow)"
+        else
+          echo "    -> unknown structure"
+        fi
+      fi
+    done
+  args:
+    executable: /bin/zsh
+  register: stow_root_verification
+  failed_when: stow_root_verification.rc != 0
+  tags: ['dotfiles', 'verify', 'critical']
+
+- name: Display stow root verification
+  debug:
+    msg: "{{ stow_root_verification.stdout_lines }}"
+  tags: ['dotfiles', 'verify']
+
+# CRITICAL: Deploy each application with ABSOLUTE working directory control
+- name: "CRITICAL - Deploy applications with GNU Stow from correct directory"
+  shell: |
+    # CRITICAL: Hardcode the exact working directory
+    STOW_ROOT="/Users/mdrozrosario/dotfiles/files/dotfiles"
+    TARGET_DIR="{{ ansible_user_dir }}"
+    APP="{{ item }}"
+
+    echo "Deploying $APP with GNU Stow..."
+    echo "   Stow root: $STOW_ROOT"
+    echo "   Target: $TARGET_DIR"
+    echo "   Working directory: $(pwd)"
+
+    # CRITICAL: Change to the exact stow root directory
+    cd "$STOW_ROOT" || {
+      echo "FAILED: Cannot change to stow root: $STOW_ROOT"
+      echo "STATUS:FAILED"
+      exit 0
+    }
+
+    echo "   Changed to: $(pwd)"
+
+    # Verify application directory exists
+    if [ ! -d "$APP" ]; then
+      echo "FAILED: $APP directory not found in $(pwd)"
+      echo "STATUS:FAILED"
+      exit 0
+    fi
+
+    # Use the correct stow command path
+    STOW_CMD="{{ stow_command | default('/opt/homebrew/bin/stow') }}"
+
+    # Verify stow is available
+    if ! [ -x "$STOW_CMD" ]; then
+      echo "FAILED: GNU Stow not available at $STOW_CMD"
+      echo "STATUS:FAILED"
+      exit 0
+    fi
+
+    echo "   Application structure:"
+    find "$APP" -type f | head -3 | sed 's/^/     /'
+
+    # Remove any existing broken symlinks for this app
+    if [ -L "$TARGET_DIR/.config/$APP" ] && [ ! -e "$TARGET_DIR/.config/$APP" ]; then
+      echo "   Removing broken symlink: ~/.config/$APP"
+      rm "$TARGET_DIR/.config/$APP"
+    fi
+
+    # Check current stow status
+    echo "   Checking current stow status..."
+    stow_dry_output=$($STOW_CMD --dry-run --target="$TARGET_DIR" "$APP" 2>&1)
+    stow_dry_rc=$?
+
+    echo "   Dry run output: $stow_dry_output"
+
+    if echo "$stow_dry_output" | grep -q "already stowed"; then
+      echo "SKIPPED: $APP (already properly stowed)"
+      echo "STATUS:SKIPPED"
+    elif echo "$stow_dry_output" | grep -q "No conflicts" || [ $stow_dry_rc -eq 0 ]; then
+      # Deploy with stow
+      echo "   Executing: $STOW_CMD --target=$TARGET_DIR --restow $APP"
+      if $STOW_CMD --target="$TARGET_DIR" --restow "$APP" 2>&1; then
+        echo "DEPLOYED: $APP"
+        echo "STATUS:DEPLOYED"
+
+        # Verify the deployment
+        if [ -d "$APP/.config" ]; then
+          for config_item in "$APP/.config"/*; do
+            if [ -e "$config_item" ]; then
+              config_name=$(basename "$config_item")
+              if [ -L "$TARGET_DIR/.config/$config_name" ]; then
+                target=$(readlink "$TARGET_DIR/.config/$config_name")
+                echo "   Verified: ~/.config/$config_name -> $target"
+              fi
+            fi
+          done
+        fi
+
+        # Check for direct home files
+        for home_file in "$APP"/.*; do
+          if [ -f "$home_file" ] && [[ $(basename "$home_file") != .* ]]; then
+            file_name=$(basename "$home_file")
+            if [ -L "$TARGET_DIR/$file_name" ]; then
+              target=$(readlink "$TARGET_DIR/$file_name")
+              echo "   Verified: ~/$file_name -> $target"
+            fi
+          fi
+        done
+
+      else
+        echo "FAILED: $APP (stow command failed)"
+        echo "STATUS:FAILED"
+      fi
+    else
+      echo "FAILED: $APP (conflicts exist)"
+      echo "   Conflicts: $stow_dry_output"
+      echo "STATUS:FAILED"
+    fi
+  args:
+    executable: /bin/zsh
+  register: stow_deployment_results
+  loop: ['nvim', 'zsh', 'starship', 'alacritty', 'tmux']
+  when:
+    - dotfiles_source_check.stat.exists
+    - stow_check.rc == 0
+  changed_when: "'STATUS:DEPLOYED' in stow_deployment_results.stdout"
+  failed_when: false
+  tags: ['dotfiles', 'deploy', 'critical']
+
+- name: Collect deployment results
+  set_fact:
+    deployed_apps: "{{ stow_deployment_results.results | selectattr('stdout', 'search', 'STATUS:DEPLOYED') | map(attribute='item') | list }}"
+    adopted_apps: "{{ stow_deployment_results.results | selectattr('stdout', 'search', 'STATUS:ADOPTED') | map(attribute='item') | list }}"
+    skipped_apps: "{{ stow_deployment_results.results | selectattr('stdout', 'search', 'STATUS:SKIPPED') | map(attribute='item') | list }}"
+    failed_apps: "{{ stow_deployment_results.results | selectattr('stdout', 'search', 'STATUS:FAILED') | map(attribute='item') | list }}"
+  when: stow_deployment_results is defined
+  tags: ['dotfiles', 'deploy']
+
+- name: Display deployment results
+  debug:
+    msg: |
+      🔗 GNU Stow Deployment Results:
+      {% if deployed_apps | length > 0 %}
+      ✅ DEPLOYED: {{ deployed_apps | join(', ') }}
       {% endif %}
+      {% if adopted_apps | length > 0 %}
+      🔄 ADOPTED: {{ adopted_apps | join(', ') }}
+      {% endif %}
+      {% if skipped_apps | length > 0 %}
+      ⏭️ SKIPPED: {{ skipped_apps | join(', ') }}
+      {% endif %}
+      {% if failed_apps | length > 0 %}
+      ❌ FAILED: {{ failed_apps | join(', ') }}
+      {% endif %}
+  when: stow_app_results is defined
+  tags: ['dotfiles', 'deploy']
+
+# Verification of deployed symlinks
+# CRITICAL: Comprehensive verification of actual filesystem state
+- name: "CRITICAL - Verify actual symlink structure and detect issues"
+  shell: |
+    echo "CRITICAL VERIFICATION: Checking actual filesystem state..."
+    echo ""
+
+    STOW_ROOT="/Users/mdrozrosario/dotfiles/files/dotfiles"
+    verified_count=0
+    missing_count=0
+    wrong_count=0
+
+    echo "Expected symlink structure:"
+    echo "  ~/.config/nvim -> $STOW_ROOT/nvim/.config/nvim"
+    echo "  ~/.config/alacritty -> $STOW_ROOT/alacritty/.config/alacritty"
+    echo "  ~/.config/starship.toml -> $STOW_ROOT/starship/.config/starship.toml"
+    echo "  ~/.zshrc -> $STOW_ROOT/zsh/.zshrc"
+    echo ""
+
+    echo "Actual filesystem state:"
+
+    # Check ~/.config/nvim
+    if [ -L "{{ ansible_user_dir }}/.config/nvim" ]; then
+      target=$(readlink "{{ ansible_user_dir }}/.config/nvim")
+      expected="$STOW_ROOT/nvim/.config/nvim"
+      if [ "$target" = "$expected" ]; then
+        echo "CORRECT: ~/.config/nvim -> $target"
+        verified_count=$((verified_count + 1))
+      else
+        echo "WRONG_TARGET: ~/.config/nvim -> $target (expected: $expected)"
+        wrong_count=$((wrong_count + 1))
+      fi
+    elif [ -d "{{ ansible_user_dir }}/.config/nvim" ]; then
+      echo "NOT_SYMLINK: ~/.config/nvim is a directory (should be symlink)"
+      wrong_count=$((wrong_count + 1))
+    else
+      echo "MISSING: ~/.config/nvim does not exist"
+      missing_count=$((missing_count + 1))
+    fi
+
+    # Check ~/.config/alacritty
+    if [ -L "{{ ansible_user_dir }}/.config/alacritty" ]; then
+      target=$(readlink "{{ ansible_user_dir }}/.config/alacritty")
+      expected="$STOW_ROOT/alacritty/.config/alacritty"
+      if [ "$target" = "$expected" ]; then
+        echo "CORRECT: ~/.config/alacritty -> $target"
+        verified_count=$((verified_count + 1))
+      else
+        echo "WRONG_TARGET: ~/.config/alacritty -> $target (expected: $expected)"
+        wrong_count=$((wrong_count + 1))
+      fi
+    else
+      echo "MISSING: ~/.config/alacritty does not exist or is not a symlink"
+      missing_count=$((missing_count + 1))
+    fi
+
+    # Check ~/.config/starship.toml
+    if [ -L "{{ ansible_user_dir }}/.config/starship.toml" ]; then
+      target=$(readlink "{{ ansible_user_dir }}/.config/starship.toml")
+      expected="$STOW_ROOT/starship/.config/starship.toml"
+      if [ "$target" = "$expected" ]; then
+        echo "CORRECT: ~/.config/starship.toml -> $target"
+        verified_count=$((verified_count + 1))
+      else
+        echo "WRONG_TARGET: ~/.config/starship.toml -> $target (expected: $expected)"
+        wrong_count=$((wrong_count + 1))
+      fi
+    elif [ -f "{{ ansible_user_dir }}/.config/starship.toml" ]; then
+      echo "NOT_SYMLINK: ~/.config/starship.toml is a regular file (should be symlink)"
+      wrong_count=$((wrong_count + 1))
+    else
+      echo "MISSING: ~/.config/starship.toml does not exist"
+      missing_count=$((missing_count + 1))
+    fi
+
+    # Check ~/.zshrc
+    if [ -L "{{ ansible_user_dir }}/.zshrc" ]; then
+      target=$(readlink "{{ ansible_user_dir }}/.zshrc")
+      expected="$STOW_ROOT/zsh/.zshrc"
+      if [ "$target" = "$expected" ]; then
+        echo "CORRECT: ~/.zshrc -> $target"
+        verified_count=$((verified_count + 1))
+      else
+        echo "WRONG_TARGET: ~/.zshrc -> $target (expected: $expected)"
+        wrong_count=$((wrong_count + 1))
+      fi
+    elif [ -f "{{ ansible_user_dir }}/.zshrc" ]; then
+      echo "NOT_SYMLINK: ~/.zshrc is a regular file (should be symlink)"
+      wrong_count=$((wrong_count + 1))
+    else
+      echo "MISSING: ~/.zshrc does not exist"
+      missing_count=$((missing_count + 1))
+    fi
+
+    echo ""
+    echo "Checking for problematic nested structures:"
+    if [ -d "{{ ansible_user_dir }}/.config/.config" ]; then
+      echo "CRITICAL: Nested .config structure still exists: ~/.config/.config/"
+      ls -la "{{ ansible_user_dir }}/.config/.config/" | head -5
+      wrong_count=$((wrong_count + 1))
+    else
+      echo "No nested .config structure found"
+    fi
+
+    echo ""
+    echo "VERIFICATION SUMMARY:"
+    echo "Correct symlinks: $verified_count"
+    echo "Missing: $missing_count"
+    echo "Wrong/Broken: $wrong_count"
+    echo "Total expected: 4"
+
+    if [ $verified_count -eq 4 ] && [ $missing_count -eq 0 ] && [ $wrong_count -eq 0 ]; then
+      echo "DEPLOYMENT SUCCESS: All symlinks are correct!"
+      echo "VERIFICATION_STATUS:SUCCESS"
+    else
+      echo "DEPLOYMENT ISSUES: Some symlinks are missing or incorrect"
+      echo "VERIFICATION_STATUS:FAILED"
+    fi
+  args:
+    executable: /bin/zsh
+  register: critical_verification
+  when: stow_deployment_results is defined
+  changed_when: false
+  tags: ['dotfiles', 'verify', 'critical']
+
+- name: Display critical verification results
+  debug:
+    msg: "{{ critical_verification.stdout_lines }}"
+  when:
+    - critical_verification is defined
+    - critical_verification.stdout_lines is defined
+    - critical_verification.stdout_lines | length > 0
+  tags: ['dotfiles', 'verify']
+
+# Final deployment summary
+- name: Generate deployment summary
+  set_fact:
+    dotfiles_summary:
+      source_path: "{{ dotfiles_path }}"
+      available_apps: "{{ dotfiles_apps | length if dotfiles_apps is defined else 0 | int }}"
+      stow_available: "{{ stow_check.rc == 0 }}"
+      deployment_successful: "{{ stow_app_results is defined and (deployed_apps | default([]) | length > 0 or adopted_apps | default([]) | length > 0) }}"
+      backup_directory: "{{ dotfiles.backup_directory | default(ansible_user_dir + '/.dotsible/backups') }}"
+      total_deployed: "{{ ((deployed_apps | default([]) | length) + (adopted_apps | default([]) | length)) | int }}"
+      total_skipped: "{{ (skipped_apps | default([]) | length) | int }}"
+      total_failed: "{{ (failed_apps | default([]) | length) | int }}"
   tags: ['dotfiles', 'summary']
+
+- name: Display final dotfiles deployment summary
+  debug:
+    msg: |
+      🔗 GNU Stow Dotfiles Deployment Summary:
+
+      📂 Source: {{ dotfiles_summary.source_path }}
+      🔧 GNU Stow: {{ '✅ AVAILABLE' if dotfiles_summary.stow_available else '❌ MISSING' }}
+      📦 Applications: {{ dotfiles_summary.available_apps }} found
+      🚀 Deployment: {{ '✅ SUCCESSFUL' if dotfiles_summary.deployment_successful else '❌ FAILED' }}
+      📊 Results: {{ dotfiles_summary.total_deployed }} deployed, {{ dotfiles_summary.total_skipped }} skipped, {{ dotfiles_summary.total_failed }} failed
+      🛡️ Backups: {{ dotfiles_summary.backup_directory }}
+
+      {% if dotfiles_summary.total_deployed | int > 0 %}
+      🔄 Dotfiles were updated - restart your shell to apply changes
+      {% endif %}
+
+      💡 Manual GNU Stow operations:
+      cd {{ dotfiles_path }} && stow --restow zsh nvim tmux
+      cd {{ dotfiles_path }} && stow --dry-run --verbose <app>
+      cd {{ dotfiles_path }} && stow --delete <app>
+  tags: ['dotfiles', 'summary']
+
+# Error handling for missing requirements
+- name: Display error if GNU Stow is missing
+  debug:
+    msg: |
+      ❌ GNU Stow is required for dotfiles deployment but not found.
+
+      Install GNU Stow:
+      • macOS: brew install stow
+      • Ubuntu/Debian: sudo apt install stow
+      • Arch Linux: sudo pacman -S stow
+      • CentOS/RHEL: sudo yum install stow
+  when: stow_check.rc != 0
+  tags: ['dotfiles', 'error']
+
+- name: Display error if dotfiles directory is missing
+  debug:
+    msg: |
+      ❌ Dotfiles directory not found: {{ dotfiles_path }}
+
+      Ensure your dotfiles are structured for GNU Stow:
+      {{ dotfiles_path }}/
+      ├── zsh/
+      │   └── .zshrc
+      ├── nvim/
+      │   └── .config/
+      │       └── nvim/
+      └── tmux/
+          └── .tmux.conf
+  when: not dotfiles_source_check.stat.exists
+  tags: ['dotfiles', 'error']

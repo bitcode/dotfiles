@@ -6,35 +6,40 @@
       🍎 macOS Platform Configuration Starting
       ========================================
       • Homebrew packages: {{ homebrew_packages | length }} packages
+      • Development tools: {{ development_tools | length }} tools
       • Homebrew casks: {{ homebrew_casks | length }} applications
       • Mac App Store apps: {{ mac_app_store_apps | length }} applications
       • Manual installations: {{ manual_installations | length }} tools
       • NPM global packages: {{ npm_global_packages | length }} packages
+      • Cargo packages: {{ cargo_packages | length }} packages
+      • Go packages: {{ go_packages | length }} packages
+      • Python dev packages: {{ python_dev_packages | length }} packages
+      • Node.js dev packages: {{ node_dev_packages | length }} packages
       ========================================
 
 # === SYSTEM PREREQUISITES ===
 - name: Check if Xcode Command Line Tools are installed
-  stat:
-    path: /Library/Developer/CommandLineTools/usr/bin/git
+  shell: xcode-select -p 2>/dev/null
   register: xcode_tools_installed
+  failed_when: false
+  changed_when: false
 
 - name: Install Xcode Command Line Tools
-  shell: xcode-select --install
-  when: not xcode_tools_installed.stat.exists
+  shell: xcode-select --install 2>&1 || true
+  when: xcode_tools_installed.rc != 0
   register: xcode_install_result
-  failed_when:
-    - xcode_install_result.rc != 0
-    - "'already installed' not in xcode_install_result.stderr"
+  failed_when: false
 
 - name: Check if Homebrew is installed
-  stat:
-    path: /opt/homebrew/bin/brew
+  shell: command -v brew >/dev/null 2>&1
   register: homebrew_installed
+  failed_when: false
+  changed_when: false
 
 - name: Install Homebrew
   shell: |
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  when: not homebrew_installed.stat.exists
+  when: homebrew_installed.rc != 0
   environment:
     NONINTERACTIVE: 1
 
@@ -44,16 +49,17 @@
   changed_when: false
 
 - name: Check if Rosetta 2 is installed
-  stat:
-    path: /Library/Apple/usr/share/rosetta
+  shell: /usr/bin/pgrep oahd >/dev/null 2>&1
   register: rosetta_installed
+  failed_when: false
+  changed_when: false
   when: cpu_arch.stdout == "arm64"
 
 - name: Install Rosetta 2 for Apple Silicon
   shell: softwareupdate --install-rosetta --agree-to-license
   when:
     - cpu_arch.stdout == "arm64"
-    - not rosetta_installed.stat.exists
+    - rosetta_installed.rc != 0
 
 # === HOMEBREW PACKAGES ===
 - name: Check which Homebrew packages are already installed
@@ -83,6 +89,42 @@
       • Total packages: {{ homebrew_packages | length }}
       • Already installed: {{ homebrew_package_check.results | selectattr('rc', 'equalto', 0) | list | length }}
       • Newly installed: {{ homebrew_package_check.results | selectattr('rc', 'ne', 0) | list | length }}
+
+# === DEVELOPMENT TOOLS ===
+- name: Check which development tools are already installed
+  shell: brew list {{ item }} 2>/dev/null
+  register: dev_tools_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ development_tools }}"
+
+- name: Display development tools status
+  debug:
+    msg: "🔧 {{ item.item }}: {{ '✅ INSTALLED' if item.rc == 0 else '❌ MISSING' }}"
+  loop: "{{ dev_tools_check.results }}"
+  when: item.rc != 0  # Only show missing tools to reduce output
+
+- name: Install missing development tools
+  community.general.homebrew:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ dev_tools_check.results }}"
+  register: dev_tools_install_result
+
+- name: Development tools summary
+  debug:
+    msg: |
+      🔧 Development Tools Summary:
+      • Total tools: {{ development_tools | length }}
+      • Already installed: {{ dev_tools_check.results | selectattr('rc', 'equalto', 0) | list | length }}
+      • Newly installed: {{ dev_tools_check.results | selectattr('rc', 'ne', 0) | list | length }}
+
+      Categories installed:
+      • Core compilers: GCC, Clang/LLVM, Rust, Go, Zig
+      • Assemblers: NASM, YASM
+      • Build systems: CMake, Ninja, Meson, Bazel
+      • Debug tools: GDB, LLDB, Valgrind
 
 # === HOMEBREW CASKS ===
 - name: Check which Homebrew casks are already installed
@@ -365,41 +407,224 @@
       • ansible-lint: {{ 'ACCESSIBLE' if pipx_tools_verify.results[1].stdout and 'COMMAND_NOT_FOUND' not in pipx_tools_verify.results[1].stdout else 'NOT_IN_PATH' }}
   when: pipx_verify.rc == 0 and pipx_tools_verify.results is defined
 
+# === PYTHON DEVELOPMENT PACKAGES ===
+- name: Check which Python development packages are already installed via pipx
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx list | grep "{{ item }}" || echo "NOT_FOUND"
+  register: python_dev_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ python_dev_packages }}"
+  when: pipx_verify.rc == 0
+
+- name: Display Python development package status
+  debug:
+    msg: "🐍 {{ item.item }}: {{ '✅ INSTALLED' if 'NOT_FOUND' not in item.stdout else '❌ MISSING' }}"
+  loop: "{{ python_dev_package_check.results }}"
+  when:
+    - pipx_verify.rc == 0
+    - python_dev_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"  # Only show missing packages
+
+- name: Install missing Python development packages via pipx
+  shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    pipx install {{ item.item }}
+  when:
+    - pipx_verify.rc == 0
+    - python_dev_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"
+  loop: "{{ python_dev_package_check.results }}"
+  register: python_dev_install_result
+
+- name: Python development packages summary
+  debug:
+    msg: |
+      🐍 Python Development Packages Summary:
+      • Total packages: {{ python_dev_packages | length }}
+      • Already installed: {{ python_dev_package_check.results | selectattr('stdout', 'not containing', 'NOT_FOUND') | list | length if python_dev_package_check.results is defined else 0 }}
+      • Newly installed: {{ python_dev_package_check.results | selectattr('stdout', 'containing', 'NOT_FOUND') | list | length if python_dev_package_check.results is defined else 0 }}
+
+      Tools available:
+      • Code formatting: black, flake8, mypy
+      • Testing: pytest
+      • Environment: poetry, pipenv, virtualenv
+      • Automation: pre-commit, cookiecutter
+  when: pipx_verify.rc == 0
+
 # === GO INSTALLATION ===
-- name: Check if Go is installed with correct version
-  shell: go version 2>/dev/null | grep "go1.21"
-  register: go_version_check
+- name: Check if Go is available in PATH
+  shell: go version 2>/dev/null
+  register: go_path_check
   failed_when: false
   changed_when: false
 
-- name: Detect CPU architecture for Go download
-  shell: uname -m
-  register: cpu_arch_go
+- name: Check if Go is installed via Homebrew
+  shell: brew list go 2>/dev/null
+  register: go_homebrew_check
+  failed_when: false
   changed_when: false
-  when: go_version_check.rc != 0
 
-- name: Set Go download URL based on architecture
-  set_fact:
-    go_download_url: "https://go.dev/dl/go1.21.5.darwin-{{ 'arm64' if cpu_arch_go.stdout == 'arm64' else 'amd64' }}.pkg"
-  when: go_version_check.rc != 0
+- name: Display Go installation status
+  debug:
+    msg: "🐹 Go: {{ '✅ INSTALLED (' + go_path_check.stdout.strip() + ')' if go_path_check.rc == 0 else '❌ NOT INSTALLED' }}"
 
-- name: Download Go installer
-  get_url:
-    url: "{{ go_download_url }}"
-    dest: "{{ ansible_env.HOME }}/Downloads/go.pkg"
-    mode: '0644'
-  when: go_version_check.rc != 0
+- name: Install Go via Homebrew (preferred method)
+  homebrew:
+    name: go
+    state: present
+  when:
+    - go_path_check.rc != 0
+    - go_homebrew_check.rc != 0
+  register: go_homebrew_install
 
-- name: Install Go
-  shell: sudo installer -pkg "{{ ansible_env.HOME }}/Downloads/go.pkg" -target /
-  when: go_version_check.rc != 0
-  become: yes
+- name: Verify Go installation after Homebrew install
+  shell: go version 2>/dev/null
+  register: go_verify_homebrew
+  failed_when: false
+  changed_when: false
+  when: go_homebrew_install is defined and go_homebrew_install.changed
 
-- name: Clean up Go installer
-  file:
-    path: "{{ ansible_env.HOME }}/Downloads/go.pkg"
-    state: absent
-  when: go_version_check.rc != 0
+- name: Fallback - Manual Go installation if Homebrew fails
+  block:
+    - name: Detect CPU architecture for Go download
+      shell: uname -m
+      register: cpu_arch_go
+      changed_when: false
+
+    - name: Set Go download URL based on architecture (latest stable version)
+      set_fact:
+        go_download_url: "https://go.dev/dl/go1.24.4.darwin-{{ 'arm64' if cpu_arch_go.stdout == 'arm64' else 'amd64' }}.pkg"
+
+    - name: Download Go installer
+      get_url:
+        url: "{{ go_download_url }}"
+        dest: "/tmp/go-installer.pkg"
+        mode: '0644'
+        timeout: 60
+
+    - name: Install Go from PKG
+      shell: sudo installer -pkg /tmp/go-installer.pkg -target /
+      become: yes
+
+    - name: Clean up Go installer
+      file:
+        path: "/tmp/go-installer.pkg"
+        state: absent
+
+    - name: Add Go to PATH in shell profiles (manual installation)
+      lineinfile:
+        path: "{{ item }}"
+        line: 'export PATH="/usr/local/go/bin:$PATH"'
+        create: yes
+        backup: yes
+      loop:
+        - "{{ ansible_user_dir }}/.zshrc"
+        - "{{ ansible_user_dir }}/.bash_profile"
+
+  when:
+    - go_path_check.rc != 0
+    - (go_homebrew_install is not defined or go_homebrew_install.failed | default(false))
+
+- name: Final Go installation verification
+  shell: go version 2>/dev/null || /usr/local/go/bin/go version 2>/dev/null || /opt/homebrew/bin/go version 2>/dev/null
+  register: go_final_check
+  failed_when: false
+  changed_when: false
+
+- name: Display final Go installation result
+  debug:
+    msg: "🐹 Go Final Status: {{ '✅ INSTALLED (' + go_final_check.stdout.strip() + ')' if go_final_check.rc == 0 else '❌ INSTALLATION FAILED' }}"
+
+# === CARGO PACKAGES (RUST) ===
+- name: Check if Rust is available for cargo packages
+  shell: cargo --version
+  register: cargo_available_check
+  failed_when: false
+  changed_when: false
+
+- name: Check which cargo packages are already installed
+  shell: cargo install --list | grep "^{{ item }} "
+  register: cargo_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ cargo_packages }}"
+  when: cargo_available_check.rc == 0
+
+- name: Display cargo package status
+  debug:
+    msg: "🦀 {{ item.item }}: {{ '✅ INSTALLED' if item.rc == 0 else '❌ MISSING' }}"
+  loop: "{{ cargo_package_check.results }}"
+  when:
+    - cargo_available_check.rc == 0
+    - cargo_package_check.results is defined
+    - item.rc != 0  # Only show missing packages
+
+- name: Install missing cargo packages
+  shell: cargo install {{ item.item }}
+  when:
+    - cargo_available_check.rc == 0
+    - cargo_package_check.results is defined
+    - item.rc != 0
+  loop: "{{ cargo_package_check.results }}"
+  register: cargo_install_result
+
+- name: Cargo packages summary
+  debug:
+    msg: |
+      🦀 Cargo Packages Summary:
+      • Total packages: {{ cargo_packages | length }}
+      • Already installed: {{ cargo_package_check.results | selectattr('rc', 'equalto', 0) | list | length if cargo_package_check.results is defined else 0 }}
+      • Newly installed: {{ cargo_package_check.results | selectattr('rc', 'ne', 0) | list | length if cargo_package_check.results is defined else 0 }}
+  when: cargo_available_check.rc == 0
+
+# === GO PACKAGES ===
+- name: Check if Go is available for go packages
+  shell: go version
+  register: go_available_check
+  failed_when: false
+  changed_when: false
+
+- name: Check which go packages are already installed
+  shell: |
+    package_name=$(echo "{{ item }}" | sed 's/@latest$//' | sed 's/.*\///')
+    go list -m all 2>/dev/null | grep "{{ item.split('@')[0] }}" || echo "NOT_FOUND"
+  register: go_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ go_packages }}"
+  when: go_available_check.rc == 0
+
+- name: Display go package status
+  debug:
+    msg: "🐹 {{ item.item }}: {{ '✅ INSTALLED' if 'NOT_FOUND' not in item.stdout else '❌ MISSING' }}"
+  loop: "{{ go_package_check.results }}"
+  when:
+    - go_available_check.rc == 0
+    - go_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"  # Only show missing packages
+
+- name: Install missing go packages
+  shell: go install {{ item.item }}
+  when:
+    - go_available_check.rc == 0
+    - go_package_check.results is defined
+    - "'NOT_FOUND' in item.stdout"
+  loop: "{{ go_package_check.results }}"
+  register: go_install_result
+  environment:
+    GOPATH: "{{ ansible_env.HOME }}/go"
+    GOBIN: "{{ ansible_env.HOME }}/go/bin"
+
+- name: Go packages summary
+  debug:
+    msg: |
+      🐹 Go Packages Summary:
+      • Total packages: {{ go_packages | length }}
+      • Installation attempted for missing packages
+      • Tools installed in: ~/go/bin/
+  when: go_available_check.rc == 0
 
 # === ZELLIJ INSTALLATION ===
 - name: Check if Zellij is installed
@@ -447,10 +672,22 @@
 
       Software inventory managed:
       • Homebrew packages: {{ homebrew_packages | length }}
+      • Development tools: {{ development_tools | length }}
       • Homebrew casks: {{ homebrew_casks | length }}
       • NPM global packages: {{ npm_global_packages | length }}
-      • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
+      • Cargo packages: {{ cargo_packages | length }}
+      • Go packages: {{ go_packages | length }}
+      • Python dev packages: {{ python_dev_packages | length }}
+      • Node.js dev packages: {{ node_dev_packages | length }}
       • Mac App Store apps: {{ mac_app_store_apps | length }}
       • Manual installations: {{ manual_installations | length }}
 
-      All idempotent checks preserved from original macsible.yaml
+      🔧 Development Environment Ready:
+      • Core compilers: GCC, Clang/LLVM, Rust, Go, Zig, Crystal, Nim, D
+      • Assemblers: NASM, YASM for cross-platform assembly
+      • Build systems: CMake, Ninja, Meson, Bazel, Make, Autotools
+      • Debug tools: GDB, LLDB, Valgrind
+      • Language tools: Cargo, Go tools, Python dev stack, Node.js tools
+      • Cross-compilation: ARM toolchains, MinGW for Windows
+
+      All idempotent checks implemented following dotsible patterns

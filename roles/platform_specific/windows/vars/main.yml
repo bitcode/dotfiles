@@ -22,6 +22,40 @@ chocolatey_packages:
   - tree
   - zoxide
 
+# Development Tools - Core Compilers and Assemblers
+development_tools_chocolatey:
+  # Essential compilers and toolchains
+  - llvm
+  - cmake
+  - ninja
+  - make
+  - mingw
+  - msys2
+  - vcredist-all
+
+  # Cross-platform assemblers
+  - nasm
+  - yasm
+
+  # Build systems and tools
+  - bazel
+  - ccache
+  - pkgconfiglite
+
+  # Language toolchains
+  - zig
+  - crystal  # If available
+  - dmd      # D language compiler
+
+  # Development utilities
+  - jq
+  - grep
+  - sed
+  - gawk
+  - which
+  - procexp  # Process Explorer
+  - sysinternals
+
 chocolatey_gui_packages:
   - vscode
   - alacritty
@@ -84,7 +118,7 @@ npm_global_packages:
   - "@modelcontextprotocol/server-puppeteer"
   - "firecrawl-mcp"
 
-# Rust packages (cargo)
+# Rust packages (cargo) - Enhanced with development tools
 cargo_packages:
   - "lsd"
   - "starship"
@@ -96,6 +130,58 @@ cargo_packages:
   - "ripgrep"
   - "fd-find"
   - "bat"
+  - "zoxide"
+  - "cargo-edit"
+  - "cargo-watch"
+  - "cargo-expand"
+  - "cargo-audit"
+  - "cargo-outdated"
+  - "cargo-tree"
+
+# Go packages (go install) - Essential Go development tools
+go_packages:
+  - "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+  - "golang.org/x/tools/cmd/goimports@latest"
+  - "golang.org/x/tools/cmd/godoc@latest"
+  - "github.com/go-delve/delve/cmd/dlv@latest"
+  - "honnef.co/go/tools/cmd/staticcheck@latest"
+  - "golang.org/x/tools/gopls@latest"
+  - "github.com/fatih/gomodifytags@latest"
+  - "github.com/josharian/impl@latest"
+
+# Python development packages (pipx)
+python_dev_packages:
+  - "black"
+  - "flake8"
+  - "mypy"
+  - "pytest"
+  - "poetry"
+  - "pipenv"
+  - "virtualenv"
+  - "cookiecutter"
+  - "pre-commit"
+  - "ansible-lint"
+  - "community-ansible-dev-tools"
+
+# Node.js development tools (global npm packages)
+node_dev_packages:
+  - "@typescript-eslint/eslint-plugin"
+  - "@typescript-eslint/parser"
+  - "webpack"
+  - "webpack-cli"
+  - "vite"
+  - "esbuild"
+  - "rollup"
+  - "parcel"
+  - "jest"
+  - "mocha"
+  - "cypress"
+
+# Visual Studio Build Tools components
+vs_build_tools:
+  - "visualstudio2022buildtools"
+  - "visualstudio2022-workload-vctools"
+  - "windows-sdk-10-version-2004-all"
 
 # PowerShell modules
 powershell_modules:

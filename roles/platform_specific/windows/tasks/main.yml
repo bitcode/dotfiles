@@ -5,13 +5,19 @@
     msg: |
       === Windows Development Environment Software Inventory ===
       Chocolatey Packages: {{ chocolatey_packages | join(', ') }}
+      Development Tools: {{ development_tools_chocolatey | join(', ') }}
+      VS Build Tools: {{ vs_build_tools | join(', ') }}
       Chocolatey GUI Apps: {{ chocolatey_gui_packages | join(', ') }}
       Winget Packages: {{ winget_packages | join(', ') }}
       Scoop Packages: {{ scoop_packages | join(', ') }}
       Manual Installations: {{ manual_installations | map(attribute='name') | join(', ') }}
       NPM Global Packages: {{ npm_global_packages | join(', ') }}
+      Cargo Packages: {{ cargo_packages | join(', ') }}
+      Go Packages: {{ go_packages | join(', ') }}
+      Python Dev Packages: {{ python_dev_packages | join(', ') }}
+      Node.js Dev Packages: {{ node_dev_packages | join(', ') }}
       PowerShell Modules: {{ powershell_modules | join(', ') }}
-      =========================================================
+      ===============================================================
 
 # === SYSTEM PREREQUISITES ===
 - name: Check PowerShell execution policy
@@ -69,6 +75,86 @@
     msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
   loop: "{{ chocolatey_verify_check.results }}"
   when: chocolatey_verify_check.results is defined
+
+# === DEVELOPMENT TOOLS (CHOCOLATEY) ===
+- name: Check which development tools are already installed
+  win_shell: choco list --local-only | findstr /i "^{{ item }} "
+  register: dev_tools_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ development_tools_chocolatey }}"
+
+- name: Display development tools status
+  debug:
+    msg: "🔧 {{ item.item }}: {{ '✅ INSTALLED' if item.rc == 0 else '❌ MISSING' }}"
+  loop: "{{ dev_tools_check.results }}"
+  when: item.rc != 0  # Only show missing tools to reduce output
+
+- name: Install missing development tools
+  win_chocolatey:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ dev_tools_check.results }}"
+  register: dev_tools_install_result
+
+- name: Verify development tools installation
+  win_shell: choco list --local-only | findstr /i "^{{ item.item }} "
+  register: dev_tools_verify_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ dev_tools_check.results }}"
+  when: item.rc != 0
+
+- name: Display development tools installation verification
+  debug:
+    msg: "{{ item.item.item }}: {{ '✅ SUCCESSFULLY INSTALLED' if item.rc == 0 else '❌ INSTALLATION FAILED' }}"
+  loop: "{{ dev_tools_verify_check.results }}"
+  when: dev_tools_verify_check.results is defined
+
+- name: Development tools summary
+  debug:
+    msg: |
+      🔧 Development Tools Summary:
+      • Total tools: {{ development_tools_chocolatey | length }}
+      • Already installed: {{ dev_tools_check.results | selectattr('rc', 'equalto', 0) | list | length }}
+      • Newly installed: {{ dev_tools_check.results | selectattr('rc', 'ne', 0) | list | length }}
+
+      Categories installed:
+      • Core compilers: LLVM, MinGW, MSYS2
+      • Assemblers: NASM, YASM
+      • Build systems: CMake, Ninja, Bazel, Make
+      • Development utilities: Process Explorer, Sysinternals
+
+# === VISUAL STUDIO BUILD TOOLS ===
+- name: Check which VS Build Tools are already installed
+  win_shell: choco list --local-only | findstr /i "^{{ item }} "
+  register: vs_tools_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ vs_build_tools }}"
+
+- name: Display VS Build Tools status
+  debug:
+    msg: "🏗️ {{ item.item }}: {{ '✅ INSTALLED' if item.rc == 0 else '❌ MISSING' }}"
+  loop: "{{ vs_tools_check.results }}"
+  when: item.rc != 0  # Only show missing tools
+
+- name: Install missing VS Build Tools
+  win_chocolatey:
+    name: "{{ item.item }}"
+    state: present
+  when: item.rc != 0
+  loop: "{{ vs_tools_check.results }}"
+  register: vs_tools_install_result
+
+- name: VS Build Tools summary
+  debug:
+    msg: |
+      🏗️ Visual Studio Build Tools Summary:
+      • Total components: {{ vs_build_tools | length }}
+      • Already installed: {{ vs_tools_check.results | selectattr('rc', 'equalto', 0) | list | length }}
+      • Newly installed: {{ vs_tools_check.results | selectattr('rc', 'ne', 0) | list | length }}
 
 # === CHOCOLATEY GUI PACKAGES ===
 - name: Check which Chocolatey GUI packages are already installed
@@ -451,6 +537,58 @@
     - pipx_verify.rc == 0
     - pipx_tools_verify.results is defined
 
+# === GO PACKAGES ===
+- name: Check if Go is available for go packages
+  win_command: go version
+  register: go_available_check
+  failed_when: false
+  changed_when: false
+
+- name: Display Go availability status
+  debug:
+    msg: "🐹 Go: {{ 'AVAILABLE (' + go_available_check.stdout.strip() + ')' if go_available_check.rc == 0 else 'NOT AVAILABLE' }}"
+
+- name: Check which go packages are already installed
+  win_shell: |
+    $packageName = "{{ item }}" -replace '@latest$', '' -replace '.*/([^/]+)$', '$1'
+    go list -m all 2>$null | Select-String "{{ item.split('@')[0] }}"
+  register: go_package_check
+  failed_when: false
+  changed_when: false
+  loop: "{{ go_packages }}"
+  when: go_available_check.rc == 0
+
+- name: Display go package status
+  debug:
+    msg: "🐹 {{ item.item }}: {{ '✅ INSTALLED' if item.stdout else '❌ MISSING' }}"
+  loop: "{{ go_package_check.results }}"
+  when:
+    - go_available_check.rc == 0
+    - go_package_check.results is defined
+    - not item.stdout  # Only show missing packages
+
+- name: Install missing go packages
+  win_shell: go install {{ item.item }}
+  when:
+    - go_available_check.rc == 0
+    - go_package_check.results is defined
+    - not item.stdout
+  loop: "{{ go_package_check.results }}"
+  register: go_install_result
+  environment:
+    GOPATH: "{{ ansible_user_dir }}/go"
+    GOBIN: "{{ ansible_user_dir }}/go/bin"
+
+- name: Go packages summary
+  debug:
+    msg: |
+      🐹 Go Packages Summary:
+      • Total packages: {{ go_packages | length }}
+      • Already installed: {{ go_package_check.results | selectattr('stdout') | list | length if go_package_check.results is defined else 0 }}
+      • Newly installed: {{ go_package_check.results | rejectattr('stdout') | list | length if go_package_check.results is defined else 0 }}
+      • Tools installed in: ~/go/bin/
+  when: go_available_check.rc == 0
+
 # === POWERSHELL MODULES ===
 - name: Check which PowerShell modules are installed
   win_shell: Get-Module -ListAvailable "{{ item }}" | Select-Object Name
@@ -484,6 +622,7 @@
       • Winget packages: {{ winget_packages | length }}
       • Scoop packages: {{ scoop_packages | length }}
       • NPM global packages: {{ npm_global_packages | length }}
+      • Go packages: {{ go_packages | length }}
       • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
       • PowerShell modules: {{ powershell_modules | length }}
       • Manual installations: {{ manual_installations | length }}
