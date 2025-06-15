@@ -1,43 +1,70 @@
-# Start profiling
-#zmodload zsh/zprof
-#start_time=$(date +%s%N)
+# ============================================================================
+# HOMEBREW ENVIRONMENT (must come first)
+# ============================================================================
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # ============================================================================
-# HOMEBREW PATH SETUP (must come first for tool availability)
+# ENVIRONMENT VARIABLES
 # ============================================================================
-
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-# End Python PATH
-
-# Environment and Path Variables
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 export LC_CTYPE="en_US.UTF-8"
-export PATH="$HOME/.cargo/bin:$PATH"
-# export PYTHONPATH="/usr/bin/python3"
 export VISUAL="nvim"
 export EDITOR="nvim"
 export TERM="xterm-256color"
+export COLORTERM="truecolor"
 export MANPAGER="/usr/bin/zsh -c 'col -b | nvim -c \"set ft=man ts=8 nomod nolist nonu noma\"'"
 export MANWIDTH=999
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
-export XDG_CONFIG_HOME="$HOME/.config/"
-export FZF_DEFAULT_COMMAND="zoxide query --list"
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND="$FZF_DEFAULT_COMMAND"
-export MANPATH="/home/bit/.local/share/man:/usr/local/share/man:/home/bit/man/man-intrinsics"
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:/home/bit/go/bin
+
+# XDG Base Directory Specification
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# Create XDG directories if they don't exist
+for dir in "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"; do
+  [[ ! -d "$dir" ]] && mkdir -p "$dir"
+done
+
+# ============================================================================
+# PATH CONFIGURATION
+# ============================================================================
+# Python PATH - Dotsible managed
+export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+
+# Development tools
+export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$PATH:/usr/local/go/bin"
+export PATH="$PATH:$HOME/go/bin"
+[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
+[[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
+
+# Remove duplicate PATH entries
+export PATH=$(echo "$PATH" | awk -v RS=':' -v ORS=":" '!a[$1]++{if (NR > 1) printf ORS; printf $a[$1]}')
+
+# Development environment variables
 export GO111MODULE=on
+export GOPATH="$HOME/go"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONUNBUFFERED=1
 
-
-# History Configuration
+# ============================================================================
+# HISTORY CONFIGURATION
+# ============================================================================
 HISTFILE="$HOME/.zsh_history"
-HISTSIZE=10000
-SAVEHIST=10000
+HISTSIZE=50000
+SAVEHIST=50000
 setopt SHARE_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_BEEP
 
 # Vim Mode Configuration
 set -o vi
@@ -90,17 +117,40 @@ eval "$(starship init zsh)"
 # FZF Configuration
 source <(fzf --zsh)
 
-# Ensure compinit is run only once with caching
+# ============================================================================
+# COMPLETION SYSTEM (run only once with proper caching)
+# ============================================================================
 setopt local_options extendedglob
 autoload -Uz compinit
-if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
-    compinit -d "${ZDOTDIR:-$HOME}/.zcompdump"
+
+# Use XDG-compliant location for completion dump
+export ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/.zcompdump"
+
+# Check if .zcompdump is older than 24 hours or doesn't exist
+if [[ -n $ZSH_COMPDUMP(#qN.mh+24) ]]; then
+    print -P "%F{yellow}Compinit: Regenerating completion dump...%f"
+    compinit -d "$ZSH_COMPDUMP"
 else
-    compinit -C
+    print -P "%F{green}Compinit: Loading completion from cache...%f"
+    compinit -C -d "$ZSH_COMPDUMP"
 fi
 
-# Background refresh to update .zcompdump file
-(autoload -Uz compinit && compinit -d "${ZDOTDIR:-$HOME}/.zcompdump" &)
+# Completion styling
+zstyle ':completion:*' auto-description 'specify: %d'
+zstyle ':completion:*' completer _expand _complete _correct _approximate
+zstyle ':completion:*' format 'Completing %d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' menu select=2
+zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
+zstyle ':completion:*' menu select=long
+zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+zstyle ':completion:*' use-compctl false
+zstyle ':completion:*' verbose true
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 
 
@@ -126,31 +176,26 @@ fi
 # - cdi() function (interactive mode)
 # - zi is aliased to cdi for compatibility
 
-# At the very end of .zshrc
-#end_time=$(date +%s%N)
-#echo "Shell startup time: $((($end_time - $start_time) / 1000000)) ms"
-#zprof
-# BEGIN ANSIBLE MANAGED BLOCK - Zoxide Configuration
-# Zoxide - Smart directory navigation
-# Ensure Homebrew environment is available on macOS
-if [[ -f /opt/homebrew/bin/brew ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-# Initialize zoxide if available
+# ============================================================================
+# SMART DIRECTORY NAVIGATION (Zoxide)
+# ============================================================================
+# Initialize zoxide AFTER compinit for proper completion support
 if command -v zoxide >/dev/null 2>&1; then
-  eval "$(zoxide init zsh)"
+    eval "$(zoxide init --cmd cd zsh)"
 fi
-# END ANSIBLE MANAGED BLOCK - Zoxide Configuration
-# BEGIN FZF KEY BINDINGS
+
+# ============================================================================
+# FZF CONFIGURATION
+# ============================================================================
+export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
+export FZF_COMPLETION_TRIGGER="**"
+
 # FZF Key Bindings
 bindkey '^T' fzf-file-widget      # Ctrl+T for file search
 bindkey '^R' fzf-history-widget   # Ctrl+R for history search
 bindkey '\ec' fzf-cd-widget       # Alt+C for directory search
-# END FZF KEY BINDINGS
-export FZF_COMPLETION_TRIGGER="**"
-# BEGIN FZF COMPLETION CONFIGURATION
-# FZF Completion Configuration
-export FZF_COMPLETION_TRIGGER="**"
 
 # Custom completion for common commands
 _fzf_compgen_path() {
@@ -160,19 +205,11 @@ _fzf_compgen_path() {
 _fzf_compgen_dir() {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
-# END FZF COMPLETION CONFIGURATION
-# BEGIN ANSIBLE MANAGED BLOCK - ZSH Options
-# ZSH Options
+
+# ============================================================================
+# ZSH OPTIONS
+# ============================================================================
 setopt HIST_VERIFY
-setopt SHARE_HISTORY
-setopt APPEND_HISTORY
-setopt INC_APPEND_HISTORY
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_SAVE_NO_DUPS
-setopt HIST_REDUCE_BLANKS
-setopt CORRECT
 setopt AUTO_CD
 setopt AUTO_PUSHD
 setopt PUSHD_IGNORE_DUPS
@@ -180,50 +217,10 @@ setopt EXTENDED_GLOB
 setopt GLOB_COMPLETE
 setopt COMPLETE_IN_WORD
 setopt ALWAYS_TO_END
-# END ANSIBLE MANAGED BLOCK - ZSH Options
-# BEGIN ANSIBLE MANAGED BLOCK - History Settings
-# History Configuration
-HISTFILE=/Users/mdrozrosario/.zsh_history
-HISTSIZE=50000
-SAVEHIST=50000
+setopt CORRECT
 
-# History options
-setopt HIST_EXPIRE_DUPS_FIRST
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_FIND_NO_DUPS
-setopt HIST_SAVE_NO_DUPS
-setopt HIST_BEEP
-# END ANSIBLE MANAGED BLOCK - History Settings
-# BEGIN ANSIBLE MANAGED BLOCK - Completion System
-# Completion Configuration
-autoload -Uz compinit
-compinit
-
-# Completion options
-zstyle ':completion:*' auto-description 'specify: %d'
-zstyle ':completion:*' completer _expand _complete _correct _approximate
-zstyle ':completion:*' format 'Completing %d'
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*' menu select=2
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' list-colors ''
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
-zstyle ':completion:*' menu select=long
-zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
-zstyle ':completion:*' use-compctl false
-zstyle ':completion:*' verbose true
-
-zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
-zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
-# END ANSIBLE MANAGED BLOCK - Completion System
-# BEGIN ANSIBLE MANAGED BLOCK - Key Bindings
-# Key Bindings
+# Key bindings
 bindkey -e  # Use emacs key bindings
-
-# Custom key bindings
 bindkey '^[[1;5C' forward-word      # Ctrl+Right
 bindkey '^[[1;5D' backward-word     # Ctrl+Left
 bindkey '^[[3~' delete-char         # Delete
@@ -231,7 +228,16 @@ bindkey '^[[H' beginning-of-line    # Home
 bindkey '^[[F' end-of-line          # End
 bindkey '^[[5~' up-line-or-history  # Page Up
 bindkey '^[[6~' down-line-or-history # Page Down
-# END ANSIBLE MANAGED BLOCK - Key Bindings
+
+# ============================================================================
+# PERFORMANCE PROFILING (uncomment to debug startup time)
+# ============================================================================
+#end_time=$(date +%s%N)
+#echo "Shell startup time: $((($end_time - $start_time) / 1000000)) ms"
+#zprof
+
+
+
 # BEGIN ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins
 # Oh My Zsh Configuration
 export ZSH="/Users/mdrozrosario/.oh-my-zsh"
@@ -521,49 +527,14 @@ ff() {
   find . -type f -name "*$1*"
 }
 
-fd() {
+# Note: Renamed from fd() to fdir() to avoid conflict with fd binary (fast file finder)
+fdir() {
   find . -type d -name "*$1*"
 }
 # END ANSIBLE MANAGED BLOCK - System Functions
-# BEGIN ANSIBLE MANAGED BLOCK - Environment Variables
-# Environment Variables
-export EDITOR="vim"
-export BROWSER="firefox"
-export TERM="xterm-256color"
-export LANG="en_US.UTF-8"
-export LC_ALL="en_US.UTF-8"
 
-# Additional environment variables
-export HISTFILE="/Users/mdrozrosario/.zsh_history"
-export HISTSIZE="50000"
-export SAVEHIST="50000"
 
-# ZSH-specific environment
-export ZSH_CACHE_DIR="/Users/mdrozrosario/.cache/zsh"
-export ZSH_COMPDUMP="/Users/mdrozrosario/.zcompdump"
 
-# Create cache directory if it doesn't exist
-[[ ! -d "$ZSH_CACHE_DIR" ]] && mkdir -p "$ZSH_CACHE_DIR"
-# END ANSIBLE MANAGED BLOCK - Environment Variables
-# BEGIN ANSIBLE MANAGED BLOCK - PATH Configuration
-# PATH Configuration
-[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-[[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
-[[ -d "/usr/local/bin" ]] && export PATH="/usr/local/bin:$PATH"
-
-# Remove duplicate PATH entries
-export PATH=$(echo "$PATH" | awk -v RS=':' -v ORS=":" '!a[$1]++{if (NR > 1) printf ORS; printf $a[$1]}')
-# END ANSIBLE MANAGED BLOCK - PATH Configuration
-# BEGIN ANSIBLE MANAGED BLOCK - Locale Settings
-# Locale Settings
-export LANG="en_US.UTF-8"
-export LC_ALL="en_US.UTF-8"
-export LC_CTYPE="en_US.UTF-8"
-
-# Terminal settings
-export TERM="xterm-256color"
-export COLORTERM="truecolor"
-# END ANSIBLE MANAGED BLOCK - Locale Settings
 # BEGIN ANSIBLE MANAGED BLOCK - Development Environment
 # Development Environment
 
@@ -593,36 +564,13 @@ export GOPATH="$HOME/go"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 # END ANSIBLE MANAGED BLOCK - Development Environment
-# BEGIN ANSIBLE MANAGED BLOCK - XDG Directories
-# XDG Base Directory Specification
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
-# Create XDG directories if they don't exist
-for dir in "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"; do
-  [[ ! -d "$dir" ]] && mkdir -p "$dir"
-done
-# END ANSIBLE MANAGED BLOCK - XDG Directories
-# BEGIN ANSIBLE MANAGED BLOCK - Shell Behavior
-# Shell Behavior Configuration
 
-# Case sensitivity
-CASE_SENSITIVE="false"
+# BEGIN ANSIBLE MANAGED BLOCK - NVM Configuration
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# END ANSIBLE MANAGED BLOCK - NVM Configuration
 
-# Hyphen insensitive completion
-HYPHEN_INSENSITIVE="true"
-
-# Auto-update behavior
-export UPDATE_ZSH_DAYS=13
-
-# Completion behavior
-COMPLETION_WAITING_DOTS="true"
-
-# Git status in untracked files
-
-# Auto-correction
-ENABLE_CORRECTION="true"
-# END ANSIBLE MANAGED BLOCK - Shell Behavior
-eval "$(/opt/homebrew/bin/brew shellenv)"
+# Created by `pipx` on 2025-06-15 06:41:36
+export PATH="$PATH:/Users/mdrozrosario/.local/bin"

@@ -1,0 +1,112 @@
+---
+# Test playbook for cross-platform development tools installation
+# Tests: gdb, ripgrep, fd-find, fzf across all platforms
+
+- name: Test Cross-Platform Development Tools Installation
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    # Test configuration
+    test_tools:
+      - { name: "gdb", command: "gdb --version", description: "GNU Debugger" }
+      - { name: "ripgrep", command: "rg --version", description: "Fast text search tool" }
+      - { name: "fd", command: "fd --version", description: "Fast file finder" }
+      - { name: "fzf", command: "fzf --version", description: "Fuzzy finder" }
+
+  tasks:
+    - name: "🧪 TESTING CROSS-PLATFORM DEVELOPMENT TOOLS"
+      debug:
+        msg: |
+          Testing cross-platform development tools installation
+          🎯 Objective: Verify gdb, ripgrep, fd, fzf are available on all platforms
+          📊 Platform: {{ ansible_os_family }} ({{ ansible_distribution }})
+          🔧 Architecture: {{ ansible_architecture }}
+
+    - name: Detect current platform
+      set_fact:
+        current_platform: >-
+          {%- if ansible_os_family == "Darwin" -%}
+          macos
+          {%- elif ansible_os_family == "Windows" -%}
+          windows
+          {%- elif ansible_distribution == "Archlinux" -%}
+          archlinux
+          {%- elif ansible_os_family == "Debian" -%}
+          ubuntu
+          {%- else -%}
+          unknown
+          {%- endif -%}
+
+    - name: Display detected platform
+      debug:
+        msg: "🖥️ Detected platform: {{ current_platform }}"
+
+    - name: Include platform-specific role
+      include_role:
+        name: "platform_specific/{{ current_platform }}"
+      when: current_platform != "unknown"
+
+    - name: Test development tools accessibility
+      shell: "{{ item.command }}"
+      register: tool_test_results
+      failed_when: false
+      changed_when: false
+      loop: "{{ test_tools }}"
+
+    - name: Display development tools test results
+      debug:
+        msg: |
+          🔧 {{ item.item.name }} ({{ item.item.description }}):
+          Status: {{ '✅ ACCESSIBLE' if item.rc == 0 else '❌ NOT ACCESSIBLE' }}
+          {% if item.rc == 0 and item.stdout %}
+          Version: {{ item.stdout.split('\n')[0] }}
+          {% endif %}
+          {% if item.rc != 0 and item.stderr %}
+          Error: {{ item.stderr }}
+          {% endif %}
+      loop: "{{ tool_test_results.results }}"
+
+    - name: Generate test summary
+      set_fact:
+        accessible_tools: "{{ tool_test_results.results | selectattr('rc', 'equalto', 0) | list }}"
+        missing_tools: "{{ tool_test_results.results | selectattr('rc', 'ne', 0) | list }}"
+
+    - name: Display final test summary
+      debug:
+        msg: |
+          📊 Cross-Platform Development Tools Test Summary
+          ================================================
+          Platform: {{ current_platform | upper }}
+          Total tools tested: {{ test_tools | length }}
+          ✅ Accessible: {{ accessible_tools | length }}
+          ❌ Missing: {{ missing_tools | length }}
+          
+          {% if accessible_tools | length > 0 %}
+          Accessible tools:
+          {% for tool in accessible_tools %}
+          • {{ tool.item.name }}: {{ tool.item.description }}
+          {% endfor %}
+          {% endif %}
+          
+          {% if missing_tools | length > 0 %}
+          Missing tools:
+          {% for tool in missing_tools %}
+          • {{ tool.item.name }}: {{ tool.item.description }}
+          {% endfor %}
+          
+          ⚠️  Please install missing tools using the appropriate platform role.
+          {% endif %}
+          
+          {% if missing_tools | length == 0 %}
+          🎉 All development tools are successfully installed and accessible!
+          {% endif %}
+
+    - name: Fail if critical tools are missing
+      fail:
+        msg: |
+          ❌ Critical development tools are missing on {{ current_platform }}.
+          Missing: {{ missing_tools | map(attribute='item.name') | list | join(', ') }}
+          Please run the platform-specific role to install missing tools.
+      when: 
+        - missing_tools | length > 0
+        - fail_on_missing_tools | default(false)

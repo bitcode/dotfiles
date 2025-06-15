@@ -125,6 +125,25 @@
       • Assemblers: NASM, YASM
       • Build systems: CMake, Ninja, Meson, Bazel
       • Debug tools: GDB, LLDB, Valgrind
+      • Search tools: ripgrep, fd, fzf
+
+# === DEVELOPMENT TOOLS VERIFICATION ===
+- name: Verify essential development tools are accessible
+  shell: "{{ item.command }}"
+  register: essential_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - { name: "gdb", command: "gdb --version" }
+    - { name: "ripgrep", command: "rg --version" }
+    - { name: "fd", command: "fd --version" }
+    - { name: "fzf", command: "fzf --version" }
+
+- name: Display essential development tools verification status
+  debug:
+    msg: "🔧 {{ item.item.name }}: {{ '✅ ACCESSIBLE' if item.rc == 0 else '❌ NOT ACCESSIBLE' }}"
+  loop: "{{ essential_tools_verify.results }}"
+  when: essential_tools_verify.results is defined
 
 # === HOMEBREW CASKS ===
 - name: Check which Homebrew casks are already installed
@@ -442,6 +461,7 @@
   debug:
     msg: |
       🐍 Python Development Packages Summary:
+      {% if pipx_verify is defined and pipx_verify.rc == 0 %}
       • Total packages: {{ python_dev_packages | length }}
       • Already installed: {{ python_dev_package_check.results | selectattr('stdout', 'not containing', 'NOT_FOUND') | list | length if python_dev_package_check.results is defined else 0 }}
       • Newly installed: {{ python_dev_package_check.results | selectattr('stdout', 'containing', 'NOT_FOUND') | list | length if python_dev_package_check.results is defined else 0 }}
@@ -451,7 +471,10 @@
       • Testing: pytest
       • Environment: poetry, pipenv, virtualenv
       • Automation: pre-commit, cookiecutter
-  when: pipx_verify.rc == 0
+      {% else %}
+      • pipx not available - Python development packages skipped
+      • Install pipx to enable Python development tools
+      {% endif %}
 
 # === GO INSTALLATION ===
 - name: Check if Go is available in PATH

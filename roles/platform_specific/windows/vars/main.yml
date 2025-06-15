@@ -55,6 +55,8 @@ development_tools_chocolatey:
   - which
   - procexp  # Process Explorer
   - sysinternals
+  - ripgrep
+  - fd
 
 chocolatey_gui_packages:
   - vscode
@@ -75,6 +77,8 @@ winget_packages:
   - Microsoft.PowerToys
   - Microsoft.VisualStudioCode
   - Git.Git
+  - BurntSushi.ripgrep.MSVC
+  - sharkdp.fd
 
 # Scoop packages (alternative package manager)
 scoop_packages:
@@ -85,6 +89,7 @@ scoop_packages:
   - bat
   - exa
   - zoxide
+  - gdb
 
 # Manual installations with verification
 manual_installations:

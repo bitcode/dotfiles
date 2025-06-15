@@ -17,6 +17,8 @@ homebrew_packages:
   - npm
   - zsh
   - fzf
+  - ripgrep
+  - fd
   - unzip
   - tree
   - zoxide
@@ -50,13 +52,13 @@ development_tools:
   - zig
   - crystal
   - nim
-  - dmd  # D language compiler
+  # Note: dmd (D compiler) removed - requires x86_64 architecture, incompatible with Apple Silicon
 
   # Additional development utilities
   - gdb
-  - lldb
-  - valgrind
-  - strace
+  # Note: lldb removed - included with Xcode, not available as separate Homebrew formula
+  # Note: valgrind removed - Linux-only software, not available on macOS
+  # Note: strace removed - Linux-only software, not available on macOS
   - htop
   - jq
   - curl

@@ -101,6 +101,24 @@
     state: present
   become: yes
 
+# === DEVELOPMENT TOOLS VERIFICATION ===
+- name: Verify essential development tools are accessible
+  shell: "{{ item.command }}"
+  register: essential_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - { name: "gdb", command: "gdb --version" }
+    - { name: "ripgrep", command: "rg --version" }
+    - { name: "fd", command: "fd --version" }
+    - { name: "fzf", command: "fzf --version" }
+
+- name: Display essential development tools verification status
+  debug:
+    msg: "🔧 {{ item.item.name }}: {{ '✅ ACCESSIBLE' if item.rc == 0 else '❌ NOT ACCESSIBLE' }}"
+  loop: "{{ essential_tools_verify.results }}"
+  when: essential_tools_verify.results is defined
+
 # === WINDOW MANAGER PACKAGES ===
 - name: Install window manager packages
   apt:

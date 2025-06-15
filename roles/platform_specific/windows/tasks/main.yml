@@ -124,7 +124,8 @@
       • Core compilers: LLVM, MinGW, MSYS2
       • Assemblers: NASM, YASM
       • Build systems: CMake, Ninja, Bazel, Make
-      • Development utilities: Process Explorer, Sysinternals
+      • Development utilities: Process Explorer, Sysinternals, ripgrep, fd
+      • Debugging tools: GDB (via Scoop)
 
 # === VISUAL STUDIO BUILD TOOLS ===
 - name: Check which VS Build Tools are already installed
@@ -296,6 +297,24 @@
     msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
   loop: "{{ scoop_verify_check.results }}"
   when: scoop_verify_check.results is defined
+
+# === DEVELOPMENT TOOLS VERIFICATION ===
+- name: Verify development tools are accessible
+  win_shell: "{{ item.command }}"
+  register: dev_tools_verify
+  failed_when: false
+  changed_when: false
+  loop:
+    - { name: "gdb", command: "gdb --version" }
+    - { name: "ripgrep", command: "rg --version" }
+    - { name: "fd", command: "fd --version" }
+    - { name: "fzf", command: "fzf --version" }
+
+- name: Display development tools verification status
+  debug:
+    msg: "🔧 {{ item.item.name }}: {{ '✅ ACCESSIBLE' if item.rc == 0 else '❌ NOT ACCESSIBLE' }}"
+  loop: "{{ dev_tools_verify.results }}"
+  when: dev_tools_verify.results is defined
 
 # === MANUAL INSTALLATIONS ===
 - name: Check manual installations
