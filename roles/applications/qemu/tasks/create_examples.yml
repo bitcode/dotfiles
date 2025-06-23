@@ -1,0 +1,96 @@
+---
+- name: Create QEMU examples directory structure
+  file:
+    path: "{{ qemu_paths.examples_dir }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - arm64
+    - arm32
+    - x86_64
+    - riscv64
+    - docs
+    - templates
+
+- name: Create ARM64 assembly example
+  template:
+    src: examples/arm64_hello.s.j2
+    dest: "{{ qemu_paths.examples_dir }}/arm64/hello.s"
+    mode: '0644'
+
+- name: Create ARM64 Makefile
+  template:
+    src: examples/arm64_Makefile.j2
+    dest: "{{ qemu_paths.examples_dir }}/arm64/Makefile"
+    mode: '0644'
+
+- name: Create ARM32 assembly example
+  template:
+    src: examples/arm32_hello.s.j2
+    dest: "{{ qemu_paths.examples_dir }}/arm32/hello.s"
+    mode: '0644'
+
+- name: Create ARM32 Makefile
+  template:
+    src: examples/arm32_Makefile.j2
+    dest: "{{ qemu_paths.examples_dir }}/arm32/Makefile"
+    mode: '0644'
+
+- name: Create x86_64 assembly example
+  template:
+    src: examples/x86_64_hello.s.j2
+    dest: "{{ qemu_paths.examples_dir }}/x86_64/hello.s"
+    mode: '0644'
+
+- name: Create x86_64 Makefile
+  template:
+    src: examples/x86_64_Makefile.j2
+    dest: "{{ qemu_paths.examples_dir }}/x86_64/Makefile"
+    mode: '0644'
+
+- name: Create RISC-V assembly example
+  template:
+    src: examples/riscv64_hello.s.j2
+    dest: "{{ qemu_paths.examples_dir }}/riscv64/hello.s"
+    mode: '0644'
+
+- name: Create RISC-V Makefile
+  template:
+    src: examples/riscv64_Makefile.j2
+    dest: "{{ qemu_paths.examples_dir }}/riscv64/Makefile"
+    mode: '0644'
+
+- name: Create debugging workflow examples
+  template:
+    src: examples/debug_workflow.md.j2
+    dest: "{{ qemu_paths.examples_dir }}/docs/debug_workflow.md"
+    mode: '0644'
+
+- name: Create emulation guide
+  template:
+    src: examples/emulation_guide.md.j2
+    dest: "{{ qemu_paths.examples_dir }}/docs/emulation_guide.md"
+    mode: '0644'
+
+- name: Create cross-platform development guide
+  template:
+    src: examples/cross_platform_guide.md.j2
+    dest: "{{ qemu_paths.examples_dir }}/docs/cross_platform_guide.md"
+    mode: '0644'
+
+- name: Create QEMU debugging session templates
+  template:
+    src: examples/debug_session_{{ item }}.gdb.j2
+    dest: "{{ qemu_paths.examples_dir }}/templates/debug_{{ item }}.gdb"
+    mode: '0644'
+  loop:
+    - arm64
+    - arm32
+    - x86_64
+    - riscv64
+
+- name: Create README for examples
+  template:
+    src: examples/README.md.j2
+    dest: "{{ qemu_paths.examples_dir }}/README.md"
+    mode: '0644'

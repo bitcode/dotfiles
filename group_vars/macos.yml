@@ -52,6 +52,19 @@ macos_packages:
     - rust
     - go
     - ruby
+    - gdb
+    - lldb
+    
+  cross_compilation:
+    - aarch64-elf-gcc
+    - aarch64-elf-gdb
+    - arm-none-eabi-gcc
+    - arm-none-eabi-gdb
+    - riscv64-elf-gcc
+    - riscv64-elf-gdb
+    
+  emulation:
+    - qemu
 
   gui:
     - firefox

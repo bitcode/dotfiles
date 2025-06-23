@@ -1,7 +1,10 @@
 return {
     "nvimtools/none-ls.nvim",
-    dependencies = { 'jose-elias-alvarez/null-ls.nvim' },
-    priority = 1000,
+    -- REMOVE THE FOLLOWING LINE:
+    -- dependencies = { 'jose-elias-alvarez/null-ls.nvim' },
+    -- Keep this dependency for core functionality, as stated in the documentation
+    dependencies = { "nvim-lua/plenary.nvim" },
+    priority = 1000, -- This can often be removed unless you have specific ordering needs
     config = function()
         local null_ls = require("null-ls")
         local methods = null_ls.methods

@@ -1,0 +1,92 @@
+---
+# Common GDB variables across all platforms
+
+# GDB package information
+gdb_packages:
+  core:
+    - gdb
+  
+  optional:
+    - gdb-doc
+    - gdb-multiarch
+
+# GDB configuration
+gdb_config:
+  history_size: 10000
+  history_file: "{{ ansible_user_dir }}/.gdb_history"
+  config_dir: "{{ ansible_user_dir }}/.config/gdb"
+  init_file: "{{ ansible_user_dir }}/.gdbinit"
+
+# Cross-compilation toolchains
+gdb_cross_compile:
+  arm64:
+    - aarch64-linux-gnu-gdb
+  arm32:
+    - arm-linux-gnueabihf-gdb
+  riscv:
+    - riscv64-linux-gnu-gdb
+
+# Architecture-specific settings
+gdb_architectures:
+  arm64:
+    instruction_set: "aarch64"
+    default_arch: "aarch64"
+    register_sets:
+      - general
+      - vector
+      - system
+  arm32:
+    instruction_set: "arm"
+    default_arch: "arm"
+    register_sets:
+      - general
+      - vector
+  x86_64:
+    instruction_set: "x86_64"
+    default_arch: "x86_64"
+    register_sets:
+      - general
+      - sse
+      - avx
+  riscv:
+    instruction_set: "riscv64"
+    default_arch: "riscv64"
+    register_sets:
+      - general
+      - vector
+
+# TUI configuration
+gdb_tui:
+  border_kind: "acs"
+  active_border_mode: "bold-standout"
+  border_mode: "reverse"
+  default_layout: "split"
+
+# Neovim integration
+gdb_neovim:
+  dap_config_file: "{{ ansible_user_dir }}/.config/nvim/lua/config/dap_gdb.lua"
+  asm_utils_file: "{{ ansible_user_dir }}/.config/nvim/lua/asm_utils.lua"
+
+# Profile-based features
+gdb_features:
+  minimal:
+    basic_debugging: true
+    cross_compilation: false
+    advanced_tui: false
+    neovim_integration: false
+  developer:
+    basic_debugging: true
+    cross_compilation: true
+    advanced_tui: true
+    neovim_integration: true
+    multi_architecture: true
+  enterprise:
+    basic_debugging: true
+    cross_compilation: true
+    advanced_tui: true
+    neovim_integration: true
+    multi_architecture: true
+    security_hardened: true
+
+# Default feature set based on profile
+gdb_current_features: "{{ gdb_features[profile | default('minimal')] }}"

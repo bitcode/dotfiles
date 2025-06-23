@@ -1,0 +1,134 @@
+---
+# Detect existing GDB installations and capabilities
+
+- name: Initialize GDB detection variables
+  set_fact:
+    gdb_installation_status: {}
+    gdb_detected_versions: {}
+    gdb_available_commands: {}
+
+- name: Check for main GDB installation
+  command: which gdb
+  register: gdb_main_check
+  changed_when: false
+  failed_when: false
+
+- name: Get GDB version if available
+  command: gdb --version
+  register: gdb_version_output
+  changed_when: false
+  failed_when: false
+  when: gdb_main_check.rc == 0
+
+- name: Parse GDB version
+  set_fact:
+    gdb_detected_versions: "{{ gdb_detected_versions | combine({'gdb': gdb_version_output.stdout_lines[0] | regex_replace('^GNU gdb \\(.*\\) (.*)$', '\\1')}) }}"
+  when: 
+    - gdb_main_check.rc == 0
+    - gdb_version_output.rc == 0
+
+- name: Update GDB installation status
+  set_fact:
+    gdb_installation_status: "{{ gdb_installation_status | combine({'gdb': gdb_main_check.rc == 0}) }}"
+
+- name: Check for GDB multiarch support
+  command: which gdb-multiarch
+  register: gdb_multiarch_check
+  changed_when: false
+  failed_when: false
+
+- name: Update multiarch status
+  set_fact:
+    gdb_installation_status: "{{ gdb_installation_status | combine({'gdb-multiarch': gdb_multiarch_check.rc == 0}) }}"
+
+- name: Check for cross-compilation GDB tools
+  command: "which {{ item.value.gdb }}"
+  register: gdb_cross_check
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_cross_commands | dict2items }}"
+  when: gdb_current_features.cross_compilation | default(false)
+
+- name: Update cross-compilation tool status
+  set_fact:
+    gdb_installation_status: "{{ gdb_installation_status | combine({item.item.key + '_gdb': item.rc == 0}) }}"
+  loop: "{{ gdb_cross_check.results | default([]) }}"
+  when: gdb_current_features.cross_compilation | default(false)
+
+- name: Check for LLDB (alternative debugger)
+  command: which lldb
+  register: lldb_check
+  changed_when: false
+  failed_when: false
+
+- name: Update LLDB status
+  set_fact:
+    gdb_installation_status: "{{ gdb_installation_status | combine({'lldb': lldb_check.rc == 0}) }}"
+
+- name: Check for QEMU emulation tools
+  command: "which {{ item.value }}"
+  register: qemu_check
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_qemu_commands.user_mode | dict2items }}"
+  when: gdb_current_features.multi_architecture | default(false)
+
+- name: Update QEMU status
+  set_fact:
+    gdb_installation_status: "{{ gdb_installation_status | combine({'qemu_' + item.item.key: item.rc == 0}) }}"
+  loop: "{{ qemu_check.results | default([]) }}"
+  when: gdb_current_features.multi_architecture | default(false)
+
+- name: Check for existing .gdbinit
+  stat:
+    path: "{{ gdb_config.init_file }}"
+  register: gdbinit_check
+
+- name: Backup existing .gdbinit if present
+  copy:
+    src: "{{ gdb_config.init_file }}"
+    dest: "{{ gdb_config.init_file }}.backup.{{ ansible_date_time.epoch }}"
+    mode: '0644'
+  when: 
+    - gdbinit_check.stat.exists
+    - gdbinit_check.stat.size > 0
+
+- name: Check for Neovim installation
+  command: which nvim
+  register: neovim_check
+  changed_when: false
+  failed_when: false
+
+- name: Set Neovim availability
+  set_fact:
+    neovim_installed: "{{ neovim_check.rc == 0 }}"
+
+- name: Check for nvim-dap plugin
+  stat:
+    path: "{{ ansible_user_dir }}/.local/share/nvim/lazy/nvim-dap"
+  register: nvim_dap_check
+  when: neovim_installed
+
+- name: Set nvim-dap availability
+  set_fact:
+    nvim_dap_available: "{{ nvim_dap_check.stat.exists | default(false) }}"
+  when: neovim_installed
+
+- name: Display detection results
+  debug:
+    msg: |
+      GDB Detection Results:
+      {% for tool, status in gdb_installation_status.items() %}
+      - {{ tool }}: {{ 'Available' if status else 'Not found' }}
+      {% endfor %}
+      
+      Neovim Integration:
+      - Neovim: {{ 'Available' if neovim_installed else 'Not found' }}
+      - nvim-dap: {{ 'Available' if nvim_dap_available | default(false) else 'Not found' }}
+      
+      Existing Configuration:
+      - .gdbinit: {{ 'Found' if gdbinit_check.stat.exists else 'Not found' }}
+      {% if gdbinit_check.stat.exists and gdbinit_check.stat.size > 0 %}
+      - Backup created: {{ gdb_config.init_file }}.backup.{{ ansible_date_time.epoch }}
+      {% endif %}
+  tags: [gdb, debug_tools]

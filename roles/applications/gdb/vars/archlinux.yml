@@ -1,0 +1,121 @@
+---
+# Arch Linux-specific GDB variables
+
+# Pacman packages for GDB
+gdb_pacman_packages:
+  core:
+    - gdb
+    - gdb-common
+  
+  cross_compile:
+    - aarch64-linux-gnu-gcc
+    - aarch64-linux-gnu-gdb
+    - arm-none-eabi-gcc
+    - arm-none-eabi-gdb
+    - riscv64-linux-gnu-gcc
+    - riscv64-linux-gnu-gdb
+  
+  emulation:
+    - qemu-full
+    - qemu-user-static
+
+# AUR packages (optional, requires AUR helper)
+gdb_aur_packages:
+  - gdb-multiarch
+  - arm-linux-gnueabihf-gcc
+  - arm-linux-gnueabihf-gdb
+
+# Cross-compilation toolchain commands
+gdb_cross_commands:
+  arm64:
+    gcc: "aarch64-linux-gnu-gcc"
+    gdb: "aarch64-linux-gnu-gdb"
+    objdump: "aarch64-linux-gnu-objdump"
+    as: "aarch64-linux-gnu-as"
+    ld: "aarch64-linux-gnu-ld"
+  arm32:
+    gcc: "arm-none-eabi-gcc"
+    gdb: "arm-none-eabi-gdb"
+    objdump: "arm-none-eabi-objdump"
+    as: "arm-none-eabi-as"
+    ld: "arm-none-eabi-ld"
+  riscv:
+    gcc: "riscv64-linux-gnu-gcc"
+    gdb: "riscv64-linux-gnu-gdb"
+    objdump: "riscv64-linux-gnu-objdump"
+    as: "riscv64-linux-gnu-as"
+    ld: "riscv64-linux-gnu-ld"
+
+# QEMU emulation commands
+gdb_qemu_commands:
+  user_mode:
+    arm64: "qemu-aarch64"
+    arm32: "qemu-arm"
+    x86_64: "qemu-x86_64"
+    riscv: "qemu-riscv64"
+  system_mode:
+    arm64: "qemu-system-aarch64"
+    arm32: "qemu-system-arm"
+    x86_64: "qemu-system-x86_64"
+    riscv: "qemu-system-riscv64"
+
+# GDB paths
+gdb_system_paths:
+  bin: "/usr/bin"
+  share: "/usr/share/gdb"
+  doc: "/usr/share/doc/gdb"
+
+# Arch Linux specific configuration
+gdb_archlinux_config:
+  # Enable multiarch support
+  multiarch_support: true
+  
+  # Cross-compilation sysroots
+  sysroots:
+    arm64: "/usr/aarch64-linux-gnu"
+    arm32: "/usr/arm-none-eabi"
+    riscv: "/usr/riscv64-linux-gnu"
+  
+  # Library paths for cross-compilation
+  library_paths:
+    arm64: "/usr/aarch64-linux-gnu/lib"
+    arm32: "/usr/arm-none-eabi/lib"
+    riscv: "/usr/riscv64-linux-gnu/lib"
+
+# AUR helper detection and configuration
+gdb_aur_config:
+  # Supported AUR helpers
+  helpers:
+    - yay
+    - paru
+    - trizen
+    - pikaur
+  
+  # Fallback to manual AUR installation if no helper found
+  manual_install: false
+  
+  # AUR packages to install if helper available
+  optional_packages:
+    - gdb-multiarch
+    - arm-linux-gnueabihf-gcc
+    - arm-linux-gnueabihf-gdb
+
+# Package groups
+gdb_package_groups:
+  base:
+    - base-devel
+    - git
+  
+  debugging:
+    - gdb
+    - gdb-common
+    - valgrind
+    - strace
+  
+  cross_development:
+    - aarch64-linux-gnu-gcc
+    - aarch64-linux-gnu-gdb
+    - arm-none-eabi-gcc
+    - arm-none-eabi-gdb
+    - riscv64-linux-gnu-gcc
+    - riscv64-linux-gnu-gdb

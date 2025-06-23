@@ -1,0 +1,197 @@
+---
+# Linux-specific GDB installation tasks
+
+- name: Install GDB core packages (Debian/Ubuntu)
+  apt:
+    name: "{{ gdb_apt_packages.core }}"
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_os_family == "Debian"
+  register: gdb_apt_install
+  tags: [gdb, apt]
+
+- name: Install cross-compilation packages (Debian/Ubuntu)
+  apt:
+    name: "{{ gdb_apt_packages.cross_compile }}"
+    state: present
+  become: true
+  when: 
+    - ansible_os_family == "Debian"
+    - gdb_current_features.cross_compilation | default(false)
+  register: gdb_cross_apt_install
+  tags: [gdb, apt, cross_compile]
+
+- name: Install QEMU emulation packages (Debian/Ubuntu)
+  apt:
+    name: "{{ gdb_apt_packages.emulation }}"
+    state: present
+  become: true
+  when: 
+    - ansible_os_family == "Debian"
+    - gdb_current_features.multi_architecture | default(false)
+  register: gdb_qemu_apt_install
+  tags: [gdb, apt, emulation]
+
+- name: Install development packages (Debian/Ubuntu)
+  apt:
+    name: "{{ gdb_dev_packages }}"
+    state: present
+  become: true
+  when: 
+    - ansible_os_family == "Debian"
+    - gdb_current_features.cross_compilation | default(false)
+  tags: [gdb, apt, development]
+
+- name: Install GDB core packages (Arch Linux)
+  pacman:
+    name: "{{ gdb_pacman_packages.core }}"
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_os_family == "Archlinux"
+  register: gdb_pacman_install
+  tags: [gdb, pacman]
+
+- name: Install cross-compilation packages (Arch Linux)
+  pacman:
+    name: "{{ gdb_pacman_packages.cross_compile }}"
+    state: present
+  become: true
+  when: 
+    - ansible_os_family == "Archlinux"
+    - gdb_current_features.cross_compilation | default(false)
+  register: gdb_cross_pacman_install
+  tags: [gdb, pacman, cross_compile]
+
+- name: Install QEMU emulation packages (Arch Linux)
+  pacman:
+    name: "{{ gdb_pacman_packages.emulation }}"
+    state: present
+  become: true
+  when: 
+    - ansible_os_family == "Archlinux"
+    - gdb_current_features.multi_architecture | default(false)
+  register: gdb_qemu_pacman_install
+  tags: [gdb, pacman, emulation]
+
+- name: Check for AUR helper availability (Arch Linux)
+  command: "which {{ item }}"
+  register: aur_helper_check
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_aur_config.helpers }}"
+  when: ansible_os_family == "Archlinux"
+  tags: [gdb, aur]
+
+- name: Set available AUR helper
+  set_fact:
+    available_aur_helper: "{{ item.item }}"
+  loop: "{{ aur_helper_check.results | default([]) }}"
+  when: 
+    - ansible_os_family == "Archlinux"
+    - item.rc == 0
+    - available_aur_helper is not defined
+  tags: [gdb, aur]
+
+- name: Install AUR packages if helper available (Arch Linux)
+  shell: "{{ available_aur_helper }} -S --noconfirm {{ item }}"
+  loop: "{{ gdb_aur_packages }}"
+  become: false
+  when: 
+    - ansible_os_family == "Archlinux"
+    - available_aur_helper is defined
+    - gdb_current_features.cross_compilation | default(false)
+  register: gdb_aur_install
+  tags: [gdb, aur]
+
+- name: Verify GDB installation
+  command: gdb --version
+  register: gdb_linux_version
+  changed_when: false
+  tags: [gdb, verification]
+
+- name: Check multiarch GDB availability
+  command: gdb-multiarch --version
+  register: gdb_multiarch_version
+  changed_when: false
+  failed_when: false
+  when: gdb_current_features.cross_compilation | default(false)
+  tags: [gdb, verification]
+
+- name: Check cross-compilation tools
+  command: "{{ item.value.gdb }} --version"
+  register: gdb_cross_linux_versions
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_cross_commands | dict2items }}"
+  when: gdb_current_features.cross_compilation | default(false)
+  tags: [gdb, cross_compile, verification]
+
+- name: Check QEMU tools
+  command: "{{ item.value }} --version"
+  register: qemu_versions
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_qemu_commands.user_mode | dict2items }}"
+  when: gdb_current_features.multi_architecture | default(false)
+  tags: [gdb, emulation, verification]
+
+- name: Configure binfmt for QEMU user emulation
+  copy:
+    content: |
+      # QEMU user emulation configuration for cross-architecture debugging
+      :qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64-static:
+      :qemu-arm:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-arm-static:
+      :qemu-riscv64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xf3\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-riscv64-static:
+    dest: /etc/binfmt.d/qemu-user.conf
+    mode: '0644'
+  become: true
+  when: 
+    - gdb_current_features.multi_architecture | default(false)
+    - ansible_os_family == "Debian"
+  notify: restart systemd-binfmt
+  tags: [gdb, emulation, binfmt]
+
+- name: Enable and start systemd-binfmt service
+  systemd:
+    name: systemd-binfmt
+    enabled: true
+    state: started
+  become: true
+  when: 
+    - gdb_current_features.multi_architecture | default(false)
+    - ansible_os_family == "Debian"
+  tags: [gdb, emulation, systemd]
+
+- name: Display Linux installation results
+  debug:
+    msg: |
+      Linux GDB Installation Results:
+      
+      Core Installation:
+      - GDB Version: {{ gdb_linux_version.stdout_lines[0] | default('Unknown') }}
+      - Package Manager: {{ 'APT' if ansible_os_family == 'Debian' else 'Pacman' }}
+      
+      {% if gdb_current_features.cross_compilation %}
+      Cross-Compilation Support:
+      - Multiarch GDB: {{ 'Available' if gdb_multiarch_version.rc == 0 else 'Not available' }}
+      {% for result in gdb_cross_linux_versions.results | default([]) %}
+      - {{ result.item.key }} GDB: {{ 'Available' if result.rc == 0 else 'Not available' }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if gdb_current_features.multi_architecture %}
+      QEMU Emulation:
+      {% for result in qemu_versions.results | default([]) %}
+      - {{ result.item.key }}: {{ 'Available' if result.rc == 0 else 'Not available' }}
+      {% endfor %}
+      - binfmt configuration: {{ 'Configured' if ansible_os_family == 'Debian' else 'Manual setup required' }}
+      {% endif %}
+      
+      {% if ansible_os_family == "Archlinux" and available_aur_helper is defined %}
+      AUR Packages:
+      - AUR Helper: {{ available_aur_helper }}
+      - Additional packages installed via AUR
+      {% endif %}
+  tags: [gdb, verification]

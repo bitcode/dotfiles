@@ -1,0 +1,154 @@
+# RISC-V Assembly LSP Configuration
+# This file configures asm-lsp for RISC-V development
+
+[asm-lsp]
+version = "0.1"
+
+[asm-lsp.instruction_set]
+architecture = "riscv64"
+assembler = "gas"
+
+[asm-lsp.compile]
+target = "riscv64-unknown-linux-gnu"
+flags = [
+    "-march=rv64gc",
+    "-mabi=lp64d",
+    "-g",
+    "-Wall",
+    "-Wextra"
+]
+
+[asm-lsp.diagnostics]
+enabled = true
+show_hints = true
+show_warnings = true
+show_errors = true
+
+[asm-lsp.completion]
+enabled = true
+include_registers = true
+include_instructions = true
+include_directives = true
+
+[asm-lsp.hover]
+enabled = true
+show_instruction_details = true
+show_register_info = true
+
+[asm-lsp.formatting]
+enabled = true
+indent_size = 8
+use_tabs = true
+
+# RISC-V specific settings
+[asm-lsp.riscv]
+# Enable RISC-V-specific features
+enable_compressed = true  # RVC (Compressed) extension
+enable_multiply = true    # RVM (Multiply/Divide) extension
+enable_atomic = true      # RVA (Atomic) extension
+enable_float = true       # RVF (Single-precision Float) extension
+enable_double = true      # RVD (Double-precision Float) extension
+
+# Register aliases
+[asm-lsp.riscv.registers]
+# General purpose registers (ABI names)
+zero = "hard-wired zero (x0)"
+ra = "return address (x1)"
+sp = "stack pointer (x2)"
+gp = "global pointer (x3)"
+tp = "thread pointer (x4)"
+t0 = "temporary register 0 (x5)"
+t1 = "temporary register 1 (x6)"
+t2 = "temporary register 2 (x7)"
+s0 = "saved register 0 / frame pointer (x8)"
+s1 = "saved register 1 (x9)"
+a0 = "function argument/return value 0 (x10)"
+a1 = "function argument/return value 1 (x11)"
+a2 = "function argument 2 (x12)"
+a3 = "function argument 3 (x13)"
+a4 = "function argument 4 (x14)"
+a5 = "function argument 5 (x15)"
+a6 = "function argument 6 (x16)"
+a7 = "function argument 7 (x17)"
+s2 = "saved register 2 (x18)"
+s3 = "saved register 3 (x19)"
+s4 = "saved register 4 (x20)"
+s5 = "saved register 5 (x21)"
+s6 = "saved register 6 (x22)"
+s7 = "saved register 7 (x23)"
+s8 = "saved register 8 (x24)"
+s9 = "saved register 9 (x25)"
+s10 = "saved register 10 (x26)"
+s11 = "saved register 11 (x27)"
+t3 = "temporary register 3 (x28)"
+t4 = "temporary register 4 (x29)"
+t5 = "temporary register 5 (x30)"
+t6 = "temporary register 6 (x31)"
+
+# Numeric register names
+x0 = "hard-wired zero"
+x1 = "return address"
+x2 = "stack pointer"
+x3 = "global pointer"
+x4 = "thread pointer"
+x5 = "temporary register 0"
+x6 = "temporary register 1"
+x7 = "temporary register 2"
+x8 = "saved register 0 / frame pointer"
+x9 = "saved register 1"
+x10 = "function argument/return value 0"
+x11 = "function argument/return value 1"
+x12 = "function argument 2"
+x13 = "function argument 3"
+x14 = "function argument 4"
+x15 = "function argument 5"
+x16 = "function argument 6"
+x17 = "function argument 7"
+x18 = "saved register 2"
+x19 = "saved register 3"
+x20 = "saved register 4"
+x21 = "saved register 5"
+x22 = "saved register 6"
+x23 = "saved register 7"
+x24 = "saved register 8"
+x25 = "saved register 9"
+x26 = "saved register 10"
+x27 = "saved register 11"
+x28 = "temporary register 3"
+x29 = "temporary register 4"
+x30 = "temporary register 5"
+x31 = "temporary register 6"
+
+# Floating point registers
+f0 = "floating point temporary 0"
+f1 = "floating point temporary 1"
+f2 = "floating point temporary 2"
+f3 = "floating point temporary 3"
+f4 = "floating point temporary 4"
+f5 = "floating point temporary 5"
+f6 = "floating point temporary 6"
+f7 = "floating point temporary 7"
+f8 = "floating point saved 0"
+f9 = "floating point saved 1"
+f10 = "floating point argument/return 0"
+f11 = "floating point argument/return 1"
+f12 = "floating point argument 2"
+f13 = "floating point argument 3"
+f14 = "floating point argument 4"
+f15 = "floating point argument 5"
+f16 = "floating point argument 6"
+f17 = "floating point argument 7"
+f18 = "floating point saved 2"
+f19 = "floating point saved 3"
+f20 = "floating point saved 4"
+f21 = "floating point saved 5"
+f22 = "floating point saved 6"
+f23 = "floating point saved 7"
+f24 = "floating point saved 8"
+f25 = "floating point saved 9"
+f26 = "floating point saved 10"
+f27 = "floating point saved 11"
+f28 = "floating point temporary 8"
+f29 = "floating point temporary 9"
+f30 = "floating point temporary 10"
+f31 = "floating point temporary 11"

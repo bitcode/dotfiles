@@ -1,0 +1,126 @@
+# x86_64 Assembly Project Makefile
+# This Makefile provides build targets for x86_64 assembly projects
+
+# Compiler and tools
+AS = as
+LD = ld
+OBJDUMP = objdump
+OBJCOPY = objcopy
+
+# Flags from compile_flags.txt (if available)
+ASFLAGS = --64 -g
+LDFLAGS = -static
+
+# Source and output files
+SRCDIR = .
+OBJDIR = obj
+BINDIR = bin
+
+# Find all .s files
+SOURCES = $(wildcard $(SRCDIR)/*.s)
+OBJECTS = $(SOURCES:$(SRCDIR)/%.s=$(OBJDIR)/%.o)
+TARGET = $(BINDIR)/program
+
+# Default target
+all: $(TARGET)
+
+# Create directories
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+# Compile assembly files
+$(OBJDIR)/%.o: $(SRCDIR)/%.s | $(OBJDIR)
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+# Link object files
+$(TARGET): $(OBJECTS) | $(BINDIR)
+	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
+
+# Run the program (if on x86_64 system)
+run: $(TARGET)
+	@if [ "$$(uname -m)" = "x86_64" ]; then \
+		echo "Running on native x86_64 system:"; \
+		$(TARGET); \
+	else \
+		echo "Cross-compiled for x86_64. Use qemu-x86_64 to run:"; \
+		echo "qemu-x86_64 $(TARGET)"; \
+	fi
+
+# Debug with GDB
+debug: $(TARGET)
+	@if [ "$$(uname -m)" = "x86_64" ]; then \
+		gdb $(TARGET); \
+	else \
+		echo "Use: qemu-x86_64 -g 1234 $(TARGET) &"; \
+		echo "Then: gdb $(TARGET) -ex 'target remote :1234'"; \
+	fi
+
+# Disassemble the binary
+disasm: $(TARGET)
+	$(OBJDUMP) -d $(TARGET)
+
+# Show symbol table
+symbols: $(TARGET)
+	$(OBJDUMP) -t $(TARGET)
+
+# Show section headers
+sections: $(TARGET)
+	$(OBJDUMP) -h $(TARGET)
+
+# Create raw binary
+binary: $(TARGET)
+	$(OBJCOPY) -O binary $(TARGET) $(TARGET).bin
+
+# Clean build artifacts
+clean:
+	rm -rf $(OBJDIR) $(BINDIR)
+
+# Install development tools (Ubuntu/Debian)
+install-tools:
+	sudo apt update
+	sudo apt install build-essential binutils
+	sudo apt install qemu-user gdb
+
+# Create project structure
+init:
+	mkdir -p src obj bin
+	@if [ ! -f .asm-lsp.toml ]; then \
+		echo "Creating .asm-lsp.toml..."; \
+		cp ~/.config/nvim/templates/asm-lsp_x86_64.toml .asm-lsp.toml; \
+	fi
+	@if [ ! -f compile_flags.txt ]; then \
+		echo "Creating compile_flags.txt..."; \
+		cp ~/.config/nvim/templates/compile_flags_x86_64.txt compile_flags.txt; \
+	fi
+	@if [ ! -f src/main.s ]; then \
+		echo "Creating example main.s..."; \
+		cp ~/.config/nvim/examples/x86_64_hello_world.s src/main.s; \
+	fi
+
+# Help target
+help:
+	@echo "x86_64 Assembly Project Makefile"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all          - Build the project"
+	@echo "  run          - Run the program (native x86_64 only)"
+	@echo "  debug        - Debug with GDB"
+	@echo "  disasm       - Disassemble the binary"
+	@echo "  symbols      - Show symbol table"
+	@echo "  sections     - Show section headers"
+	@echo "  binary       - Create raw binary file"
+	@echo "  clean        - Clean build artifacts"
+	@echo "  install-tools- Install development tools"
+	@echo "  init         - Initialize project structure"
+	@echo "  help         - Show this help"
+	@echo ""
+	@echo "Variables:"
+	@echo "  AS           - Assembler ($(AS))"
+	@echo "  LD           - Linker ($(LD))"
+	@echo "  ASFLAGS      - Assembler flags ($(ASFLAGS))"
+	@echo "  LDFLAGS      - Linker flags ($(LDFLAGS))"
+
+.PHONY: all run debug disasm symbols sections binary clean install-tools init help

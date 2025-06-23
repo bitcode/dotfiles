@@ -6,151 +6,255 @@ return {
         vim.o.timeoutlen = 300
     end,
     config = function()
-        local which_key = require('which-key')
-        which_key.setup {
+        local wk = require('which-key')
+
+        -- Enhanced setup with modern configuration
+        wk.setup({
+            preset = "modern",
+            delay = 0, -- Show immediately for comprehensive visibility
+            expand = 1, -- Expand groups with <= 1 mappings
             notify = false,
-        }
+            plugins = {
+                marks = true,
+                registers = true,
+                spelling = {
+                    enabled = true,
+                    suggestions = 20,
+                },
+                presets = {
+                    operators = true,
+                    motions = true,
+                    text_objects = true,
+                    windows = true,
+                    nav = true,
+                    z = true,
+                    g = true,
+                },
+            },
+            win = {
+                border = "rounded",
+                padding = { 1, 2 },
+                title = true,
+                title_pos = "center",
+            },
+            layout = {
+                width = { min = 20, max = 50 },
+                spacing = 3,
+            },
+            sort = { "local", "order", "group", "alphanum", "mod" },
+            icons = {
+                breadcrumb = "»",
+                separator = "➜",
+                group = "+",
+                ellipsis = "…",
+                mappings = true,
+                rules = {},
+                colors = true,
+            },
+            show_help = true,
+            show_keys = true,
+        })
 
-        -- GitGutter keybindings
-        local gitgutter_mappings = {
-            gP = { "<cmd>GitGutterPreviewHunk<CR>", "Preview Hunk" },
-            gs = { "<cmd>GitGutterStageHunk<CR>", "Stage Hunk" },
-            gp = { "<cmd>GitGutterPrevHunk<CR>", "Previous Hunk" },
-            gn = { "<cmd>GitGutterNextHunk<CR>", "Next Hunk" },
-            gu = { "<cmd>GitGutterUndoHunk<CR>", "Undo Hunk" },
-        }
-        which_key.register(gitgutter_mappings, { prefix = "<leader>g" })
+        -- ============================================================================
+        -- COMPREHENSIVE KEYBINDING MAPPINGS
+        -- ============================================================================
 
-        -- Window management keybindings
-        local window_mappings = {
-            ["+"] = { "<C-w>+", "Increase height" },
-            ["-"] = { "<C-w>-", "Decrease height" },
-            ["<"] = { "<C-w><", "Decrease width" },
-            ["="] = { "<C-w>=", "Equalize window sizes" },
-            [">"] = { "<C-w>>", "Increase width" },
-            T = { "<C-w>T", "Break out into tab" },
-            _ = { "<C-w>_", "Maximize height" },
-            c = { "<C-w>c", "Close other windows" },
-            h = { "<C-w>h", "Left window" },
-            j = { "<C-w>j", "Below window" },
-            k = { "<C-w>k", "Above window" },
-            l = { "<C-w>l", "Right window" },
-            o = { "<C-w>o", "Close other windows" },
-            q = { "<C-w>q", "Close window" },
-            r = { "<C-w>r", "Rotate windows downwards/rightwards" },
-            s = { "<C-w>s", "Split horizontally" },
-            v = { "<C-w>v", "Split vertically" },
-            w = { "<C-w>w", "Other window" },
-        }
-        which_key.register(window_mappings, { prefix = "<C-p>" })
+        -- Main leader key mappings with complete coverage
+        wk.add({
+            -- ========================================================================
+            -- FILE OPERATIONS & TELESCOPE
+            -- ========================================================================
+            { "<leader>f", group = "📁 Files & Search", icon = "📁" },
+            { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find Files", icon = "🔍" },
+            { "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Live Grep", icon = "🔎" },
+            { "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "List Buffers", icon = "📋" },
+            { "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help Tags", icon = "❓" },
+            { "<leader>fx", "<cmd>Telescope find_files<cr>", desc = "Find Files (Alt)", icon = "🔍" },
+            { "<leader>fz", "<cmd>DevdocsOpenCurrentFloat<CR>", desc = "DevDocs Float", icon = "📚" },
 
-        local lsp_mappings = {
-            l = {
-                name = "LSP",
-                d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to Definition" },
-                r = { "<cmd>lua vim.lsp.buf.references()<CR>", "References" },
-                i = { "<cmd>lua vim.lsp.buf.implementation()<CR>", "Go to Implementation" },
-                h = { "<cmd>lua vim.lsp.buf.hover()<CR>", "Hover" },
-                s = { "<cmd>lua vim.lsp.buf.signature_help()<CR>", "Signature Help" },
-                n = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
-                a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
-                f = { "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", "Format" },
-                t = { "<cmd>lua vim.lsp.buf.type_definition()<CR>", "Type Definition" },
+            -- ========================================================================
+            -- LSP OPERATIONS
+            -- ========================================================================
+            { "<leader>l", group = "🔧 LSP & Language", icon = "🔧" },
+            { "<leader>ld", "<cmd>lua vim.lsp.buf.definition()<CR>", desc = "Go to Definition", icon = "📍" },
+            { "<leader>lr", "<cmd>lua vim.lsp.buf.references()<CR>", desc = "References", icon = "🔗" },
+            { "<leader>li", "<cmd>lua vim.lsp.buf.implementation()<CR>", desc = "Go to Implementation", icon = "🎯" },
+            { "<leader>lh", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover Info", icon = "💡" },
+            { "<leader>ls", "<cmd>lua vim.lsp.buf.signature_help()<CR>", desc = "Signature Help", icon = "✍️" },
+            { "<leader>ln", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename Symbol", icon = "✏️" },
+            { "<leader>la", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code Actions", icon = "⚡" },
+            { "<leader>lf", "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", desc = "Format Code", icon = "🎨" },
+            { "<leader>lt", "<cmd>lua vim.lsp.buf.type_definition()<CR>", desc = "Type Definition", icon = "🏷️" },
 
-                -- Diagnostics-related commands
-                e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show Diagnostics" },
-                q = { "<cmd>lua vim.diagnostic.setqflist()<CR>", "Diagnostics to Quickfix" },
-                l = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostics to LocList" },
-                j = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next Diagnostic" },
-                k = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Previous Diagnostic" },
-            }
-        }
-        which_key.register(lsp_mappings, { prefix = "<leader>" })
+            -- LSP Diagnostics
+            { "<leader>le", "<cmd>lua vim.diagnostic.open_float()<CR>", desc = "Show Diagnostics", icon = "🚨" },
+            { "<leader>lq", "<cmd>lua vim.diagnostic.setqflist()<CR>", desc = "Diagnostics to Quickfix", icon = "📝" },
+            { "<leader>ll", "<cmd>lua vim.diagnostic.setloclist()<CR>", desc = "Diagnostics to LocList", icon = "📋" },
+            { "<leader>lj", "<cmd>lua vim.diagnostic.goto_next()<CR>", desc = "Next Diagnostic", icon = "⬇️" },
+            { "<leader>lk", "<cmd>lua vim.diagnostic.goto_prev()<CR>", desc = "Previous Diagnostic", icon = "⬆️" },
 
-        -- Telescope keybindings
-        local telescope_mappings = {
-            ff = { "<cmd>Telescope find_files<cr>", "Find Files" },
-            fg = { "<cmd>Telescope live_grep<cr>", "Live Grep" },
-            fb = { "<cmd>Telescope buffers<cr>", "List Buffers" },
-            fh = { "<cmd>Telescope help_tags<cr>", "Help Tags" },
-            fx = { "<cmd>Telescope find_files<cr>", "Find Files" },
-            ["fx<C-v>"] = { "<cmd>Telescope select_vertical<cr>", "Select Vertical" },
-            ["fx<C-x>"] = { "<cmd>Telescope select_horizontal<cr>", "Select Horizontal" },
-        }
-        which_key.register(telescope_mappings, { prefix = "<leader>" })
+            -- ========================================================================
+            -- GIT OPERATIONS
+            -- ========================================================================
+            { "<leader>g", group = "🔀 Git Operations", icon = "🔀" },
+            { "<leader>gP", "<cmd>GitGutterPreviewHunk<CR>", desc = "Preview Hunk", icon = "👁️" },
+            { "<leader>gs", "<cmd>GitGutterStageHunk<CR>", desc = "Stage Hunk", icon = "➕" },
+            { "<leader>gp", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous Hunk", icon = "⬆️" },
+            { "<leader>gn", "<cmd>GitGutterNextHunk<CR>", desc = "Next Hunk", icon = "⬇️" },
+            { "<leader>gu", "<cmd>GitGutterUndoHunk<CR>", desc = "Undo Hunk", icon = "↩️" },
 
-        -- DevDocs keybindings
-        local devdocs_mappings = {
-            fz = { "<cmd>DevdocsOpenCurrentFloat<CR>", "Devdocs Open Current Float" },
-        }
-        which_key.register(devdocs_mappings, { prefix = "<leader>" })
+            -- ========================================================================
+            -- FILE MANAGER (OIL)
+            -- ========================================================================
+            { "<leader>o", group = "📂 File Manager", icon = "📂" },
+            { "<leader>of", ":lua require('oil').open_float()<CR>", desc = "Open Oil Float", icon = "🎈" },
+            { "<leader>ot", ":lua require('oil').toggle_float()<CR>", desc = "Toggle Oil Float", icon = "🔄" },
+            { "<leader>oc", ":lua require('oil').close()<CR>", desc = "Close Oil Window", icon = "❌" },
 
-        -- Oil.nvim keybindings
-        local oil_mappings = {
-            of = { ":lua require('oil').open_float()<CR>", "Open Oil Float" },
-            ot = { ":lua require('oil').toggle_float()<CR>", "Toggle Oil Float" },
-            oc = { ":lua require('oil').close()<CR>", "Close Oil Window" },
-        }
-        which_key.register(oil_mappings, { prefix = "<leader>" })
+            -- ========================================================================
+            -- TERMINAL (FLOATERM)
+            -- ========================================================================
+            { "<leader>t", group = "💻 Terminal", icon = "💻" },
+            { "<leader>tn", ":FloatermNew<CR>", desc = "New Terminal", icon = "➕" },
+            { "<leader>tp", ":FloatermPrev<CR>", desc = "Previous Terminal", icon = "⬅️" },
+            { "<leader>tt", ":FloatermToggle<CR>", desc = "Toggle Terminal", icon = "🔄" },
+            { "<leader>tx", ":FloatermKill<CR>", desc = "Close Terminal", icon = "❌" },
+            { "<leader>tc", ":FloatermNew bash -c 'gcc % && ./a.out; echo Press ENTER to close; read'<CR>", desc = "Compile & Run", icon = "⚡" },
 
-        -- Floaterm keybindings
-        local floaterm_mappings = {
-            fn = { ":FloatermNew<CR>", "New Floaterm" },
-            fp = { ":FloatermPrev<CR>", "Previous Floaterm" },
-            ft = { ":FloatermToggle<CR>", "Toggle Floaterm" },
-            fx = { ":FloatermKill<CR>", "Close Floaterm" },
-            fc = { ":FloatermNew bash -c 'gcc % && ./a.out; echo Press ENTER to close; read'<CR>", "Compile & Run" },
-        }
-        which_key.register(floaterm_mappings, { prefix = "<leader>" })
+            -- ========================================================================
+            -- HARPOON NAVIGATION
+            -- ========================================================================
+            { "<leader>h", group = "🎯 Harpoon", icon = "🎯" },
+            { "<leader>ha", ":lua require('harpoon.ui').add_file()<CR>", desc = "Add File", icon = "➕" },
+            { "<leader>hr", ":lua require('harpoon.ui').remove_file()<CR>", desc = "Remove File", icon = "➖" },
+            { "<leader>hc", ":lua require('harpoon.term').sendCommand(1, 'ls -La')<CR>", desc = "Send Command", icon = "📤" },
+            { "<leader>ui", ":lua require('harpoon.ui').toggle_quick_menu()<CR>", desc = "Toggle Quick Menu", icon = "📋" },
+            { "<leader>m", ":lua require('harpoon.mark').add_mark()<CR>", desc = "Add Mark", icon = "🔖" },
+            { "<leader>jn", ":lua require('harpoon.ui').next_buffer()<CR>", desc = "Next Buffer", icon = "⏭️" },
+            { "<leader>jp", ":lua require('harpoon.ui').prev_buffer()<CR>", desc = "Previous Buffer", icon = "⏮️" },
 
-        local codecompanion_mappings = {
-            c = {
-                name = "CodeCompanion",
-                -- Chat Buffer Controls
-                t = { "<cmd>CodeCompanionChat Toggle<CR>", "Toggle Chat" },
-                o = { "<cmd>CodeCompanionChat<CR>", "Open Chat" },
-                a = { "<cmd>CodeCompanionChat Add<CR>", "Add Selection to Chat" },
+            -- ========================================================================
+            -- AI ASSISTANCE (CODECOMPANION)
+            -- ========================================================================
+            { "<leader>c", group = "🤖 AI Assistant", icon = "🤖" },
+            { "<leader>ct", "<cmd>CodeCompanionChat Toggle<CR>", desc = "Toggle Chat", icon = "💬" },
+            { "<leader>co", "<cmd>CodeCompanionChat<CR>", desc = "Open Chat", icon = "🗨️" },
+            { "<leader>ca", "<cmd>CodeCompanionChat Add<CR>", desc = "Add Selection to Chat", icon = "➕" },
+            { "<leader>ci", "<cmd>CodeCompanion<CR>", desc = "Inline Assistant", icon = "✨" },
+            { "<leader>cp", "<cmd>CodeCompanionActions<CR>", desc = "Action Palette", icon = "🎨" },
+            { "<leader>cf", "<cmd>CodeCompanion /fix<CR>", desc = "Fix Code", icon = "🔧" },
+            { "<leader>ce", "<cmd>CodeCompanion /explain<CR>", desc = "Explain Code", icon = "💡" },
+            { "<leader>cl", "<cmd>CodeCompanion /lsp<CR>", desc = "Explain LSP Error", icon = "🚨" },
+            { "<leader>cm", "<cmd>CodeCompanion /commit<CR>", desc = "Generate Commit Message", icon = "📝" },
+            { "<leader>cb", "<cmd>CodeCompanion /buffer<CR>", desc = "Buffer Analysis", icon = "📊" },
+            { "<leader>cs", "<cmd>CodeCompanion /tests<CR>", desc = "Generate Tests", icon = "🧪" },
+            { "<leader>cw", "<cmd>CodeCompanionChat workflow<CR>", desc = "Start Workflow", icon = "🔄" },
+            { "<leader>cx", "<cmd>CodeCompanionChat close<CR>", desc = "Close Chat", icon = "❌" },
+            { "<leader>cr", "<cmd>CodeCompanionChat regenerate<CR>", desc = "Regenerate Response", icon = "🔄" },
 
-                -- Inline Assistant
-                i = { "<cmd>CodeCompanion<CR>", "Inline Assistant" },
+            -- ========================================================================
+            -- ASSEMBLY DEVELOPMENT (ASM-LSP)
+            -- ========================================================================
+            { "<leader>a", group = "⚙️ Assembly", icon = "⚙️" },
+            { "<leader>ad", "<cmd>lua require('custom_arm_docs').open_arm_docs_for_word()<CR>", desc = "ARM Docs for Word", icon = "📖" },
+            { "<leader>ai", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Instruction Info", icon = "ℹ️" },
+            { "<leader>ar", "<cmd>lua vim.lsp.buf.references()<CR>", desc = "Label References", icon = "🔗" },
+            { "<leader>ac", "<cmd>lua require('asm_utils').create_project_config()<CR>", desc = "Create Project Config", icon = "⚙️" },
+            { "<leader>at", "<cmd>lua require('asm_utils').toggle_architecture()<CR>", desc = "Toggle Architecture", icon = "🔄" },
+            { "<leader>as", "<cmd>lua require('asm_utils').show_snippets()<CR>", desc = "Show Snippets", icon = "📝" },
 
-                -- Action Palette
-                p = { "<cmd>CodeCompanionActions<CR>", "Action Palette" },
+            -- ========================================================================
+            -- UTILITY & EDITING
+            -- ========================================================================
+            { "<leader>u", group = "🛠️ Utilities", icon = "🛠️" },
+            { "<leader><CR>", "m`o<Esc>``", desc = "New Line Below", icon = "⬇️" },
+            { "<leader><S-CR>", "m`O<Esc>``", desc = "New Line Above", icon = "⬆️" },
+        })
 
-                -- Common Actions
-                f = { "<cmd>CodeCompanion /fix<CR>", "Fix Code" },
-                e = { "<cmd>CodeCompanion /explain<CR>", "Explain Code" },
-                l = { "<cmd>CodeCompanion /lsp<CR>", "Explain LSP Error" },
-                m = { "<cmd>CodeCompanion /commit<CR>", "Generate Commit Message" },
-                b = { "<cmd>CodeCompanion /buffer<CR>", "Buffer Analysis" },
-                s = { "<cmd>CodeCompanion /tests<CR>", "Generate Tests" },
+        -- ========================================================================
+        -- WINDOW MANAGEMENT (Ctrl+P prefix)
+        -- ========================================================================
+        wk.add({
+            { "<C-p>", group = "🪟 Window Management", icon = "🪟" },
+            { "<C-p>+", "<C-w>+", desc = "Increase Height", icon = "📏" },
+            { "<C-p>-", "<C-w>-", desc = "Decrease Height", icon = "📐" },
+            { "<C-p><", "<C-w><", desc = "Decrease Width", icon = "↔️" },
+            { "<C-p>=", "<C-w>=", desc = "Equalize Sizes", icon = "⚖️" },
+            { "<C-p>>", "<C-w>>", desc = "Increase Width", icon = "↔️" },
+            { "<C-p>T", "<C-w>T", desc = "Break to Tab", icon = "📑" },
+            { "<C-p>_", "<C-w>_", desc = "Maximize Height", icon = "📏" },
+            { "<C-p>c", "<C-w>c", desc = "Close Window", icon = "❌" },
+            { "<C-p>h", "<C-w>h", desc = "Left Window", icon = "⬅️" },
+            { "<C-p>j", "<C-w>j", desc = "Below Window", icon = "⬇️" },
+            { "<C-p>k", "<C-w>k", desc = "Above Window", icon = "⬆️" },
+            { "<C-p>l", "<C-w>l", desc = "Right Window", icon = "➡️" },
+            { "<C-p>o", "<C-w>o", desc = "Close Others", icon = "🗑️" },
+            { "<C-p>q", "<C-w>q", desc = "Quit Window", icon = "🚪" },
+            { "<C-p>r", "<C-w>r", desc = "Rotate Windows", icon = "🔄" },
+            { "<C-p>s", "<C-w>s", desc = "Split Horizontal", icon = "➖" },
+            { "<C-p>v", "<C-w>v", desc = "Split Vertical", icon = "➗" },
+            { "<C-p>w", "<C-w>w", desc = "Other Window", icon = "🔄" },
+        })
 
-                -- Chat Buffer Controls (Advanced)
-                w = { "<cmd>CodeCompanionChat workflow<CR>", "Start Workflow" },
-                x = { "<cmd>CodeCompanionChat close<CR>", "Close Chat" },
-                r = { "<cmd>CodeCompanionChat regenerate<CR>", "Regenerate Response" },
-            }
-        }
+        -- ========================================================================
+        -- BUILT-IN NEOVIM KEYBINDINGS (Non-leader)
+        -- ========================================================================
+        wk.add({
+            -- Navigation & Movement
+            { "g", group = "🧭 Go/Navigation" },
+            { "gd", desc = "Go to Definition" },
+            { "gi", desc = "Go to Implementation" },
+            { "gr", desc = "Go to References" },
+            { "K", desc = "Hover Documentation" },
 
-        which_key.register(codecompanion_mappings, { prefix = "<leader>" })
+            -- Buffer Navigation
+            { "<S-h>", desc = "Previous Buffer" },
+            { "<S-l>", desc = "Next Buffer" },
+            { "[b", desc = "Previous Buffer" },
+            { "]b", desc = "Next Buffer" },
 
-        -- Harpoon keybindings
-        local harpoon_mappings = {
-            ha = { ":lua require('harpoon.ui').add_file()<CR>", "Add File" },
-            hr = { ":lua require('harpoon.ui').remove_file()<CR>", "Remove File" },
-            hc = { ":lua require('harpoon.term').sendCommand(1, 'ls -La')<CR>", "Send Command" },
-            ui = { ":lua require('harpoon.ui').toggle_quick_menu()<CR>", "Toggle Quick Menu" },
-            m = { ":lua require('harpoon.mark').add_mark()<CR>", "Add Mark" },
-            jn = { ":lua require('harpoon.ui').next_buffer()<CR>", "Next Buffer" },
-            jp = { ":lua require('harpoon.ui').prev_buffer()<CR>", "Previous Buffer" },
-        }
-        which_key.register(harpoon_mappings, { prefix = "<leader>" })
+            -- Window Navigation (Ctrl+hjkl)
+            { "<C-h>", desc = "Left Window" },
+            { "<C-j>", desc = "Below Window" },
+            { "<C-k>", desc = "Above Window" },
+            { "<C-l>", desc = "Right Window" },
 
-        -- New line keybindings
-        local new_line_mappings = {
-            ["<CR>"] = { 'm`o<Esc>``', "New line below" },
-            ["<S-CR>"] = { 'm`O<Esc>``', "New line above" },
-        }
-        which_key.register(new_line_mappings, { prefix = "<Leader>" })
+            -- Line Movement (Alt+jk)
+            { "<A-j>", desc = "Move Line Down", mode = { "n", "i", "v" } },
+            { "<A-k>", desc = "Move Line Up", mode = { "n", "i", "v" } },
+
+            -- Visual Mode Indenting
+            { "<", desc = "Indent Left", mode = "v" },
+            { ">", desc = "Indent Right", mode = "v" },
+
+            -- CodeCompanion Inline Actions
+            { "ga", desc = "Accept AI Change", mode = "n" },
+            { "gr", desc = "Reject AI Change", mode = "n" },
+        })
+
+        -- ========================================================================
+        -- CUSTOM COMMANDS & ASSEMBLY UTILITIES
+        -- ========================================================================
+        wk.add({
+            { ":", group = "📋 Commands" },
+            { ":AsmStatus", desc = "Assembly Status" },
+            { ":AsmDebug", desc = "Start Assembly Debug" },
+            { ":AsmEmulate", desc = "Start Assembly Emulation" },
+            { ":AsmQEMU", desc = "Launch QEMU" },
+            { ":AsmExamples", desc = "Open Assembly Examples" },
+            { ":LspInfo", desc = "LSP Information" },
+            { ":CheckLspInstall", desc = "Check LSP Installation" },
+            { ":CheckFiletypeLsp", desc = "Check Filetype LSP" },
+        })
+
+        -- ========================================================================
+        -- TELESCOPE FILE BROWSER
+        -- ========================================================================
+        wk.add({
+            { "<space>fb", ":Telescope file_browser<CR>", desc = "File Browser", icon = "📁" },
+        })
+
+        -- Notify user about enhanced Which-Key configuration
+        vim.notify("🚀 Enhanced Which-Key configuration loaded with comprehensive keybinding coverage!", vim.log.levels.INFO)
     end,
 }

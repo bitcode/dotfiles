@@ -1,0 +1,76 @@
+---
+# GDB role handlers
+
+- name: restart gdb service
+  service:
+    name: gdb
+    state: restarted
+  become: true
+  when: ansible_os_family != "Darwin"
+  listen: "restart gdb"
+
+- name: reload gdb configuration
+  debug:
+    msg: "GDB configuration reloaded"
+  listen: "reload gdb config"
+
+- name: update gdb history
+  file:
+    path: "{{ gdb_config.history_file }}"
+    state: touch
+    mode: '0600'
+  listen: "update gdb history"
+
+- name: refresh neovim configuration
+  debug:
+    msg: "Neovim GDB configuration refreshed"
+  listen: "refresh neovim config"
+
+- name: verify gdb installation
+  command: gdb --version
+  register: gdb_version_check
+  changed_when: false
+  failed_when: gdb_version_check.rc != 0
+  listen: "verify gdb"
+
+- name: verify cross-compilation tools
+  command: "{{ item }} --version"
+  register: cross_tools_check
+  changed_when: false
+  failed_when: cross_tools_check.rc != 0
+  loop:
+    - "{{ gdb_cross_commands.arm64.gdb | default('echo') }}"
+    - "{{ gdb_cross_commands.arm32.gdb | default('echo') }}"
+    - "{{ gdb_cross_commands.riscv.gdb | default('echo') }}"
+  when: gdb_current_features.cross_compilation | default(false)
+  listen: "verify cross tools"
+
+- name: update shell environment
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.{{ ansible_user_shell | basename }}rc"
+    line: "# GDB environment updated by Dotsible"
+    create: true
+    mode: '0644'
+  listen: "update shell environment"
+
+- name: codesign gdb on macos
+  shell: |
+    codesign --entitlements /tmp/gdb.xml -fs gdb-cert $(which gdb)
+  become: true
+  when: 
+    - ansible_os_family == "Darwin"
+    - gdb_macos.codesign_required | default(true)
+  ignore_errors: true
+  listen: "codesign gdb"
+
+- name: create gdb certificate on macos
+  shell: |
+    security create-keychain -p gdb gdb-cert.keychain
+    security default-keychain -s gdb-cert.keychain
+    security unlock-keychain -p gdb gdb-cert.keychain
+  become: true
+  when: 
+    - ansible_os_family == "Darwin"
+    - gdb_macos.codesign_required | default(true)
+  ignore_errors: true
+  listen: "create gdb certificate"

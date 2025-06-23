@@ -1,0 +1,126 @@
+# ARM AArch64 Assembly Project Makefile
+# This Makefile provides build targets for ARM AArch64 assembly projects
+
+# Compiler and tools
+AS = aarch64-linux-gnu-as
+LD = aarch64-linux-gnu-ld
+OBJDUMP = aarch64-linux-gnu-objdump
+OBJCOPY = aarch64-linux-gnu-objcopy
+
+# Flags from compile_flags.txt (if available)
+ASFLAGS = -march=armv8-a -mabi=lp64 -g
+LDFLAGS = -static
+
+# Source and output files
+SRCDIR = .
+OBJDIR = obj
+BINDIR = bin
+
+# Find all .s files
+SOURCES = $(wildcard $(SRCDIR)/*.s)
+OBJECTS = $(SOURCES:$(SRCDIR)/%.s=$(OBJDIR)/%.o)
+TARGET = $(BINDIR)/program
+
+# Default target
+all: $(TARGET)
+
+# Create directories
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+# Compile assembly files
+$(OBJDIR)/%.o: $(SRCDIR)/%.s | $(OBJDIR)
+	$(AS) $(ASFLAGS) -c $< -o $@
+
+# Link object files
+$(TARGET): $(OBJECTS) | $(BINDIR)
+	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
+
+# Run the program (if on ARM64 system)
+run: $(TARGET)
+	@if [ "$$(uname -m)" = "aarch64" ]; then \
+		echo "Running on native ARM64 system:"; \
+		$(TARGET); \
+	else \
+		echo "Cross-compiled for ARM64. Use qemu-aarch64 to run:"; \
+		echo "qemu-aarch64 $(TARGET)"; \
+	fi
+
+# Debug with GDB
+debug: $(TARGET)
+	@if [ "$$(uname -m)" = "aarch64" ]; then \
+		gdb $(TARGET); \
+	else \
+		echo "Use: qemu-aarch64 -g 1234 $(TARGET) &"; \
+		echo "Then: gdb-multiarch $(TARGET) -ex 'target remote :1234'"; \
+	fi
+
+# Disassemble the binary
+disasm: $(TARGET)
+	$(OBJDUMP) -d $(TARGET)
+
+# Show symbol table
+symbols: $(TARGET)
+	$(OBJDUMP) -t $(TARGET)
+
+# Show section headers
+sections: $(TARGET)
+	$(OBJDUMP) -h $(TARGET)
+
+# Create raw binary
+binary: $(TARGET)
+	$(OBJCOPY) -O binary $(TARGET) $(TARGET).bin
+
+# Clean build artifacts
+clean:
+	rm -rf $(OBJDIR) $(BINDIR)
+
+# Install cross-compilation tools (Ubuntu/Debian)
+install-tools:
+	sudo apt update
+	sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+	sudo apt install qemu-user gdb-multiarch
+
+# Create project structure
+init:
+	mkdir -p src obj bin
+	@if [ ! -f .asm-lsp.toml ]; then \
+		echo "Creating .asm-lsp.toml..."; \
+		cp ~/.config/nvim/templates/asm-lsp-arm64.toml .asm-lsp.toml; \
+	fi
+	@if [ ! -f compile_flags.txt ]; then \
+		echo "Creating compile_flags.txt..."; \
+		cp ~/.config/nvim/templates/compile_flags_arm64.txt compile_flags.txt; \
+	fi
+	@if [ ! -f src/main.s ]; then \
+		echo "Creating example main.s..."; \
+		cp ~/.config/nvim/examples/arm64_hello_world.s src/main.s; \
+	fi
+
+# Help target
+help:
+	@echo "ARM AArch64 Assembly Project Makefile"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all          - Build the project"
+	@echo "  run          - Run the program (native ARM64 only)"
+	@echo "  debug        - Debug with GDB"
+	@echo "  disasm       - Disassemble the binary"
+	@echo "  symbols      - Show symbol table"
+	@echo "  sections     - Show section headers"
+	@echo "  binary       - Create raw binary file"
+	@echo "  clean        - Clean build artifacts"
+	@echo "  install-tools- Install cross-compilation tools"
+	@echo "  init         - Initialize project structure"
+	@echo "  help         - Show this help"
+	@echo ""
+	@echo "Variables:"
+	@echo "  AS           - Assembler ($(AS))"
+	@echo "  LD           - Linker ($(LD))"
+	@echo "  ASFLAGS      - Assembler flags ($(ASFLAGS))"
+	@echo "  LDFLAGS      - Linker flags ($(LDFLAGS))"
+
+.PHONY: all run debug disasm symbols sections binary clean install-tools init help

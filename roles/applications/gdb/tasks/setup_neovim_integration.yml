@@ -1,0 +1,293 @@
+---
+# Setup Neovim integration for GDB debugging
+
+- name: Check if nvim-dap is installed
+  stat:
+    path: "{{ ansible_user_dir }}/.local/share/nvim/lazy/nvim-dap"
+  register: nvim_dap_check
+
+- name: Check alternative nvim-dap installation paths
+  stat:
+    path: "{{ item }}"
+  register: nvim_dap_alt_check
+  loop:
+    - "{{ ansible_user_dir }}/.local/share/nvim/site/pack/packer/start/nvim-dap"
+    - "{{ ansible_user_dir }}/.config/nvim/pack/plugins/start/nvim-dap"
+    - "{{ ansible_user_dir }}/.vim/pack/plugins/start/nvim-dap"
+  when: not nvim_dap_check.stat.exists
+
+- name: Set nvim-dap availability
+  set_fact:
+    nvim_dap_available: "{{ nvim_dap_check.stat.exists or (nvim_dap_alt_check.results | selectattr('stat.exists') | list | length > 0) }}"
+
+- name: Create Neovim DAP configuration directory
+  file:
+    path: "{{ ansible_user_dir }}/.config/nvim/lua/config"
+    state: directory
+    mode: '0755'
+  when: nvim_dap_available
+  tags: [neovim, dap]
+
+- name: Template nvim-dap GDB configuration
+  template:
+    src: nvim_dap_gdb.lua.j2
+    dest: "{{ gdb_neovim.dap_config_file }}"
+    mode: '0644'
+    backup: true
+  when: nvim_dap_available
+  notify: "refresh neovim config"
+  tags: [neovim, dap]
+
+- name: Check if asm_utils.lua exists
+  stat:
+    path: "{{ gdb_neovim.asm_utils_file }}"
+  register: asm_utils_check
+
+- name: Create asm_utils.lua if it doesn't exist
+  copy:
+    content: |
+      -- Assembly utilities module
+      local M = {}
+      
+      -- Placeholder for GDB integration
+      function M.setup()
+          -- Will be enhanced by GDB integration
+      end
+      
+      return M
+    dest: "{{ gdb_neovim.asm_utils_file }}"
+    mode: '0644'
+  when: not asm_utils_check.stat.exists
+  tags: [neovim, asm_utils]
+
+- name: Update asm_utils.lua with GDB integration
+  blockinfile:
+    path: "{{ gdb_neovim.asm_utils_file }}"
+    marker: "-- {mark} GDB INTEGRATION"
+    block: |
+      -- ═══════════════════════════════════════════════════════════════
+      -- GDB Integration Functions
+      -- ═══════════════════════════════════════════════════════════════
+      
+      -- GDB Detection and Configuration
+      function M.detect_debuggers()
+          local debuggers = {
+              gdb = {
+                  command = "gdb",
+      {% if gdb_current_features.cross_compilation | default(false) %}
+                  multiarch = "gdb-multiarch",
+                  arm64 = "{{ gdb_cross_commands.arm64.gdb | default('aarch64-linux-gnu-gdb') }}",
+                  arm32 = "{{ gdb_cross_commands.arm32.gdb | default('arm-linux-gnueabihf-gdb') }}",
+                  riscv = "{{ gdb_cross_commands.riscv.gdb | default('riscv64-linux-gnu-gdb') }}"
+      {% endif %}
+              },
+              lldb = { command = "lldb" },
+      {% if gdb_current_features.multi_architecture | default(false) %}
+              qemu = {
+                  user_arm64 = "{{ gdb_qemu_commands.user_mode.arm64 | default('qemu-aarch64') }}",
+                  user_arm32 = "{{ gdb_qemu_commands.user_mode.arm32 | default('qemu-arm') }}",
+                  system_arm64 = "{{ gdb_qemu_commands.system_mode.arm64 | default('qemu-system-aarch64') }}",
+                  system_x86_64 = "{{ gdb_qemu_commands.system_mode.x86_64 | default('qemu-system-x86_64') }}"
+              }
+      {% endif %}
+          }
+          
+          local available = {}
+          for debugger, variants in pairs(debuggers) do
+              available[debugger] = {}
+              for variant, cmd in pairs(variants) do
+                  available[debugger][variant] = vim.fn.executable(cmd) == 1
+              end
+          end
+          
+          return available
+      end
+      
+      -- Enhanced AsmStatus Command
+      function M.show_debug_status()
+          local debuggers = M.detect_debuggers()
+          local dap_available = pcall(require, 'dap')
+          
+          print("🔧 ASSEMBLY DEBUGGING ENVIRONMENT")
+          print("═══════════════════════════════════")
+          print("Platform: {{ ansible_os_family }} {{ ansible_architecture }}")
+          print("Profile: {{ profile | default('minimal') }}")
+          print("")
+          
+          -- GDB Status
+          print("📍 GDB Debuggers:")
+          for variant, available in pairs(debuggers.gdb) do
+              local status = available and "✅" or "❌"
+              print(string.format("  %s %s", status, variant))
+          end
+          
+          -- LLDB Status
+          if debuggers.lldb then
+              print("\n📍 LLDB Debugger:")
+              local status = debuggers.lldb.command and "✅" or "❌"
+              print(string.format("  %s lldb", status))
+          end
+          
+      {% if gdb_current_features.multi_architecture | default(false) %}
+          -- QEMU Status
+          if debuggers.qemu then
+              print("\n🖥️  QEMU Emulation:")
+              for variant, available in pairs(debuggers.qemu) do
+                  local status = available and "✅" or "❌"
+                  print(string.format("  %s %s", status, variant))
+              end
+          end
+      {% endif %}
+          
+          -- Neovim Integration Status
+          print("\n🔌 Neovim Integration:")
+          print(string.format("  %s nvim-dap: %s", 
+              dap_available and "✅" or "❌",
+              dap_available and "Available" or "Not installed"))
+          
+          -- Configuration Status
+          local gdbinit_exists = vim.fn.filereadable(vim.fn.expand("{{ gdb_config.init_file }}")) == 1
+          print(string.format("  %s .gdbinit: %s",
+              gdbinit_exists and "✅" or "❌",
+              gdbinit_exists and "Configured" or "Missing"))
+          
+          local dap_config_exists = vim.fn.filereadable(vim.fn.expand("{{ gdb_neovim.dap_config_file }}")) == 1
+          print(string.format("  %s DAP config: %s",
+              dap_config_exists and "✅" or "❌",
+              dap_config_exists and "Available" or "Missing"))
+          
+          print("\n📋 Available Commands:")
+          print("  :AsmDebugStatus - Show this status")
+          print("  :AsmGDB [arch] - Launch GDB for architecture")
+      {% if gdb_current_features.neovim_integration | default(false) %}
+          print("  :AsmDAP - Start DAP debugging session")
+      {% endif %}
+          print("  :AsmStatus - Show assembly environment status")
+      end
+      
+      -- GDB Launch Integration
+      function M.launch_gdb_for_arch(arch)
+          local debuggers = M.detect_debuggers()
+          local gdb_cmd = "gdb"
+          
+          if arch and arch ~= "" then
+              if arch == "multiarch" and debuggers.gdb.multiarch then
+                  gdb_cmd = "gdb-multiarch"
+              elseif arch == "arm64" and debuggers.gdb.arm64 then
+                  gdb_cmd = "{{ gdb_cross_commands.arm64.gdb | default('aarch64-linux-gnu-gdb') }}"
+              elseif arch == "arm32" and debuggers.gdb.arm32 then
+                  gdb_cmd = "{{ gdb_cross_commands.arm32.gdb | default('arm-linux-gnueabihf-gdb') }}"
+              elseif arch == "riscv" and debuggers.gdb.riscv then
+                  gdb_cmd = "{{ gdb_cross_commands.riscv.gdb | default('riscv64-linux-gnu-gdb') }}"
+              end
+          end
+          
+          if vim.fn.executable(gdb_cmd) == 1 then
+              vim.cmd(string.format("terminal %s -tui", gdb_cmd))
+              vim.notify(string.format("Launched %s in terminal", gdb_cmd), vim.log.levels.INFO)
+          else
+              vim.notify(string.format("GDB for %s not available", arch or "default"), vim.log.levels.WARN)
+          end
+      end
+      
+      -- Setup GDB integration
+      function M.setup_gdb_integration()
+      {% if gdb_current_features.neovim_integration | default(false) %}
+          -- Load DAP configuration if available
+          pcall(function()
+              require('config.dap_gdb')
+          end)
+      {% endif %}
+          
+          -- Register GDB commands
+          vim.api.nvim_create_user_command('AsmGDB', function(opts)
+              local arch = opts.args ~= "" and opts.args or nil
+              M.launch_gdb_for_arch(arch)
+          end, { 
+              nargs = '?',
+              complete = function() 
+                  return {'arm64', 'arm32', 'x86_64', 'riscv', 'multiarch'} 
+              end,
+              desc = 'Launch GDB for specific architecture'
+          })
+          
+          vim.api.nvim_create_user_command('AsmDebugStatus', function()
+              M.show_debug_status()
+          end, { desc = 'Show assembly debugging environment status' })
+          
+      {% if gdb_current_features.neovim_integration | default(false) %}
+          vim.api.nvim_create_user_command('AsmDAP', function()
+              if pcall(require, 'dap') then
+                  require('dap').continue()
+              else
+                  vim.notify("nvim-dap not available", vim.log.levels.WARN)
+              end
+          end, { desc = 'Start DAP debugging session' })
+      {% endif %}
+      end
+      
+      -- Call setup function
+      M.setup_gdb_integration()
+  tags: [neovim, asm_utils]
+
+- name: Create Neovim GDB helper functions
+  copy:
+    content: |
+      -- GDB helper functions for Neovim
+      local M = {}
+      
+      -- Quick GDB launch with common configurations
+      function M.quick_debug()
+          local file = vim.fn.expand('%:p')
+          if file:match('%.s$') or file:match('%.S$') or file:match('%.asm$') then
+              local executable = file:gsub('%.s$', ''):gsub('%.S$', ''):gsub('%.asm$', '')
+              vim.cmd(string.format('terminal gdb -tui %s', executable))
+          else
+              vim.notify("Not an assembly file", vim.log.levels.WARN)
+          end
+      end
+      
+      return M
+    dest: "{{ ansible_user_dir }}/.config/nvim/lua/gdb_helpers.lua"
+    mode: '0644'
+  tags: [neovim, helpers]
+
+- name: Display Neovim integration summary
+  debug:
+    msg: |
+      Neovim GDB Integration Summary:
+      
+      Status:
+      - nvim-dap available: {{ 'Yes' if nvim_dap_available else 'No' }}
+      - Neovim installed: {{ 'Yes' if neovim_installed else 'No' }}
+      
+      {% if nvim_dap_available %}
+      Configuration Files:
+      - DAP config: {{ gdb_neovim.dap_config_file }}
+      - asm_utils enhanced: {{ gdb_neovim.asm_utils_file }}
+      - Helper functions: ~/.config/nvim/lua/gdb_helpers.lua
+      
+      New Commands Available:
+      - :AsmDebugStatus - Show debugging environment status
+      - :AsmGDB [arch] - Launch GDB for specific architecture
+      {% if gdb_current_features.neovim_integration %}
+      - :AsmDAP - Start DAP debugging session
+      {% endif %}
+      
+      Key Mappings (in DAP sessions):
+      - <Leader>db - Toggle breakpoint
+      - <Leader>dc - Continue debugging
+      - <Leader>ds - Step over
+      - <Leader>di - Step into
+      - <Leader>do - Step out
+      - <Leader>dr - Open REPL
+      - <Leader>dar - Show ARM64 registers
+      - <Leader>das - Show stack dump
+      {% endif %}
+      
+      {% if not nvim_dap_available %}
+      Note: nvim-dap not found. Install it for full DAP integration:
+      - Using lazy.nvim: { 'mfussenegger/nvim-dap' }
+      - Using packer: use 'mfussenegger/nvim-dap'
+      {% endif %}
+  tags: [neovim, dap]

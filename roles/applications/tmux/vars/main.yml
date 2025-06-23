@@ -7,3 +7,15 @@ tmux_package_name:
   Ubuntu: tmux
 
 tmux_config_dir: "{{ ansible_user_dir }}"
+
+# TPM (Tmux Plugin Manager) configuration
+tpm_repo_url: "https://github.com/tmux-plugins/tpm"
+tpm_install_path: "{{ ansible_user_dir }}/.tmux/plugins/tpm"
+tpm_git_depth: 1
+
+# Git dependency for TPM installation
+git_package_name:
+  Darwin: git
+  Archlinux: git
+  Debian: git
+  Ubuntu: git

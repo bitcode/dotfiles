@@ -34,6 +34,7 @@ profiles:
       - docker
       - nodejs
       - python
+      - gdb
     packages:
       - essential
       - development
@@ -172,6 +173,7 @@ profiles:
       - fzf
       - starship
       - alacritty
+      - gdb
     packages:
       - essential
       - development
@@ -360,3 +362,53 @@ profile_compatibility:
     archlinux: true
     macos: true
     windows: true
+
+# GDB-specific profile features
+gdb_profile_features:
+  minimal:
+    basic_debugging: true
+    cross_compilation: false
+    advanced_tui: false
+    neovim_integration: false
+    multi_architecture: false
+    security_hardened: false
+    
+  developer:
+    basic_debugging: true
+    cross_compilation: true
+    advanced_tui: true
+    neovim_integration: true
+    multi_architecture: true
+    security_hardened: false
+    
+  enterprise:
+    basic_debugging: true
+    cross_compilation: true
+    advanced_tui: true
+    neovim_integration: true
+    multi_architecture: true
+    security_hardened: true
+    
+  server:
+    basic_debugging: true
+    cross_compilation: false
+    advanced_tui: false
+    neovim_integration: false
+    multi_architecture: false
+    security_hardened: true
+    
+  gaming:
+    basic_debugging: true
+    cross_compilation: false
+    advanced_tui: true
+    neovim_integration: false
+    multi_architecture: false
+    security_hardened: false
+    
+  designer:
+    basic_debugging: true
+    cross_compilation: false
+    advanced_tui: true
+    neovim_integration: true
+    multi_architecture: false
+    security_hardened: false

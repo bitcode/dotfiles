@@ -1,0 +1,75 @@
+---
+# Main GDB installation and configuration tasks
+
+- name: Include platform-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+  tags: [gdb, debug_tools]
+
+- name: Display GDB installation information
+  debug:
+    msg: |
+      Installing GDB for {{ ansible_os_family }} ({{ ansible_architecture }})
+      Profile: {{ profile | default('minimal') }}
+      Features: {{ gdb_current_features | to_nice_json }}
+  tags: [gdb, debug_tools]
+
+- name: Detect existing GDB installations
+  include_tasks: detect_gdb.yml
+  tags: [gdb, debug_tools]
+
+- name: Install GDB on Linux systems
+  include_tasks: install_linux.yml
+  when: ansible_os_family in ["Debian", "RedHat", "Archlinux"]
+  tags: [gdb, debug_tools]
+
+- name: Install GDB on macOS systems
+  include_tasks: install_macos.yml
+  when: ansible_os_family == "Darwin"
+  tags: [gdb, debug_tools]
+
+- name: Create GDB configuration directory
+  file:
+    path: "{{ gdb_config.config_dir }}"
+    state: directory
+    mode: '0755'
+  tags: [gdb, debug_tools, dotfiles]
+
+- name: Configure .gdbinit
+  include_tasks: configure_gdbinit.yml
+  tags: [gdb, debug_tools, dotfiles]
+
+- name: Setup Neovim integration
+  include_tasks: setup_neovim_integration.yml
+  when: 
+    - gdb_current_features.neovim_integration | default(false)
+    - neovim_installed | default(false)
+  tags: [gdb, debug_tools, neovim]
+
+- name: Verify GDB installation
+  include_tasks: verify_installation.yml
+  tags: [gdb, debug_tools]
+
+- name: Display installation summary
+  debug:
+    msg: |
+      GDB installation completed successfully!
+      
+      Available debuggers:
+      {% for debugger, status in gdb_installation_status.items() %}
+      - {{ debugger }}: {{ 'Available' if status else 'Not available' }}
+      {% endfor %}
+      
+      Configuration files:
+      - .gdbinit: {{ gdb_config.init_file }}
+      - Config directory: {{ gdb_config.config_dir }}
+      {% if gdb_current_features.neovim_integration %}
+      - Neovim DAP config: {{ gdb_neovim.dap_config_file }}
+      {% endif %}
+      
+      New Neovim commands:
+      - :AsmDebugStatus - Show debugging environment status
+      - :AsmGDB [arch] - Launch GDB for specific architecture
+      {% if gdb_current_features.neovim_integration %}
+      - :AsmDAP - Start DAP debugging session
+      {% endif %}
+  tags: [gdb, debug_tools]

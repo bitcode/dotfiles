@@ -1,0 +1,225 @@
+---
+# Verify GDB installation and configuration
+
+- name: Test GDB basic functionality
+  command: gdb --version
+  register: gdb_version_test
+  changed_when: false
+  failed_when: gdb_version_test.rc != 0
+
+- name: Parse GDB version information
+  set_fact:
+    gdb_version_info: "{{ gdb_version_test.stdout_lines[0] | regex_replace('^GNU gdb \\(.*\\) (.*)$', '\\1') }}"
+  when: gdb_version_test.rc == 0
+
+- name: Test cross-compilation GDB tools
+  command: "{{ item.value.gdb }} --version"
+  register: gdb_cross_test
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_cross_commands | dict2items }}"
+  when: gdb_current_features.cross_compilation | default(false)
+
+- name: Test QEMU emulation tools
+  command: "{{ item.value }} --version"
+  register: qemu_test
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_qemu_commands.user_mode | dict2items }}"
+  when: gdb_current_features.multi_architecture | default(false)
+
+- name: Test .gdbinit configuration
+  shell: |
+    echo "quit" | gdb --batch --init-eval-command="source {{ gdb_config.init_file }}" 2>&1
+  register: gdbinit_test
+  changed_when: false
+  failed_when: false
+
+- name: Verify GDB TUI functionality
+  shell: |
+    echo -e "layout split\nquit" | gdb --batch --tui 2>&1
+  register: gdb_tui_test
+  changed_when: false
+  failed_when: false
+
+- name: Test Neovim integration
+  shell: |
+    nvim --headless -c "lua require('asm_utils').show_debug_status()" -c "quit" 2>&1
+  register: neovim_integration_test
+  changed_when: false
+  failed_when: false
+  when: 
+    - neovim_installed | default(false)
+    - gdb_current_features.neovim_integration | default(false)
+
+- name: Test DAP configuration
+  shell: |
+    nvim --headless -c "lua pcall(require, 'config.dap_gdb')" -c "quit" 2>&1
+  register: dap_config_test
+  changed_when: false
+  failed_when: false
+  when: 
+    - neovim_installed | default(false)
+    - nvim_dap_available | default(false)
+
+- name: Create verification report
+  copy:
+    content: |
+      GDB Installation Verification Report
+      ===================================
+      
+      Generated: {{ ansible_date_time.iso8601 }}
+      Platform: {{ ansible_os_family }} {{ ansible_architecture }}
+      Profile: {{ profile | default('minimal') }}
+      
+      Core Installation:
+      - GDB Version: {{ gdb_version_info | default('Unknown') }}
+      - Installation Status: {{ 'SUCCESS' if gdb_version_test.rc == 0 else 'FAILED' }}
+      - .gdbinit Configuration: {{ 'LOADED' if gdbinit_test.rc == 0 else 'ERROR' }}
+      - TUI Support: {{ 'AVAILABLE' if gdb_tui_test.rc == 0 else 'LIMITED' }}
+      
+      {% if gdb_current_features.cross_compilation %}
+      Cross-Compilation Tools:
+      {% for result in gdb_cross_test.results | default([]) %}
+      - {{ result.item.key }}: {{ 'AVAILABLE' if result.rc == 0 else 'NOT FOUND' }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if gdb_current_features.multi_architecture %}
+      QEMU Emulation:
+      {% for result in qemu_test.results | default([]) %}
+      - {{ result.item.key }}: {{ 'AVAILABLE' if result.rc == 0 else 'NOT FOUND' }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if gdb_current_features.neovim_integration %}
+      Neovim Integration:
+      - asm_utils.lua: {{ 'FUNCTIONAL' if neovim_integration_test.rc == 0 else 'ERROR' }}
+      - DAP Configuration: {{ 'LOADED' if dap_config_test.rc == 0 else 'ERROR' }}
+      {% endif %}
+      
+      Configuration Files:
+      - .gdbinit: {{ gdb_config.init_file }}
+      - Config directory: {{ gdb_config.config_dir }}
+      - History file: {{ gdb_config.history_file }}
+      {% if gdb_current_features.neovim_integration %}
+      - DAP config: {{ gdb_neovim.dap_config_file }}
+      - asm_utils.lua: {{ gdb_neovim.asm_utils_file }}
+      {% endif %}
+      
+      Available Commands:
+      - gdb: Standard GNU Debugger
+      {% if gdb_current_features.cross_compilation %}
+      - gdb-multiarch: Multi-architecture debugging
+      - gdb-arm64: ARM64 cross-compilation debugging
+      - gdb-arm32: ARM32 cross-compilation debugging
+      - gdb-riscv: RISC-V cross-compilation debugging
+      {% endif %}
+      
+      {% if gdb_current_features.neovim_integration %}
+      Neovim Commands:
+      - :AsmDebugStatus - Show debugging environment status
+      - :AsmGDB [arch] - Launch GDB for specific architecture
+      - :AsmDAP - Start DAP debugging session
+      {% endif %}
+      
+      Troubleshooting:
+      {% if gdbinit_test.rc != 0 %}
+      - .gdbinit configuration has errors. Check syntax.
+      {% endif %}
+      {% if gdb_tui_test.rc != 0 %}
+      - TUI mode may not be fully supported on this terminal.
+      {% endif %}
+      {% if neovim_integration_test.rc != 0 and gdb_current_features.neovim_integration %}
+      - Neovim integration has issues. Check asm_utils.lua.
+      {% endif %}
+      {% if dap_config_test.rc != 0 and nvim_dap_available %}
+      - DAP configuration has issues. Check nvim-dap installation.
+      {% endif %}
+      
+      Next Steps:
+      1. Test debugging with a simple assembly program
+      2. Verify cross-compilation workflows if enabled
+      3. Test Neovim integration with :AsmDebugStatus
+      4. Review configuration files for customization
+      
+      For support, check the documentation or run:
+      gdb --help
+      {% if gdb_current_features.neovim_integration %}
+      :help asm-debugging (in Neovim)
+      {% endif %}
+    dest: "{{ gdb_config.config_dir }}/verification_report.txt"
+    mode: '0644'
+
+- name: Set verification status facts
+  set_fact:
+    gdb_verification_status:
+      core_installation: "{{ gdb_version_test.rc == 0 }}"
+      gdbinit_config: "{{ gdbinit_test.rc == 0 }}"
+      tui_support: "{{ gdb_tui_test.rc == 0 }}"
+      cross_compilation: "{{ gdb_cross_test.results | default([]) | selectattr('rc', 'equalto', 0) | list | length > 0 if gdb_current_features.cross_compilation else false }}"
+      qemu_emulation: "{{ qemu_test.results | default([]) | selectattr('rc', 'equalto', 0) | list | length > 0 if gdb_current_features.multi_architecture else false }}"
+      neovim_integration: "{{ neovim_integration_test.rc == 0 if gdb_current_features.neovim_integration else false }}"
+      dap_configuration: "{{ dap_config_test.rc == 0 if nvim_dap_available | default(false) else false }}"
+
+- name: Display verification results
+  debug:
+    msg: |
+      GDB Installation Verification Results:
+      
+      ✅ Core Components:
+      - GDB Installation: {{ '✅ PASS' if gdb_verification_status.core_installation else '❌ FAIL' }}
+      - .gdbinit Configuration: {{ '✅ PASS' if gdb_verification_status.gdbinit_config else '❌ FAIL' }}
+      - TUI Support: {{ '✅ PASS' if gdb_verification_status.tui_support else '⚠️  LIMITED' }}
+      
+      {% if gdb_current_features.cross_compilation %}
+      🔧 Cross-Compilation:
+      - Multi-arch Tools: {{ '✅ PASS' if gdb_verification_status.cross_compilation else '❌ FAIL' }}
+      {% endif %}
+      
+      {% if gdb_current_features.multi_architecture %}
+      🖥️  Emulation:
+      - QEMU Tools: {{ '✅ PASS' if gdb_verification_status.qemu_emulation else '❌ FAIL' }}
+      {% endif %}
+      
+      {% if gdb_current_features.neovim_integration %}
+      🔌 Neovim Integration:
+      - asm_utils.lua: {{ '✅ PASS' if gdb_verification_status.neovim_integration else '❌ FAIL' }}
+      - DAP Configuration: {{ '✅ PASS' if gdb_verification_status.dap_configuration else '❌ FAIL' }}
+      {% endif %}
+      
+      📋 Summary:
+      - GDB Version: {{ gdb_version_info | default('Unknown') }}
+      - Verification Report: {{ gdb_config.config_dir }}/verification_report.txt
+      
+      🚀 Ready for Assembly Debugging!
+      
+      Quick Start:
+      1. Create an assembly file (e.g., hello.s)
+      2. Compile: gcc -g -o hello hello.s
+      3. Debug: gdb -tui hello
+      {% if gdb_current_features.neovim_integration %}
+      4. Or in Neovim: :AsmGDB
+      {% endif %}
+
+- name: Fail if core installation verification failed
+  fail:
+    msg: |
+      GDB installation verification failed!
+      
+      Issues detected:
+      {% if not gdb_verification_status.core_installation %}
+      - GDB installation is not working properly
+      {% endif %}
+      {% if not gdb_verification_status.gdbinit_config %}
+      - .gdbinit configuration has syntax errors
+      {% endif %}
+      
+      Please check the verification report at:
+      {{ gdb_config.config_dir }}/verification_report.txt
+      
+      Common solutions:
+      1. Reinstall GDB: {{ 'brew reinstall gdb' if ansible_os_family == 'Darwin' else 'sudo apt update && sudo apt install gdb' }}
+      2. Check .gdbinit syntax: gdb --batch --init-eval-command="source {{ gdb_config.init_file }}"
+      3. Verify permissions on configuration files
+  when: not (gdb_verification_status.core_installation and gdb_verification_status.gdbinit_config)

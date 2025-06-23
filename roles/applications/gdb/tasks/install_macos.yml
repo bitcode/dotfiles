@@ -1,0 +1,161 @@
+---
+# macOS-specific GDB installation tasks
+
+- name: Install GDB core packages via Homebrew
+  homebrew:
+    name: "{{ item }}"
+    state: present
+    update_homebrew: true
+  loop: "{{ gdb_homebrew_packages.core }}"
+  become: false
+  register: gdb_homebrew_install
+  tags: [gdb, homebrew]
+
+- name: Install cross-compilation toolchains
+  homebrew:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ gdb_homebrew_packages.cross_compile }}"
+  become: false
+  when: gdb_current_features.cross_compilation | default(false)
+  register: gdb_cross_install
+  tags: [gdb, homebrew, cross_compile]
+
+- name: Install QEMU emulation tools
+  homebrew:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ gdb_homebrew_packages.emulation }}"
+  become: false
+  when: gdb_current_features.multi_architecture | default(false)
+  register: gdb_qemu_install
+  tags: [gdb, homebrew, emulation]
+
+- name: Create GDB entitlements file for code signing
+  copy:
+    content: "{{ gdb_macos.codesign_entitlements }}"
+    dest: "/tmp/gdb.xml"
+    mode: '0644'
+  become: true
+  when: gdb_macos.codesign_required | default(true)
+  tags: [gdb, macos_security]
+
+- name: Check if GDB certificate exists
+  shell: security find-identity -v -p codesigning | grep -q "gdb-cert"
+  register: gdb_cert_check
+  changed_when: false
+  failed_when: false
+  when: gdb_macos.codesign_required | default(true)
+  tags: [gdb, macos_security]
+
+- name: Create self-signed certificate for GDB
+  shell: |
+    cat > /tmp/gdb-cert.conf << EOF
+    [ req ]
+    default_bits = 2048
+    distinguished_name = req_distinguished_name
+    req_extensions = v3_req
+    prompt = no
+    
+    [ req_distinguished_name ]
+    C = US
+    ST = State
+    L = City
+    O = Organization
+    OU = Organizational Unit
+    CN = gdb-cert
+    
+    [ v3_req ]
+    keyUsage = keyEncipherment, dataEncipherment
+    extendedKeyUsage = codeSigning
+    EOF
+    
+    openssl req -new -newkey rsa:2048 -nodes -out /tmp/gdb-cert.csr -keyout /tmp/gdb-cert.key -config /tmp/gdb-cert.conf
+    openssl x509 -req -days 365 -in /tmp/gdb-cert.csr -signkey /tmp/gdb-cert.key -out /tmp/gdb-cert.crt -extensions v3_req -extfile /tmp/gdb-cert.conf
+    
+    security create-keychain -p "" gdb-cert.keychain
+    security default-keychain -s gdb-cert.keychain
+    security unlock-keychain -p "" gdb-cert.keychain
+    security import /tmp/gdb-cert.crt -k gdb-cert.keychain -T /usr/bin/codesign
+    security import /tmp/gdb-cert.key -k gdb-cert.keychain -T /usr/bin/codesign
+    security set-key-partition-list -S apple-tool:,developer: -s -k "" gdb-cert.keychain
+  become: true
+  when: 
+    - gdb_macos.codesign_required | default(true)
+    - gdb_cert_check.rc != 0
+  ignore_errors: true
+  tags: [gdb, macos_security]
+
+- name: Code sign GDB binary
+  shell: |
+    codesign --entitlements /tmp/gdb.xml -fs gdb-cert {{ gdb_homebrew_bin }}/gdb
+  become: true
+  when: gdb_macos.codesign_required | default(true)
+  ignore_errors: true
+  notify: "verify gdb"
+  tags: [gdb, macos_security]
+
+- name: Verify GDB installation
+  command: "{{ gdb_homebrew_bin }}/gdb --version"
+  register: gdb_macos_version
+  changed_when: false
+  tags: [gdb, verification]
+
+- name: Check cross-compilation tools
+  command: "{{ item.value.gdb }} --version"
+  register: gdb_cross_versions
+  changed_when: false
+  failed_when: false
+  loop: "{{ gdb_cross_toolchains | dict2items }}"
+  when: gdb_current_features.cross_compilation | default(false)
+  tags: [gdb, cross_compile, verification]
+
+- name: Update PATH for current session
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.{{ ansible_user_shell | basename }}rc"
+    line: 'export PATH="{{ gdb_homebrew_bin }}:$PATH"'
+    create: true
+    mode: '0644'
+  when: gdb_homebrew_bin not in ansible_env.PATH
+  tags: [gdb, environment]
+
+- name: Display macOS installation results
+  debug:
+    msg: |
+      macOS GDB Installation Results:
+      
+      Core Installation:
+      - GDB Version: {{ gdb_macos_version.stdout_lines[0] | default('Unknown') }}
+      - Installation Path: {{ gdb_homebrew_bin }}/gdb
+      - Code Signing: {{ 'Completed' if gdb_macos.codesign_required else 'Skipped' }}
+      
+      {% if gdb_current_features.cross_compilation %}
+      Cross-Compilation Tools:
+      {% for result in gdb_cross_versions.results | default([]) %}
+      - {{ result.item.key }}: {{ 'Available' if result.rc == 0 else 'Failed' }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if gdb_current_features.multi_architecture %}
+      QEMU Emulation:
+      {% for arch, cmd in gdb_qemu_commands.user_mode.items() %}
+      - {{ arch }}: {{ cmd }}
+      {% endfor %}
+      {% endif %}
+      
+      Note: If code signing failed, you may need to manually create a certificate
+      or disable System Integrity Protection (SIP) for debugging.
+  tags: [gdb, verification]
+
+- name: Clean up temporary files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/gdb.xml
+    - /tmp/gdb-cert.conf
+    - /tmp/gdb-cert.csr
+    - /tmp/gdb-cert.key
+    - /tmp/gdb-cert.crt
+  become: true
+  tags: [gdb, cleanup]

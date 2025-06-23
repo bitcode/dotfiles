@@ -1,0 +1,11 @@
+-64
+-g
+-Wall
+-Wextra
+-target
+x86_64-unknown-linux-gnu
+-I/usr/include
+-I/usr/local/include
+-I./include
+-D__ASSEMBLY__
+-DCONFIG_X86_64

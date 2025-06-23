@@ -1,0 +1,91 @@
+---
+# macOS-specific GDB variables
+
+# Homebrew packages for GDB
+gdb_homebrew_packages:
+  core:
+    - gdb
+    - lldb
+  
+  cross_compile:
+    - aarch64-elf-gcc
+    - aarch64-elf-gdb
+    - arm-none-eabi-gcc
+    - arm-none-eabi-gdb
+    - riscv64-elf-gcc
+    - riscv64-elf-gdb
+  
+  emulation:
+    - qemu
+
+# macOS-specific GDB configuration
+gdb_macos:
+  # Code signing requirements for debugging
+  codesign_required: true
+  codesign_identity: "gdb-cert"
+  codesign_entitlements: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+        <key>com.apple.security.cs.debugger</key>
+        <true/>
+        <key>com.apple.security.cs.allow-jit</key>
+        <true/>
+        <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+        <true/>
+        <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+        <true/>
+        <key>com.apple.security.cs.disable-library-validation</key>
+        <true/>
+    </dict>
+    </plist>
+
+# Homebrew paths
+gdb_homebrew_paths:
+  intel:
+    prefix: "/usr/local"
+    bin: "/usr/local/bin"
+  apple_silicon:
+    prefix: "/opt/homebrew"
+    bin: "/opt/homebrew/bin"
+
+# Architecture detection
+gdb_macos_arch: "{{ 'apple_silicon' if ansible_architecture == 'arm64' else 'intel' }}"
+gdb_homebrew_prefix: "{{ gdb_homebrew_paths[gdb_macos_arch].prefix }}"
+gdb_homebrew_bin: "{{ gdb_homebrew_paths[gdb_macos_arch].bin }}"
+
+# macOS-specific GDB commands
+gdb_macos_commands:
+  - name: "gdb"
+    path: "{{ gdb_homebrew_bin }}/gdb"
+  - name: "lldb"
+    path: "{{ gdb_homebrew_bin }}/lldb"
+
+# Cross-compilation toolchain paths
+gdb_cross_toolchains:
+  arm64:
+    gcc: "{{ gdb_homebrew_bin }}/aarch64-elf-gcc"
+    gdb: "{{ gdb_homebrew_bin }}/aarch64-elf-gdb"
+    objdump: "{{ gdb_homebrew_bin }}/aarch64-elf-objdump"
+  arm32:
+    gcc: "{{ gdb_homebrew_bin }}/arm-none-eabi-gcc"
+    gdb: "{{ gdb_homebrew_bin }}/arm-none-eabi-gdb"
+    objdump: "{{ gdb_homebrew_bin }}/arm-none-eabi-objdump"
+  riscv:
+    gcc: "{{ gdb_homebrew_bin }}/riscv64-elf-gcc"
+    gdb: "{{ gdb_homebrew_bin }}/riscv64-elf-gdb"
+    objdump: "{{ gdb_homebrew_bin }}/riscv64-elf-objdump"
+
+# QEMU emulation
+gdb_qemu_commands:
+  user_mode:
+    arm64: "{{ gdb_homebrew_bin }}/qemu-aarch64"
+    arm32: "{{ gdb_homebrew_bin }}/qemu-arm"
+    x86_64: "{{ gdb_homebrew_bin }}/qemu-x86_64"
+    riscv: "{{ gdb_homebrew_bin }}/qemu-riscv64"
+  system_mode:
+    arm64: "{{ gdb_homebrew_bin }}/qemu-system-aarch64"
+    arm32: "{{ gdb_homebrew_bin }}/qemu-system-arm"
+    x86_64: "{{ gdb_homebrew_bin }}/qemu-system-x86_64"
+    riscv: "{{ gdb_homebrew_bin }}/qemu-system-riscv64"

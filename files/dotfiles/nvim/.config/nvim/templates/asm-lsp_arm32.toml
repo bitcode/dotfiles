@@ -1,0 +1,89 @@
+# ARM32 Assembly LSP Configuration
+# This file configures asm-lsp for ARM32 development
+
+[asm-lsp]
+version = "0.1"
+
+[asm-lsp.instruction_set]
+architecture = "arm"
+assembler = "gas"
+
+[asm-lsp.compile]
+target = "arm-unknown-linux-gnueabihf"
+flags = [
+    "-march=armv7-a",
+    "-mfpu=neon",
+    "-mfloat-abi=hard",
+    "-g",
+    "-Wall",
+    "-Wextra"
+]
+
+[asm-lsp.diagnostics]
+enabled = true
+show_hints = true
+show_warnings = true
+show_errors = true
+
+[asm-lsp.completion]
+enabled = true
+include_registers = true
+include_instructions = true
+include_directives = true
+
+[asm-lsp.hover]
+enabled = true
+show_instruction_details = true
+show_register_info = true
+
+[asm-lsp.formatting]
+enabled = true
+indent_size = 8
+use_tabs = true
+
+# ARM32 specific settings
+[asm-lsp.arm32]
+# Enable ARM32-specific features
+enable_neon = true
+enable_vfp = true
+enable_thumb = true  # Thumb instruction set support
+
+# Register aliases
+[asm-lsp.arm32.registers]
+# General purpose registers
+r0 = "argument/return register 1"
+r1 = "argument/return register 2"
+r2 = "argument register 3"
+r3 = "argument register 4"
+r4 = "variable register 1"
+r5 = "variable register 2"
+r6 = "variable register 3"
+r7 = "variable register 4"
+r8 = "variable register 5"
+r9 = "platform register"
+r10 = "variable register 6"
+r11 = "frame pointer"
+r12 = "intra-procedure-call scratch register"
+r13 = "stack pointer"
+r14 = "link register"
+r15 = "program counter"
+
+# Register aliases
+sp = "stack pointer (r13)"
+lr = "link register (r14)"
+pc = "program counter (r15)"
+fp = "frame pointer (r11)"
+
+# NEON/VFP registers
+s0 = "single precision floating point register 0"
+s1 = "single precision floating point register 1"
+s2 = "single precision floating point register 2"
+s3 = "single precision floating point register 3"
+d0 = "double precision floating point register 0"
+d1 = "double precision floating point register 1"
+d2 = "double precision floating point register 2"
+d3 = "double precision floating point register 3"
+q0 = "quad precision NEON register 0"
+q1 = "quad precision NEON register 1"
+q2 = "quad precision NEON register 2"
+q3 = "quad precision NEON register 3"

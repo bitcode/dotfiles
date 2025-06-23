@@ -1,0 +1,97 @@
+# x86_64 Assembly LSP Configuration
+# This file configures asm-lsp for x86_64 development
+
+[asm-lsp]
+version = "0.1"
+
+[asm-lsp.instruction_set]
+architecture = "x86_64"
+assembler = "gas"
+
+[asm-lsp.compile]
+target = "x86_64-unknown-linux-gnu"
+flags = [
+    "-64",
+    "-g",
+    "-Wall",
+    "-Wextra"
+]
+
+[asm-lsp.diagnostics]
+enabled = true
+show_hints = true
+show_warnings = true
+show_errors = true
+
+[asm-lsp.completion]
+enabled = true
+include_registers = true
+include_instructions = true
+include_directives = true
+
+[asm-lsp.hover]
+enabled = true
+show_instruction_details = true
+show_register_info = true
+
+[asm-lsp.formatting]
+enabled = true
+indent_size = 8
+use_tabs = true
+
+# x86_64 specific settings
+[asm-lsp.x86_64]
+# Enable x86_64-specific features
+enable_sse = true
+enable_avx = true
+enable_avx2 = false  # Advanced Vector Extensions 2 (optional)
+
+# Register aliases
+[asm-lsp.x86_64.registers]
+# General purpose registers (64-bit)
+rax = "accumulator register"
+rbx = "base register"
+rcx = "counter register"
+rdx = "data register"
+rsi = "source index register"
+rdi = "destination index register"
+rbp = "base pointer register"
+rsp = "stack pointer register"
+r8 = "general purpose register 8"
+r9 = "general purpose register 9"
+r10 = "general purpose register 10"
+r11 = "general purpose register 11"
+r12 = "general purpose register 12"
+r13 = "general purpose register 13"
+r14 = "general purpose register 14"
+r15 = "general purpose register 15"
+
+# 32-bit register aliases
+eax = "32-bit accumulator register"
+ebx = "32-bit base register"
+ecx = "32-bit counter register"
+edx = "32-bit data register"
+esi = "32-bit source index register"
+edi = "32-bit destination index register"
+ebp = "32-bit base pointer register"
+esp = "32-bit stack pointer register"
+
+# 16-bit register aliases
+ax = "16-bit accumulator register"
+bx = "16-bit base register"
+cx = "16-bit counter register"
+dx = "16-bit data register"
+si = "16-bit source index register"
+di = "16-bit destination index register"
+bp = "16-bit base pointer register"
+sp = "16-bit stack pointer register"
+
+# 8-bit register aliases
+al = "8-bit accumulator register (low)"
+ah = "8-bit accumulator register (high)"
+bl = "8-bit base register (low)"
+bh = "8-bit base register (high)"
+cl = "8-bit counter register (low)"
+ch = "8-bit counter register (high)"
+dl = "8-bit data register (low)"
+dh = "8-bit data register (high)"

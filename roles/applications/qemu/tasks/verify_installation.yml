@@ -1,0 +1,73 @@
+---
+- name: Verify QEMU system emulators
+  command: "{{ item }} --version"
+  register: qemu_system_verify
+  failed_when: false
+  changed_when: false
+  loop: "{{ qemu_verification.required_commands | select('match', 'qemu-system-.*') | list }}"
+
+- name: Verify QEMU user emulators
+  command: "{{ item }} --version"
+  register: qemu_user_verify
+  failed_when: false
+  changed_when: false
+  loop: "{{ qemu_verification.required_commands | reject('match', 'qemu-system-.*') | list }}"
+
+- name: Check optional QEMU commands
+  command: "{{ item }} --version"
+  register: qemu_optional_verify
+  failed_when: false
+  changed_when: false
+  loop: "{{ qemu_verification.optional_commands }}"
+
+- name: Set QEMU verification results
+  set_fact:
+    qemu_system_status: "{{ qemu_system_verify.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+    qemu_user_status: "{{ qemu_user_verify.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+    qemu_optional_status: "{{ qemu_optional_verify.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+
+- name: Test QEMU functionality with simple boot
+  command: >
+    timeout 5s {{ qemu_config.system_emulators.arm64 }}
+    -M virt -cpu cortex-a57 -m 64M -nographic -kernel /dev/null
+  register: qemu_boot_test
+  failed_when: false
+  changed_when: false
+
+- name: Check QEMU scripts accessibility
+  stat:
+    path: "{{ qemu_paths.scripts_dir }}/qemu-{{ item }}"
+  register: qemu_scripts_check
+  loop: "{{ qemu_config.architectures }}"
+
+- name: Set QEMU scripts status
+  set_fact:
+    qemu_scripts_available: "{{ qemu_scripts_check.results | selectattr('stat.exists', 'equalto', true) | map(attribute='item') | list }}"
+
+- name: Display QEMU verification summary
+  debug:
+    msg: |
+      QEMU Installation Verification Summary:
+      =====================================
+      System Emulators Available: {{ qemu_system_status | length }}/{{ qemu_verification.required_commands | select('match', 'qemu-system-.*') | list | length }}
+      - {{ qemu_system_status | join(', ') }}
+      
+      User Emulators Available: {{ qemu_user_status | length }}/{{ qemu_verification.required_commands | reject('match', 'qemu-system-.*') | list | length }}
+      - {{ qemu_user_status | join(', ') }}
+      
+      Optional Commands Available: {{ qemu_optional_status | length }}/{{ qemu_verification.optional_commands | length }}
+      - {{ qemu_optional_status | join(', ') }}
+      
+      QEMU Scripts Available: {{ qemu_scripts_available | length }}/{{ qemu_config.architectures | length }}
+      - {{ qemu_scripts_available | join(', ') }}
+      
+      Boot Test: {{ 'PASSED' if qemu_boot_test.rc in [0, 124] else 'FAILED' }}
+      
+      Overall Status: {{ 'SUCCESS' if (qemu_system_status | length > 0 and qemu_user_status | length > 0) else 'PARTIAL' }}
+
+- name: Fail if critical QEMU components are missing
+  fail:
+    msg: "Critical QEMU components are missing. Please check the installation."
+  when: 
+    - qemu_system_status | length == 0
+    - fail_on_missing_qemu | default(false)

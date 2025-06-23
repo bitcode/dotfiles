@@ -1,0 +1,95 @@
+---
+# Ubuntu/Debian-specific GDB variables
+
+# APT packages for GDB
+gdb_apt_packages:
+  core:
+    - gdb
+    - gdb-doc
+    - gdb-multiarch
+  
+  cross_compile:
+    - gcc-aarch64-linux-gnu
+    - gdb-aarch64-linux-gnu
+    - gcc-arm-linux-gnueabihf
+    - gdb-arm-linux-gnueabihf
+    - gcc-riscv64-linux-gnu
+    - gdb-riscv64-linux-gnu
+  
+  emulation:
+    - qemu-user
+    - qemu-system-arm
+    - qemu-system-misc
+    - qemu-utils
+
+# Additional development packages
+gdb_dev_packages:
+  - build-essential
+  - libc6-dev-arm64-cross
+  - libc6-dev-armhf-cross
+  - libc6-dev-riscv64-cross
+
+# Cross-compilation toolchain commands
+gdb_cross_commands:
+  arm64:
+    gcc: "aarch64-linux-gnu-gcc"
+    gdb: "gdb-multiarch"
+    objdump: "aarch64-linux-gnu-objdump"
+    as: "aarch64-linux-gnu-as"
+    ld: "aarch64-linux-gnu-ld"
+  arm32:
+    gcc: "arm-linux-gnueabihf-gcc"
+    gdb: "gdb-multiarch"
+    objdump: "arm-linux-gnueabihf-objdump"
+    as: "arm-linux-gnueabihf-as"
+    ld: "arm-linux-gnueabihf-ld"
+  riscv:
+    gcc: "riscv64-linux-gnu-gcc"
+    gdb: "gdb-multiarch"
+    objdump: "riscv64-linux-gnu-objdump"
+    as: "riscv64-linux-gnu-as"
+    ld: "riscv64-linux-gnu-ld"
+
+# QEMU emulation commands
+gdb_qemu_commands:
+  user_mode:
+    arm64: "qemu-aarch64"
+    arm32: "qemu-arm"
+    x86_64: "qemu-x86_64"
+    riscv: "qemu-riscv64"
+  system_mode:
+    arm64: "qemu-system-aarch64"
+    arm32: "qemu-system-arm"
+    x86_64: "qemu-system-x86_64"
+    riscv: "qemu-system-riscv64"
+
+# GDB paths
+gdb_system_paths:
+  bin: "/usr/bin"
+  share: "/usr/share/gdb"
+  doc: "/usr/share/doc/gdb"
+
+# Debian/Ubuntu specific configuration
+gdb_debian_config:
+  # Enable multiarch support
+  multiarch_support: true
+  
+  # Cross-compilation sysroots
+  sysroots:
+    arm64: "/usr/aarch64-linux-gnu"
+    arm32: "/usr/arm-linux-gnueabihf"
+    riscv: "/usr/riscv64-linux-gnu"
+  
+  # Library paths for cross-compilation
+  library_paths:
+    arm64: "/usr/aarch64-linux-gnu/lib"
+    arm32: "/usr/arm-linux-gnueabihf/lib"
+    riscv: "/usr/riscv64-linux-gnu/lib"
+
+# Package repository configuration
+gdb_repositories:
+  # Enable universe repository for additional packages
+  universe_enabled: true
+  
+  # Additional PPAs for latest GDB versions (optional)
+  ppas: []

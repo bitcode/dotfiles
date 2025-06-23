@@ -1,0 +1,84 @@
+# ARM AArch64 Assembly LSP Configuration
+# This file configures asm-lsp for ARM AArch64 development
+
+[asm-lsp]
+version = "0.1"
+
+[asm-lsp.instruction_set]
+architecture = "arm64"
+assembler = "gas"
+
+[asm-lsp.compile]
+target = "aarch64-unknown-linux-gnu"
+flags = [
+    "-march=armv8-a",
+    "-mabi=lp64",
+    "-g",
+    "-Wall",
+    "-Wextra"
+]
+
+[asm-lsp.diagnostics]
+enabled = true
+show_hints = true
+show_warnings = true
+show_errors = true
+
+[asm-lsp.completion]
+enabled = true
+include_registers = true
+include_instructions = true
+include_directives = true
+
+[asm-lsp.hover]
+enabled = true
+show_instruction_details = true
+show_register_info = true
+
+[asm-lsp.formatting]
+enabled = true
+indent_size = 8
+use_tabs = true
+
+# ARM AArch64 specific settings
+[asm-lsp.arm64]
+# Enable ARM-specific features
+enable_neon = true
+enable_crypto = true
+enable_sve = false  # Scalable Vector Extension (optional)
+
+# Register aliases
+[asm-lsp.arm64.registers]
+# General purpose registers (64-bit)
+x0 = "argument/return register 1"
+x1 = "argument/return register 2"
+x2 = "argument register 3"
+x3 = "argument register 4"
+x4 = "argument register 5"
+x5 = "argument register 6"
+x6 = "argument register 7"
+x7 = "argument register 8"
+x8 = "indirect result register"
+x9 = "temporary register"
+x10 = "temporary register"
+x11 = "temporary register"
+x12 = "temporary register"
+x13 = "temporary register"
+x14 = "temporary register"
+x15 = "temporary register"
+x16 = "intra-procedure-call scratch register"
+x17 = "intra-procedure-call scratch register"
+x18 = "platform register"
+x19 = "callee-saved register"
+x20 = "callee-saved register"
+x21 = "callee-saved register"
+x22 = "callee-saved register"
+x23 = "callee-saved register"
+x24 = "callee-saved register"
+x25 = "callee-saved register"
+x26 = "callee-saved register"
+x27 = "callee-saved register"
+x28 = "callee-saved register"
+x29 = "frame pointer"
+x30 = "link register"
+sp = "stack pointer"

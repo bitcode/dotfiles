@@ -1,0 +1,13 @@
+-march=armv7-a
+-mfpu=neon
+-mfloat-abi=hard
+-g
+-Wall
+-Wextra
+-target
+arm-unknown-linux-gnueabihf
+-I/usr/include
+-I/usr/local/include
+-I./include
+-D__ASSEMBLY__
+-DCONFIG_ARM32

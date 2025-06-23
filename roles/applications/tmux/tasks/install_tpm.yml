@@ -1,0 +1,158 @@
+---
+# Install TPM (Tmux Plugin Manager) with idempotent checks
+# TPM is Unix-only (macOS, Linux) - Windows is excluded
+
+- name: Check if git is available for TPM installation
+  command: git --version
+  register: git_check
+  failed_when: false
+  changed_when: false
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'dependencies']
+
+- name: Display git availability status
+  debug:
+    msg: "Git: {{ '✅ AVAILABLE' if git_check.rc == 0 else '❌ MISSING - Required for TPM installation' }}"
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Ensure git is installed (macOS)
+  homebrew:
+    name: git
+    state: present
+  when:
+    - ansible_os_family == "Darwin"
+    - git_check.rc != 0
+  register: git_install_macos
+  tags: ['tmux', 'tpm', 'dependencies']
+
+- name: Ensure git is installed (Arch Linux)
+  pacman:
+    name: git
+    state: present
+  become: yes
+  when:
+    - ansible_distribution == "Archlinux"
+    - git_check.rc != 0
+  register: git_install_arch
+  tags: ['tmux', 'tpm', 'dependencies']
+
+- name: Ensure git is installed (Ubuntu/Debian)
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+  become: yes
+  when:
+    - ansible_os_family == "Debian"
+    - git_check.rc != 0
+  register: git_install_ubuntu
+  tags: ['tmux', 'tpm', 'dependencies']
+
+- name: Display git installation result
+  debug:
+    msg: "Git Installation: {{ '🔄 CHANGED - Installed' if (git_install_macos.changed | default(false)) or (git_install_arch.changed | default(false)) or (git_install_ubuntu.changed | default(false)) else '✅ ALREADY AVAILABLE' }}"
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Create .tmux/plugins directory
+  file:
+    path: "{{ ansible_user_dir }}/.tmux/plugins"
+    state: directory
+    mode: '0755'
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'setup']
+
+- name: Check if TPM repository already exists
+  stat:
+    path: "{{ tpm_install_path }}"
+  register: tpm_repo_check
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'check']
+
+- name: Display TPM repository status
+  debug:
+    msg: "TPM Repository: {{ '✅ EXISTS' if tpm_repo_check.stat.exists else '❌ MISSING' }}"
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Clone TPM repository
+  git:
+    repo: "{{ tpm_repo_url }}"
+    dest: "{{ tpm_install_path }}"
+    depth: "{{ tpm_git_depth }}"
+    force: yes
+  when:
+    - ansible_os_family != "Windows"
+    - not tpm_repo_check.stat.exists
+  register: tpm_clone_result
+  tags: ['tmux', 'tpm', 'install']
+
+- name: Display TPM clone result
+  debug:
+    msg: "TPM Clone: {{ '🔄 CHANGED - Repository cloned' if tpm_clone_result.changed else '✅ ALREADY EXISTS' }}"
+  when:
+    - ansible_os_family != "Windows"
+    - not tpm_repo_check.stat.exists
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Update TPM repository if it exists
+  git:
+    repo: "{{ tpm_repo_url }}"
+    dest: "{{ tpm_install_path }}"
+    force: yes
+  when:
+    - ansible_os_family != "Windows"
+    - tpm_repo_check.stat.exists
+  register: tpm_update_result
+  tags: ['tmux', 'tpm', 'update']
+
+- name: Display TPM update result
+  debug:
+    msg: "TPM Update: {{ '🔄 CHANGED - Repository updated' if tpm_update_result.changed else '✅ UP TO DATE' }}"
+  when:
+    - ansible_os_family != "Windows"
+    - tpm_repo_check.stat.exists
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Check if TPM script exists
+  stat:
+    path: "{{ tpm_install_path }}/tpm"
+  register: tpm_script_check
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'verify']
+
+- name: Verify TPM installation
+  debug:
+    msg: "TPM Script: {{ '✅ AVAILABLE' if tpm_script_check.stat.exists else '❌ MISSING' }}"
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'status']
+
+- name: Set TPM installation fact
+  set_fact:
+    tpm_installed: "{{ tpm_script_check.stat.exists | default(false) }}"
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'facts']
+
+- name: TPM installation summary
+  debug:
+    msg: |
+      🔌 TPM (Tmux Plugin Manager) Summary:
+      • Repository: {{ tpm_repo_url }}
+      • Install Path: {{ tpm_install_path }}
+      • Status: {{ 'INSTALLED' if tpm_installed | default(false) else 'FAILED' }}
+      • Platform: {{ ansible_distribution }} (Unix-compatible)
+      
+      Note: TPM will be automatically loaded by tmux configuration.
+      Use 'prefix + I' in tmux to install plugins defined in .tmux.conf
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'tpm', 'summary']
+
+- name: Skip TPM installation on Windows
+  debug:
+    msg: |
+      ⏭️ TPM Installation: SKIPPED
+      Reason: Tmux and TPM are not available on Windows platform.
+      Windows users should use Windows Terminal or other native terminal solutions.
+  when: ansible_os_family == "Windows"
+  tags: ['tmux', 'tpm', 'skip']

@@ -1,0 +1,100 @@
+---
+# Configure .gdbinit and GDB settings
+
+- name: Template .gdbinit for minimal profile
+  template:
+    src: gdbinit_minimal.j2
+    dest: "{{ gdb_config.init_file }}"
+    mode: '0644'
+    backup: true
+  when: profile == "minimal"
+  notify: "reload gdb config"
+  tags: [gdb, dotfiles]
+
+- name: Template advanced .gdbinit for developer/enterprise profiles
+  template:
+    src: gdbinit.j2
+    dest: "{{ gdb_config.init_file }}"
+    mode: '0644'
+    backup: true
+  when: profile in ["developer", "enterprise"]
+  notify: "reload gdb config"
+  tags: [gdb, dotfiles]
+
+- name: Create architecture-specific GDB configuration files
+  template:
+    src: gdb_arch_config.j2
+    dest: "{{ gdb_config.config_dir }}/{{ item.key }}.gdb"
+    mode: '0644'
+  loop: "{{ gdb_architectures | dict2items }}"
+  when: gdb_current_features.multi_architecture | default(false)
+  tags: [gdb, dotfiles, multi_arch]
+
+- name: Create GDB history file
+  file:
+    path: "{{ gdb_config.history_file }}"
+    state: touch
+    mode: '0600'
+  tags: [gdb, dotfiles]
+
+- name: Set up GDB environment variables
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.{{ ansible_user_shell | basename }}rc"
+    line: "{{ item }}"
+    create: true
+    mode: '0644'
+  loop:
+    - "# GDB environment configuration"
+    - "export GDBHISTFILE={{ gdb_config.history_file }}"
+    - "export GDBHISTSIZE={{ gdb_config.history_size }}"
+  tags: [gdb, environment]
+
+- name: Create GDB command aliases in shell
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.{{ ansible_user_shell | basename }}rc"
+    line: "{{ item }}"
+    create: true
+    mode: '0644'
+  loop:
+    - "# GDB debugging aliases"
+    - "alias gdb-tui='gdb -tui'"
+    - "alias gdb-arm64='{{ gdb_cross_commands.arm64.gdb | default('gdb') }}'"
+    - "alias gdb-arm32='{{ gdb_cross_commands.arm32.gdb | default('gdb') }}'"
+    - "alias gdb-riscv='{{ gdb_cross_commands.riscv.gdb | default('gdb') }}'"
+  when: gdb_current_features.cross_compilation | default(false)
+  tags: [gdb, environment, aliases]
+
+- name: Create QEMU debugging helper scripts
+  template:
+    src: qemu_debug_helper.sh.j2
+    dest: "{{ gdb_config.config_dir }}/qemu_debug_{{ item.key }}.sh"
+    mode: '0755'
+  loop: "{{ gdb_qemu_commands.user_mode | dict2items }}"
+  when: gdb_current_features.multi_architecture | default(false)
+  tags: [gdb, qemu, scripts]
+
+- name: Display .gdbinit configuration summary
+  debug:
+    msg: |
+      GDB Configuration Summary:
+      
+      Configuration Files:
+      - Main config: {{ gdb_config.init_file }}
+      - Config directory: {{ gdb_config.config_dir }}
+      - History file: {{ gdb_config.history_file }}
+      
+      Profile: {{ profile | default('minimal') }}
+      Features enabled:
+      {% for feature, enabled in gdb_current_features.items() %}
+      - {{ feature }}: {{ 'Yes' if enabled else 'No' }}
+      {% endfor %}
+      
+      {% if gdb_current_features.multi_architecture %}
+      Architecture-specific configs:
+      {% for arch in gdb_architectures.keys() %}
+      - {{ arch }}: {{ gdb_config.config_dir }}/{{ arch }}.gdb
+      {% endfor %}
+      {% endif %}
+      
+      Shell aliases created for cross-compilation debugging.
+  tags: [gdb, dotfiles]

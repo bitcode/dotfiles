@@ -1,0 +1,33 @@
+---
+# GDB Role Dependencies and Metadata
+dependencies: []
+
+galaxy_info:
+  role_name: gdb
+  author: Dotsible
+  description: Cross-platform GDB debugger installation and configuration for assembly development
+  company: Dotsible Project
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Darwin
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: ArchLinux
+      versions:
+        - all
+  galaxy_tags:
+    - development
+    - debugging
+    - gdb
+    - assembly
+    - cross-platform

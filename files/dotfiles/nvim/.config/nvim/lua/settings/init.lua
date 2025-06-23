@@ -25,10 +25,10 @@ vim.api.nvim_set_hl(0, "String", { fg = "#b8bb26" })
 vim.api.nvim_set_hl(0, "Comment", { fg = "Grey70", bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 vim.opt.winblend = 20
-vim.api.nvim_set_hl(0, 'FloatBorder', {bg='#3B4252', fg='#5E81AC'})
-vim.api.nvim_set_hl(0, 'NormalFloat', {bg='#3B4252'})
-vim.api.nvim_set_hl(0, 'TelescopeNormal', {bg='#3B4252'})
-vim.api.nvim_set_hl(0, 'TelescopeBorder', {bg='#3B4252'})
+vim.api.nvim_set_hl(0, 'FloatBorder', { bg = '#3B4252', fg = '#5E81AC' })
+vim.api.nvim_set_hl(0, 'NormalFloat', { bg = '#3B4252' })
+vim.api.nvim_set_hl(0, 'TelescopeNormal', { bg = '#3B4252' })
+vim.api.nvim_set_hl(0, 'TelescopeBorder', { bg = '#3B4252' })
 -- Define a function to set keymaps easily
 local function map(mode, lhs, rhs, opts)
   local options = { noremap = true, silent = true }
@@ -42,3 +42,4 @@ map('n', '<C-h>', '<C-w>h')
 map('n', '<C-j>', '<C-w>j')
 map('n', '<C-k>', '<C-w>k')
 map('n', '<C-l>', '<C-w>l')
+vim.o.clipboard = "unnamedplus"
