@@ -574,3 +574,4 @@ export NVM_DIR="$HOME/.nvm"
 
 # Created by `pipx` on 2025-06-15 06:41:36
 export PATH="$PATH:/Users/mdrozrosario/.local/bin"
+export PATH="$HOME/.dotnet/tools:$PATH"
