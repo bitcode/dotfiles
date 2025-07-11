@@ -166,9 +166,9 @@ install_python() {
         python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         success "Python installed successfully: version $python_version"
         
-        # Upgrade pip
-        info "Upgrading pip..."
-        python3 -m pip install --user --upgrade pip
+        # On Arch Linux, pip is managed by pacman to avoid issues with
+        # externally managed environments.
+        info "pip is managed by pacman, skipping upgrade."
     else
         error "Python installation failed"
         exit 1
@@ -295,17 +295,17 @@ install_ansible() {
 configure_arch_ansible() {
     info "Configuring Arch-specific Ansible requirements..."
     
-    # Install additional Python packages
+    # Install additional Python packages via pacman
     local packages=(
-        "requests"
-        "urllib3"
-        "certifi"
-        "pexpect"
+        "python-requests"
+        "python-urllib3"
+        "python-certifi"
+        "python-pexpect"
     )
     
     for package in "${packages[@]}"; do
         info "Installing Python package: $package"
-        python3 -m pip install --user "$package" || warning "Failed to install $package"
+        sudo pacman -S --noconfirm --needed "$package" || warning "Failed to install $package"
     done
     
     # Create Ansible configuration directory
