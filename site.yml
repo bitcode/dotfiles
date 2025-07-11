@@ -332,9 +332,7 @@
       tags: ['applications', 'zoxide', 'cli-tools']
       when: profile in ['minimal', 'developer', 'enterprise']
 
-    - role: applications/git
-      tags: ['applications', 'git']
-      when: "'git' in profiles[profile | default('minimal')].applications | default([])"
+    
 
     # FZF must be installed before shell configurations that depend on it
     - role: applications/fzf
