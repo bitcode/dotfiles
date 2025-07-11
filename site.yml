@@ -359,25 +359,25 @@
 
     # Window manager specific configurations (Linux only)
     - role: applications/i3
+      tags: ['applications', 'i3', 'window-manager']
       when:
         - dotsible_window_manager is defined
         - dotsible_window_manager == "i3"
         - "'i3' in profiles[profile | default('minimal')].applications | default([])"
-      tags: ['applications', 'i3', 'window-manager']
 
     - role: applications/hyprland
+      tags: ['applications', 'hyprland', 'window-manager']
       when:
         - dotsible_window_manager is defined
         - dotsible_window_manager == "hyprland"
         - "'hyprland' in profiles[profile | default('minimal')].applications | default([])"
-      tags: ['applications', 'hyprland', 'window-manager']
 
     - role: applications/sway
+      tags: ['applications', 'sway', 'window-manager']
       when:
         - dotsible_window_manager is defined
         - dotsible_window_manager == "sway"
         - "'sway' in profiles[profile | default('minimal')].applications | default([])"
-      tags: ['applications', 'sway', 'window-manager']
 
     # macOS Enterprise Management
     - role: macos_enterprise
