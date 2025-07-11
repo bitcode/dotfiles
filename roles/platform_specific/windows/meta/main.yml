@@ -25,9 +25,7 @@ galaxy_info:
     - development
     - cross-platform
 
-dependencies:
-  - role: package_manager
-    when: package_manager_enabled | default(true)
+dependencies: []
 
 collections:
   - chocolatey.chocolatey

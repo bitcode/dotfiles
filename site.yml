@@ -167,8 +167,7 @@
     - role: common
       tags: ['common', 'bootstrap']
 
-    - role: package_manager
-      tags: ['package_manager', 'packages']
+    
 
     # Platform-specific setup
     - role: platform_specific/macos

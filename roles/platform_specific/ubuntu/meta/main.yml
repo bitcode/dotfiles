@@ -1,7 +1,5 @@
 ---
-dependencies:
-  - role: package_manager
-    when: package_manager_enabled | default(true)
+dependencies: []
 
 galaxy_info:
   author: Dotsible Team
