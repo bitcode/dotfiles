@@ -26,6 +26,19 @@
     state: present
   when: ansible_os_family == "Windows"
 
+# GPU Detection and Configuration for optimal Alacritty performance
+- name: "GPU OPTIMIZATION - Detect system graphics hardware"
+  include_tasks: gpu_detection.yml
+  when: ansible_os_family != "Windows"
+  tags: ['alacritty', 'gpu', 'detection']
+
+- name: "GPU OPTIMIZATION - Determine optimal driver configuration"
+  include_tasks: driver_selection.yml
+  when:
+    - ansible_os_family != "Windows"
+    - gpu_info is defined
+  tags: ['alacritty', 'gpu', 'config']
+
 - name: Create Alacritty config directory (Unix-like)
   file:
     path: "{{ ansible_user_dir }}/.config/alacritty"
@@ -48,6 +61,66 @@
   when: ansible_os_family != "Windows"
   notify: restart alacritty
 
+- name: "DESKTOP INTEGRATION - Ensure local bin directory exists"
+  file:
+    path: "{{ ansible_user_dir }}/.local/bin"
+    state: directory
+    mode: '0755'
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'desktop']
+
+- name: "DESKTOP INTEGRATION - Ensure local applications directory exists"
+  file:
+    path: "{{ ansible_user_dir }}/.local/share/applications"
+    state: directory
+    mode: '0755'
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'desktop']
+
+- name: "GPU OPTIMIZATION - Create GPU-optimized Alacritty launcher script"
+  template:
+    src: alacritty-gpu-launcher.sh.j2
+    dest: "{{ ansible_user_dir }}/.local/bin/alacritty-gpu"
+    mode: '0755'
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'launcher']
+
+- name: "GPU OPTIMIZATION - Create GPU-optimized desktop entry"
+  template:
+    src: alacritty-gpu.desktop.j2
+    dest: "{{ ansible_user_dir }}/.local/share/applications/alacritty-gpu.desktop"
+    mode: '0644'
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'desktop']
+
+- name: "GPU OPTIMIZATION - Create environment configuration file"
+  template:
+    src: alacritty-env.conf.j2
+    dest: "{{ ansible_user_dir }}/.config/alacritty/gpu-env.conf"
+    mode: '0644'
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'config']
+
+- name: "SYSTEM GPU CONFIG - Apply system-wide GPU configuration"
+  include_tasks: system_gpu_config.yml
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'system']
+
 - name: Deploy Alacritty configuration files (Windows)
   win_copy:
     src: "{{ playbook_dir }}/files/dotfiles/alacritty/.config/alacritty/"
@@ -56,12 +129,66 @@
   when: ansible_os_family == "Windows"
   notify: restart alacritty
 
+
+
+- name: "DESKTOP INTEGRATION - Update desktop database"
+  command: update-desktop-database {{ ansible_user_dir }}/.local/share/applications
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'desktop']
+
+- name: "DESKTOP INTEGRATION - Create shell alias for GPU-optimized Alacritty"
+  lineinfile:
+    path: "{{ ansible_user_dir }}/.zshrc"
+    line: "alias alacritty-gpu='{{ ansible_user_dir }}/.local/bin/alacritty-gpu'"
+    regexp: "^alias alacritty-gpu="
+    state: present
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'alias']
+
 - name: Verify Alacritty installation
   command: alacritty --version
   register: alacritty_version
   failed_when: false
   changed_when: false
 
+- name: "GPU VALIDATION - Comprehensive GPU configuration testing"
+  include_tasks: gpu_validation.yml
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'validation']
+
 - name: Display Alacritty installation status
   debug:
-    msg: "Alacritty {{ 'installed successfully' if alacritty_version.rc == 0 else 'installation failed' }}"
+    msg: |
+      🚀 Alacritty Installation Summary:
+      =================================
+
+      Installation: {{ '✅ SUCCESS' if alacritty_version.rc == 0 else '❌ FAILED' }}
+      {% if alacritty_version.rc == 0 %}
+      Version: {{ alacritty_version.stdout | default('Unknown') }}
+      {% endif %}
+
+      {% if alacritty_gpu_config is defined %}
+      🔧 GPU Optimization: ✅ CONFIGURED
+      • System Type: {{ alacritty_gpu_config.system_type | upper }}
+      • Optimal Driver: {{ alacritty_gpu_config.optimal_driver | upper }}
+      {% if alacritty_gpu_config.mesa_loader_override %}
+      • MESA Override: {{ alacritty_gpu_config.mesa_loader_override }}
+      {% endif %}
+
+      🚀 Launch Options:
+      • Standard: alacritty
+      • GPU Optimized: {{ ansible_user_dir }}/.local/bin/alacritty-gpu
+      • Shell Alias: alacritty-gpu (after shell restart)
+      • Desktop: Applications → Alacritty (GPU Optimized)
+      {% else %}
+      🔧 GPU Optimization: ⚠️ NOT CONFIGURED (Windows or detection failed)
+      {% endif %}

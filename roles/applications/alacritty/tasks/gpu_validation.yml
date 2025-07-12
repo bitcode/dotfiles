@@ -1,0 +1,256 @@
+---
+# GPU Configuration Validation for Alacritty
+# Comprehensive testing to ensure Alacritty launches successfully with GPU optimization
+
+- name: "GPU VALIDATION - Test GPU-optimized Alacritty launcher"
+  shell: 'test -f "{{ ansible_user_dir }}/.local/bin/alacritty-gpu" && test -x "{{ ansible_user_dir }}/.local/bin/alacritty-gpu" && echo "LAUNCHER_TEST:PASSED" || echo "LAUNCHER_TEST:FAILED"'
+  register: launcher_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'launcher']
+
+- name: "GPU VALIDATION - Test launcher execution"
+  shell: 'timeout 10s "{{ ansible_user_dir }}/.local/bin/alacritty-gpu" --version 2>/dev/null | grep -q "alacritty" && echo "EXECUTION_TEST:PASSED" || echo "EXECUTION_TEST:FAILED"'
+  register: execution_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'launcher']
+
+- name: "GPU VALIDATION - Test environment configuration"
+  shell: 'test -f "{{ ansible_user_dir }}/.config/alacritty/gpu-env.conf" && echo "ENV_FILE_TEST:PASSED" || echo "ENV_FILE_TEST:FAILED"'
+  register: environment_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'environment']
+
+- name: "GPU VALIDATION - Test desktop integration"
+  shell: 'test -f "{{ ansible_user_dir }}/.local/share/applications/alacritty-gpu.desktop" && echo "DESKTOP_FILE_TEST:PASSED" || echo "DESKTOP_FILE_TEST:FAILED"'
+  register: desktop_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'desktop']
+
+- name: "GPU VALIDATION - Test shell integration"
+  shell: 'grep -q "alias alacritty-gpu=" "{{ ansible_user_dir }}/.zshrc" && echo "ALIAS_TEST:PASSED" || echo "ALIAS_TEST:FAILED"'
+  register: shell_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'shell']
+
+- name: "GPU VALIDATION - Parse validation results"
+  set_fact:
+    alacritty_validation:
+      launcher_test: "{{ 'LAUNCHER_TEST:PASSED' in launcher_validation.stdout }}"
+      execution_test: "{{ 'EXECUTION_TEST:PASSED' in execution_validation.stdout }}"
+      env_file_test: "{{ 'ENV_FILE_TEST:PASSED' in environment_validation.stdout }}"
+      desktop_file_test: "{{ 'DESKTOP_FILE_TEST:PASSED' in desktop_validation.stdout }}"
+      alias_test: "{{ 'ALIAS_TEST:PASSED' in shell_validation.stdout }}"
+  tags: ['alacritty', 'gpu', 'validation']
+
+- name: "GPU VALIDATION - Display comprehensive validation summary"
+  debug:
+    msg: |
+      Alacritty GPU Configuration Validation Summary:
+      =================================================
+
+      Launcher Tests:
+      • Script exists: {{ 'PASS' if alacritty_validation.launcher_test else 'FAIL' }}
+      • Script executes: {{ 'PASS' if alacritty_validation.execution_test else 'FAIL' }}
+
+      Environment Tests:
+      • Config file exists: {{ 'PASS' if alacritty_validation.env_file_test else 'FAIL' }}
+
+      Desktop Integration:
+      • Desktop entry exists: {{ 'PASS' if alacritty_validation.desktop_file_test else 'FAIL' }}
+
+      Shell Integration:
+      • ZSH alias configured: {{ 'PASS' if alacritty_validation.alias_test else 'FAIL' }}
+
+      Overall Status: {{ 'VALIDATION PASSED' if (alacritty_validation.launcher_test and alacritty_validation.execution_test and alacritty_validation.env_file_test and alacritty_validation.desktop_file_test and alacritty_validation.alias_test) else 'VALIDATION ISSUES DETECTED' }}
+
+      Usage Instructions:
+      • Command line: {{ ansible_user_dir }}/.local/bin/alacritty-gpu
+      • Shell alias: alacritty-gpu (after shell restart)
+      • Desktop: Applications → Alacritty (GPU Optimized)
+      • Debug mode: ALACRITTY_GPU_DEBUG=1 alacritty-gpu
+  tags: ['alacritty', 'gpu', 'validation', 'summary']
+
+- name: "GPU VALIDATION - Test environment configuration"
+  shell: |
+    echo "ENVIRONMENT VALIDATION: Testing GPU environment setup"
+    echo "======================================================="
+    
+    env_file="{{ ansible_user_dir }}/.config/alacritty/gpu-env.conf"
+    
+    if [ ! -f "$env_file" ]; then
+      echo "ERROR: GPU environment file not found: $env_file"
+      echo "ENV_FILE_TEST:FAILED"
+      exit 1
+    fi
+
+    echo "SUCCESS: GPU environment file exists: $env_file"
+    echo "ENV_FILE_TEST:PASSED"
+    
+    # Test environment loading
+    echo ""
+    echo "Testing environment configuration..."
+    
+    # Source the environment file and test
+    if source "$env_file" 2>/dev/null; then
+      echo "✅ Environment file sources successfully"
+      echo "ENV_SOURCE_TEST:PASSED"
+      
+      # Check if MESA override is set
+      if [ -n "${MESA_LOADER_DRIVER_OVERRIDE:-}" ]; then
+        echo "✅ MESA driver override set: $MESA_LOADER_DRIVER_OVERRIDE"
+        echo "MESA_OVERRIDE_TEST:PASSED"
+        
+        # Test the MESA configuration
+        if timeout 10s glxinfo -B 2>/dev/null | grep -q "OpenGL renderer"; then
+          renderer=$(timeout 5s glxinfo 2>/dev/null | grep "OpenGL renderer" | head -1 | sed 's/OpenGL renderer string: //')
+          echo "✅ OpenGL context created successfully: $renderer"
+          echo "OPENGL_TEST:PASSED"
+        else
+          echo "⚠️  OpenGL context creation failed (may be normal in headless environment)"
+          echo "OPENGL_TEST:WARNING"
+        fi
+      else
+        echo "ℹ️  No MESA driver override set (using default)"
+        echo "MESA_OVERRIDE_TEST:DEFAULT"
+      fi
+    else
+      echo "❌ Environment file has syntax errors"
+      echo "ENV_SOURCE_TEST:FAILED"
+    fi
+  args:
+    executable: /bin/bash
+  register: environment_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'environment']
+
+- name: "GPU VALIDATION - Test desktop integration"
+  shell: |
+    echo "🖥️  DESKTOP VALIDATION: Testing desktop integration"
+    echo "=================================================="
+    
+    desktop_file="{{ ansible_user_dir }}/.local/share/applications/alacritty-gpu.desktop"
+    
+    if [ ! -f "$desktop_file" ]; then
+      echo "❌ Desktop entry not found: $desktop_file"
+      echo "DESKTOP_FILE_TEST:FAILED"
+      exit 1
+    fi
+    
+    echo "✅ Desktop entry exists: $desktop_file"
+    echo "DESKTOP_FILE_TEST:PASSED"
+    
+    # Validate desktop entry syntax
+    if desktop-file-validate "$desktop_file" 2>/dev/null; then
+      echo "✅ Desktop entry is valid"
+      echo "DESKTOP_VALIDATION_TEST:PASSED"
+    else
+      echo "⚠️  Desktop entry validation failed (desktop-file-validate not available or minor issues)"
+      echo "DESKTOP_VALIDATION_TEST:WARNING"
+    fi
+    
+    # Check if desktop entry is properly registered
+    if [ -d "{{ ansible_user_dir }}/.local/share/applications" ]; then
+      echo "✅ Applications directory exists"
+      echo "APPS_DIR_TEST:PASSED"
+    else
+      echo "❌ Applications directory missing"
+      echo "APPS_DIR_TEST:FAILED"
+    fi
+  args:
+    executable: /bin/bash
+  register: desktop_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'desktop']
+
+- name: "GPU VALIDATION - Test shell integration"
+  shell: |
+    echo "🐚 SHELL VALIDATION: Testing shell integration"
+    echo "=============================================="
+    
+    zshrc_file="{{ ansible_user_dir }}/.zshrc"
+    
+    if [ ! -f "$zshrc_file" ]; then
+      echo "❌ ZSH configuration not found: $zshrc_file"
+      echo "ZSHRC_TEST:FAILED"
+      exit 1
+    fi
+    
+    # Check if alias is present
+    if grep -q "alias alacritty-gpu=" "$zshrc_file"; then
+      alias_line=$(grep "alias alacritty-gpu=" "$zshrc_file" | head -1)
+      echo "✅ Alacritty GPU alias found: $alias_line"
+      echo "ALIAS_TEST:PASSED"
+    else
+      echo "❌ Alacritty GPU alias not found in .zshrc"
+      echo "ALIAS_TEST:FAILED"
+    fi
+    
+    # Test if .local/bin is in PATH
+    if echo "$PATH" | grep -q "{{ ansible_user_dir }}/.local/bin"; then
+      echo "✅ ~/.local/bin is in PATH"
+      echo "PATH_TEST:PASSED"
+    else
+      echo "⚠️  ~/.local/bin not in PATH (may need shell restart)"
+      echo "PATH_TEST:WARNING"
+    fi
+  args:
+    executable: /bin/bash
+  register: shell_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation', 'shell']
+
+- name: "GPU VALIDATION - Parse validation results"
+  set_fact:
+    alacritty_validation:
+      launcher_test: "{{ 'LAUNCHER_TEST:PASSED' in launcher_validation.stdout }}"
+      execution_test: "{{ 'EXECUTION_TEST:PASSED' in launcher_validation.stdout }}"
+      env_file_test: "{{ 'ENV_FILE_TEST:PASSED' in environment_validation.stdout }}"
+      env_source_test: "{{ 'ENV_SOURCE_TEST:PASSED' in environment_validation.stdout }}"
+      mesa_override_test: "{{ 'MESA_OVERRIDE_TEST:PASSED' in environment_validation.stdout }}"
+      opengl_test: "{{ 'OPENGL_TEST:PASSED' in environment_validation.stdout }}"
+      desktop_file_test: "{{ 'DESKTOP_FILE_TEST:PASSED' in desktop_validation.stdout }}"
+      desktop_validation_test: "{{ 'DESKTOP_VALIDATION_TEST:PASSED' in desktop_validation.stdout }}"
+      alias_test: "{{ 'ALIAS_TEST:PASSED' in shell_validation.stdout }}"
+      path_test: "{{ 'PATH_TEST:PASSED' in shell_validation.stdout }}"
+  tags: ['alacritty', 'gpu', 'validation']
+
+- name: "GPU VALIDATION - Display comprehensive validation summary"
+  debug:
+    msg: |
+      🧪 Alacritty GPU Configuration Validation Summary:
+      =================================================
+      
+      🚀 Launcher Tests:
+      • Script exists: {{ '✅' if alacritty_validation.launcher_test else '❌' }}
+      • Script executes: {{ '✅' if alacritty_validation.execution_test else '❌' }}
+      
+      🔧 Environment Tests:
+      • Config file exists: {{ '✅' if alacritty_validation.env_file_test else '❌' }}
+      • Config sources correctly: {{ '✅' if alacritty_validation.env_source_test else '❌' }}
+      • MESA override configured: {{ '✅' if alacritty_validation.mesa_override_test else '❌' }}
+      • OpenGL context works: {{ '✅' if alacritty_validation.opengl_test else '⚠️' }}
+      
+      🖥️  Desktop Integration:
+      • Desktop entry exists: {{ '✅' if alacritty_validation.desktop_file_test else '❌' }}
+      • Desktop entry valid: {{ '✅' if alacritty_validation.desktop_validation_test else '⚠️' }}
+      
+      🐚 Shell Integration:
+      • ZSH alias configured: {{ '✅' if alacritty_validation.alias_test else '❌' }}
+      • PATH includes ~/.local/bin: {{ '✅' if alacritty_validation.path_test else '⚠️' }}
+      
+      📊 Overall Status: {{ 'VALIDATION PASSED' if (alacritty_validation.launcher_test and alacritty_validation.execution_test and alacritty_validation.env_file_test and alacritty_validation.env_source_test and alacritty_validation.desktop_file_test and alacritty_validation.alias_test) else 'VALIDATION ISSUES DETECTED' }}
+      
+      💡 Usage Instructions:
+      • Command line: {{ ansible_user_dir }}/.local/bin/alacritty-gpu
+      • Shell alias: alacritty-gpu (after shell restart)
+      • Desktop: Applications → Alacritty (GPU Optimized)
+      • Debug mode: ALACRITTY_GPU_DEBUG=1 alacritty-gpu
+  tags: ['alacritty', 'gpu', 'validation', 'summary']

@@ -33,5 +33,5 @@ galaxy_info:
 dependencies:
   - role: common
     when: common_role_enabled | default(true)
-  - role: package_manager
+  - role: platform_specific/macos
     when: package_manager_role_enabled | default(true)

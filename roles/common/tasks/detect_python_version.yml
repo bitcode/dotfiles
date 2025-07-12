@@ -41,9 +41,9 @@
   set_fact:
     detected_python_info: >-
       {%- if ansible_os_family == "Windows" -%}
-        {{ python_check_windows.stdout.strip() if python_check_windows.stdout else "none:0.0.0" }}
+        {{ python_check_windows.stdout.strip() if python_check_windows.stdout is defined and python_check_windows.stdout else "none:0.0.0" }}
       {%- else -%}
-        {{ python_check_unix.stdout.strip() if python_check_unix.stdout else "none:0.0.0" }}
+        {{ python_check_unix.stdout.strip() if python_check_unix.stdout is defined and python_check_unix.stdout else "none:0.0.0" }}
       {%- endif -%}
 
 - name: Set Python version facts

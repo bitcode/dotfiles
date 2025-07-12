@@ -1,0 +1,210 @@
+---
+# Test playbook for dotfiles symlink fixes
+# This playbook validates that all ZSH and tmux symlink issues are resolved
+
+- name: Test Dotfiles Symlink Fixes
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+  vars:
+    test_results: []
+    
+  tasks:
+    - name: "🧪 DOTFILES SYMLINK FIXES VALIDATION"
+      debug:
+        msg: |
+          Testing comprehensive dotfiles symlink fixes
+          Platform: {{ ansible_os_family }}
+          Architecture: {{ ansible_architecture }}
+          User Directory: {{ ansible_user_dir }}
+      tags: ['test', 'banner']
+
+    # Test 1: Verify ZSH configuration symlink
+    - name: Test 1 - Verify ZSH configuration symlink
+      block:
+        - name: Check .zshrc symlink status
+          stat:
+            path: "{{ ansible_user_dir }}/.zshrc"
+          register: zshrc_stat
+          
+        - name: Validate .zshrc symlink
+          set_fact:
+            zsh_test_result: >-
+              {%- if zshrc_stat.stat.exists and zshrc_stat.stat.islnk -%}
+                PASS: .zshrc is a valid symlink
+              {%- elif zshrc_stat.stat.exists and not zshrc_stat.stat.islnk -%}
+                FAIL: .zshrc exists but is not a symlink
+              {%- else -%}
+                FAIL: .zshrc does not exist
+              {%- endif -%}
+              
+        - name: Check .zshrc target validity
+          stat:
+            path: "{{ zshrc_stat.stat.lnk_target }}"
+          register: zshrc_target_stat
+          when: zshrc_stat.stat.islnk | default(false)
+          
+        - name: Validate .zshrc target
+          set_fact:
+            zsh_target_result: >-
+              {%- if zshrc_stat.stat.islnk and zshrc_target_stat.stat.exists -%}
+                PASS: .zshrc target exists ({{ zshrc_stat.stat.lnk_target }})
+              {%- elif zshrc_stat.stat.islnk -%}
+                FAIL: .zshrc target missing ({{ zshrc_stat.stat.lnk_target }})
+              {%- else -%}
+                SKIP: .zshrc is not a symlink
+              {%- endif -%}
+      tags: ['test', 'zsh']
+
+    # Test 2: Verify tmux configuration symlink  
+    - name: Test 2 - Verify tmux configuration symlink
+      block:
+        - name: Check .tmux.conf symlink status
+          stat:
+            path: "{{ ansible_user_dir }}/.tmux.conf"
+          register: tmux_stat
+          
+        - name: Validate .tmux.conf symlink
+          set_fact:
+            tmux_test_result: >-
+              {%- if tmux_stat.stat.exists and tmux_stat.stat.islnk -%}
+                PASS: .tmux.conf is a valid symlink
+              {%- elif tmux_stat.stat.exists and not tmux_stat.stat.islnk -%}
+                FAIL: .tmux.conf exists but is not a symlink
+              {%- else -%}
+                FAIL: .tmux.conf does not exist
+              {%- endif -%}
+              
+        - name: Check .tmux.conf target validity
+          stat:
+            path: "{{ tmux_stat.stat.lnk_target }}"
+          register: tmux_target_stat
+          when: tmux_stat.stat.islnk | default(false)
+          
+        - name: Validate .tmux.conf target
+          set_fact:
+            tmux_target_result: >-
+              {%- if tmux_stat.stat.islnk and tmux_target_stat.stat.exists -%}
+                PASS: .tmux.conf target exists ({{ tmux_stat.stat.lnk_target }})
+              {%- elif tmux_stat.stat.islnk -%}
+                FAIL: .tmux.conf target missing ({{ tmux_stat.stat.lnk_target }})
+              {%- else -%}
+                SKIP: .tmux.conf is not a symlink
+              {%- endif -%}
+      tags: ['test', 'tmux']
+
+    # Test 3: Check for problematic symlinks
+    - name: Test 3 - Check for problematic symlinks
+      block:
+        - name: Check for incorrect Oh-My-Zsh symlink
+          stat:
+            path: "{{ ansible_user_dir }}/.zshrc.pre-oh-my-zsh"
+          register: zshrc_pre_stat
+          
+        - name: Validate no incorrect symlinks exist
+          set_fact:
+            cleanup_test_result: >-
+              {%- if not zshrc_pre_stat.stat.exists -%}
+                PASS: No incorrect .zshrc.pre-oh-my-zsh symlink found
+              {%- else -%}
+                FAIL: Incorrect .zshrc.pre-oh-my-zsh symlink still exists
+              {%- endif -%}
+      tags: ['test', 'cleanup']
+
+    # Test 4: Verify cross-platform compatibility
+    - name: Test 4 - Verify cross-platform path usage
+      block:
+        - name: Check that ansible_user_dir is used correctly
+          shell: |
+            # Check if any symlinks use hardcoded paths
+            find "{{ ansible_user_dir }}" -maxdepth 1 -type l -name ".*" -exec readlink {} \; | grep -E "^/home/|^/Users/" || echo "NO_HARDCODED_PATHS"
+          register: hardcoded_paths_check
+          changed_when: false
+          failed_when: false
+          
+        - name: Validate cross-platform compatibility
+          set_fact:
+            crossplatform_test_result: >-
+              {%- if 'NO_HARDCODED_PATHS' in hardcoded_paths_check.stdout -%}
+                PASS: No hardcoded paths found in symlinks
+              {%- else -%}
+                WARN: Some symlinks may use hardcoded paths
+              {%- endif -%}
+      tags: ['test', 'crossplatform']
+
+    # Test 5: Functional testing
+    - name: Test 5 - Functional testing
+      block:
+        - name: Test ZSH functionality
+          shell: zsh -c "echo 'ZSH_TEST_SUCCESS'"
+          register: zsh_functional_test
+          changed_when: false
+          failed_when: false
+          
+        - name: Test tmux functionality
+          shell: tmux -V
+          register: tmux_functional_test
+          changed_when: false
+          failed_when: false
+          
+        - name: Validate functional tests
+          set_fact:
+            functional_test_result: >-
+              ZSH: {{ 'PASS' if zsh_functional_test.rc == 0 else 'FAIL' }} | 
+              TMUX: {{ 'PASS' if tmux_functional_test.rc == 0 else 'FAIL' }}
+      tags: ['test', 'functional']
+
+    # Test Results Summary
+    - name: "📋 TEST RESULTS SUMMARY"
+      debug:
+        msg: |
+          🧪 DOTFILES SYMLINK FIXES TEST RESULTS
+          =====================================
+          
+          Test 1 - ZSH Configuration:
+            Symlink Status: {{ zsh_test_result | default('NOT_TESTED') }}
+            Target Status:  {{ zsh_target_result | default('NOT_TESTED') }}
+          
+          Test 2 - Tmux Configuration:
+            Symlink Status: {{ tmux_test_result | default('NOT_TESTED') }}
+            Target Status:  {{ tmux_target_result | default('NOT_TESTED') }}
+          
+          Test 3 - Cleanup Validation:
+            Result: {{ cleanup_test_result | default('NOT_TESTED') }}
+          
+          Test 4 - Cross-Platform Compatibility:
+            Result: {{ crossplatform_test_result | default('NOT_TESTED') }}
+          
+          Test 5 - Functional Testing:
+            Result: {{ functional_test_result | default('NOT_TESTED') }}
+          
+          📊 OVERALL STATUS:
+          {% set pass_count = [zsh_test_result, zsh_target_result, tmux_test_result, tmux_target_result, cleanup_test_result] | select('match', '^PASS:.*') | list | length %}
+          {% set fail_count = [zsh_test_result, zsh_target_result, tmux_test_result, tmux_target_result, cleanup_test_result] | select('match', '^FAIL:.*') | list | length %}
+          Passed: {{ pass_count }} | Failed: {{ fail_count }}
+          
+          {% if fail_count == 0 %}
+          ✅ ALL TESTS PASSED - Dotfiles symlink fixes are working correctly!
+          {% else %}
+          ❌ SOME TESTS FAILED - Please review the failed tests above.
+          {% endif %}
+      tags: ['test', 'summary']
+
+    # Optional: Run dotfiles deployment if tests fail
+    - name: "🔧 OPTIONAL: Run dotfiles deployment to fix issues"
+      debug:
+        msg: |
+          To fix any failed tests, run the dotfiles deployment:
+          
+          ansible-playbook -i inventories/local/hosts.yml site.yml \
+            -e profile=developer \
+            -e dotsible_window_manager=i3 \
+            -e environment_type=personal \
+            --tags dotfiles \
+            --limit localhost
+      when: >
+        (zsh_test_result is defined and 'FAIL' in zsh_test_result) or
+        (tmux_test_result is defined and 'FAIL' in tmux_test_result) or
+        (cleanup_test_result is defined and 'FAIL' in cleanup_test_result)
+      tags: ['test', 'help']

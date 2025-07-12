@@ -1,0 +1,33 @@
+[Desktop Entry]
+Type=Application
+TryExec=alacritty
+Exec={{ ansible_user_dir }}/.local/bin/alacritty-gpu
+Icon=Alacritty
+Terminal=false
+Categories=System;TerminalEmulator;
+Name=Alacritty (GPU Optimized)
+GenericName=Terminal Emulator
+Comment=GPU-optimized Alacritty terminal with automatic driver selection
+StartupWMClass=Alacritty
+Actions=New;
+
+# GPU Configuration Info (for debugging)
+# System: {{ ansible_hostname }}
+# GPUs: {{ gpu_info.count }} detected
+{% if gpu_info.nvidia_detected %}
+# NVIDIA: {{ gpu_info.nvidia_model }}
+{% endif %}
+{% if gpu_info.amd_detected %}
+# AMD: {{ gpu_info.amd_model }}
+{% endif %}
+{% if gpu_info.intel_detected %}
+# Intel: {{ gpu_info.intel_model }}
+{% endif %}
+# Driver: {{ alacritty_gpu_config.optimal_driver }}
+{% if alacritty_gpu_config.mesa_loader_override %}
+# MESA Override: {{ alacritty_gpu_config.mesa_loader_override }}
+{% endif %}
+
+[Desktop Action New]
+Name=New Terminal
+Exec={{ ansible_user_dir }}/.local/bin/alacritty-gpu

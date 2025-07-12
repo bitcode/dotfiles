@@ -1,0 +1,94 @@
+---
+- name: Test Dotfiles Detection Logic
+  hosts: localhost
+  gather_facts: yes
+  become: no
+  vars:
+    dotfiles_path: "{{ playbook_dir }}/files/dotfiles"
+  
+  tasks:
+    - name: Discover available dotfiles applications
+      find:
+        paths: "{{ dotfiles_path }}"
+        file_type: directory
+        depth: 1
+      register: available_dotfiles
+
+    - name: Set available applications list
+      set_fact:
+        dotfiles_apps: "{{ available_dotfiles.files | map(attribute='path') | map('basename') | list }}"
+
+    - name: Detect platform and window manager for conditional deployment
+      set_fact:
+        detected_platform: "{{ ansible_os_family }}"
+        detected_display_server: "{{ 'x11' if ansible_env.DISPLAY is defined else 'none' }}"
+        is_linux: "{{ ansible_os_family in ['Debian', 'RedHat', 'Archlinux'] }}"
+        is_ubuntu: "{{ ansible_os_family == 'Debian' }}"
+        is_macos: "{{ ansible_os_family == 'Darwin' }}"
+        is_ssh_session: "{{ ansible_env.SSH_CLIENT is defined or ansible_env.SSH_TTY is defined }}"
+
+    - name: Detect window manager (Linux only)
+      shell: |
+        # Try to detect the current window manager
+        if [ -n "$XDG_CURRENT_DESKTOP" ]; then
+          echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]'
+        elif [ -n "$DESKTOP_SESSION" ]; then
+          echo "$DESKTOP_SESSION" | tr '[:upper:]' '[:lower:]'
+        elif pgrep -x "i3" >/dev/null; then
+          echo "i3"
+        elif pgrep -x "sway" >/dev/null; then
+          echo "sway"
+        elif pgrep -x "hyprland" >/dev/null; then
+          echo "hyprland"
+        elif pgrep -x "gnome-shell" >/dev/null; then
+          echo "gnome"
+        elif pgrep -x "plasmashell" >/dev/null; then
+          echo "kde"
+        else
+          echo "unknown"
+        fi
+      register: window_manager_detection
+      when: is_linux and not is_ssh_session
+      failed_when: false
+      changed_when: false
+
+    - name: Set detected window manager
+      set_fact:
+        detected_window_manager: "{{ window_manager_detection.stdout | default('unknown') if is_linux else 'none' }}"
+        deploy_i3_apps: "{{ is_linux and (window_manager_detection.stdout | default('') == 'i3' or window_manager | default('auto') == 'i3') }}"
+
+    - name: Filter applications for GNU Stow compatibility and platform
+      set_fact:
+        # Base applications available on all platforms
+        base_apps: "{{ dotfiles_apps | select('match', '^(nvim|starship|alacritty|zsh|tmux|git|ranger|vim)$') | list }}"
+        # i3 window manager specific applications (only when i3 is detected or requested)
+        i3_apps: "{{ dotfiles_apps | select('match', '^(i3|polybar|rofi|picom|dunst)$') | list if deploy_i3_apps else [] }}"
+        # General Linux applications (excluding i3-specific ones)
+        linux_apps: "{{ dotfiles_apps | select('match', '^(compton)$') | list if is_linux else [] }}"
+
+    - name: Combine applications based on platform and window manager
+      set_fact:
+        stow_compatible_apps: "{{ base_apps + linux_apps + i3_apps }}"
+
+    - name: Display detection results
+      debug:
+        msg: |
+          📦 Dotfiles Detection Results:
+          🖥️  Platform: {{ detected_platform }}
+          🐧  Linux: {{ 'YES' if is_linux else 'NO' }}
+          🪟  Display Server: {{ detected_display_server }}
+          🎯  Window Manager: {{ detected_window_manager }}
+          🔧  Deploy i3 Apps: {{ 'YES' if deploy_i3_apps else 'NO' }}
+          📡  SSH Session: {{ 'YES' if is_ssh_session else 'NO' }}
+          
+          • Total applications found: {{ dotfiles_apps | length }}
+          • All applications: {{ dotfiles_apps | join(', ') }}
+          • Base applications: {{ base_apps | join(', ') }}
+          {% if is_linux %}
+          • Linux-specific apps: {{ linux_apps | join(', ') }}
+          {% endif %}
+          {% if deploy_i3_apps %}
+          • i3 window manager apps: {{ i3_apps | join(', ') }}
+          {% endif %}
+          • Will deploy: {{ stow_compatible_apps | join(', ') }}
+          • Total to deploy: {{ stow_compatible_apps | length }} applications

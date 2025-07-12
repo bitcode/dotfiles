@@ -1,0 +1,8 @@
+---
+- name: Perform environment detection
+  include_tasks: environment_detection.yml
+  tags: ['detection', 'environment']
+
+- name: Detect Python version
+  include_tasks: detect_python_version.yml
+  tags: ['detection', 'python']

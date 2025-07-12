@@ -1,0 +1,239 @@
+---
+# Intelligent Driver Selection Logic for Alacritty
+# Automatically chooses the optimal MESA driver based on detected hardware
+
+- name: "DRIVER SELECTION - Test available drivers for compatibility"
+  shell: |
+    echo "🧪 DRIVER TESTING: Testing MESA drivers for compatibility"
+    echo "========================================================"
+    
+    # Test function for each driver
+    test_driver() {
+      local driver="$1"
+      echo "Testing driver: $driver"
+      
+      # Test with a simple OpenGL query
+      if timeout 10s env MESA_LOADER_DRIVER_OVERRIDE="$driver" glxinfo -B 2>/dev/null | grep -q "OpenGL renderer"; then
+        # Get renderer info
+        renderer=$(timeout 5s env MESA_LOADER_DRIVER_OVERRIDE="$driver" glxinfo 2>/dev/null | grep "OpenGL renderer" | head -1 | sed 's/OpenGL renderer string: //')
+        echo "  ✅ $driver: $renderer"
+        return 0
+      else
+        echo "  ❌ $driver: Failed to initialize"
+        return 1
+      fi
+    }
+    
+    # Test drivers based on available hardware and drivers
+    working_drivers=""
+    preferred_driver=""
+    
+    {% if mesa_drivers.nouveau_available and gpu_info.nvidia_detected %}
+    echo ""
+    echo "Testing NVIDIA nouveau driver..."
+    if test_driver "nouveau"; then
+      working_drivers="$working_drivers nouveau"
+      if [ -z "$preferred_driver" ]; then
+        preferred_driver="nouveau"
+      fi
+    fi
+    {% endif %}
+    
+    {% if mesa_drivers.radeonsi_available and gpu_info.amd_detected %}
+    echo ""
+    echo "Testing AMD radeonsi driver..."
+    if test_driver "radeonsi"; then
+      working_drivers="$working_drivers radeonsi"
+      # Prefer AMD driver for better performance
+      preferred_driver="radeonsi"
+    fi
+    {% endif %}
+    
+    {% if mesa_drivers.intel_available and gpu_info.intel_detected %}
+    echo ""
+    echo "Testing Intel driver..."
+    if test_driver "i965" || test_driver "iris"; then
+      working_drivers="$working_drivers intel"
+      if [ -z "$preferred_driver" ]; then
+        preferred_driver="intel"
+      fi
+    fi
+    {% endif %}
+    
+    # Test software fallback
+    echo ""
+    echo "Testing software fallback (llvmpipe)..."
+    if test_driver "llvmpipe"; then
+      working_drivers="$working_drivers llvmpipe"
+      # Only use software rendering as last resort
+      if [ -z "$preferred_driver" ]; then
+        preferred_driver="llvmpipe"
+      fi
+    fi
+    
+    # Test default (no override)
+    echo ""
+    echo "Testing default (no driver override)..."
+    if timeout 10s glxinfo -B 2>/dev/null | grep -q "OpenGL renderer"; then
+      renderer=$(timeout 5s glxinfo 2>/dev/null | grep "OpenGL renderer" | head -1 | sed 's/OpenGL renderer string: //')
+      echo "  ✅ default: $renderer"
+      working_drivers="$working_drivers default"
+    else
+      echo "  ❌ default: Failed to initialize"
+    fi
+    
+    echo ""
+    echo "Driver Testing Results:"
+    echo "======================"
+    echo "Working drivers: $working_drivers"
+    echo "Preferred driver: $preferred_driver"
+    
+    # Output for Ansible
+    echo "WORKING_DRIVERS:$working_drivers"
+    echo "PREFERRED_DRIVER:$preferred_driver"
+  args:
+    executable: /bin/bash
+  register: driver_test_result
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'driver-test']
+
+- name: "DRIVER SELECTION - Parse driver test results"
+  set_fact:
+    driver_test:
+      working_drivers: "{{ driver_test_result.stdout_lines | select('match', '^WORKING_DRIVERS:.*') | first | default('WORKING_DRIVERS:') | regex_replace('^WORKING_DRIVERS:', '') | trim | split(' ') | reject('equalto', '') | list }}"
+      preferred_driver: "{{ driver_test_result.stdout_lines | select('match', '^PREFERRED_DRIVER:.*') | first | default('PREFERRED_DRIVER:') | regex_replace('^PREFERRED_DRIVER:', '') | trim }}"
+  tags: ['alacritty', 'gpu', 'driver-test']
+
+- name: "DRIVER SELECTION - Determine optimal configuration"
+  set_fact:
+    alacritty_gpu_config:
+      # Multi-GPU system logic
+      system_type: "{{ 'multi-gpu' if (gpu_info.count | int) > 1 else 'single-gpu' }}"
+      
+      # Driver selection priority:
+      # 1. NVIDIA nouveau (proven to work on this system)
+      # 2. AMD radeonsi (if available and working)
+      # 3. Intel drivers
+      # 4. Software fallback (llvmpipe)
+      optimal_driver: >-
+        {%- if 'nouveau' in driver_test.working_drivers -%}
+        nouveau
+        {%- elif 'radeonsi' in driver_test.working_drivers -%}
+        radeonsi
+        {%- elif 'intel' in driver_test.working_drivers -%}
+        intel
+        {%- elif 'llvmpipe' in driver_test.working_drivers -%}
+        llvmpipe
+        {%- else -%}
+        default
+        {%- endif -%}
+      
+      # Environment variables to set
+      mesa_loader_override: >-
+        {%- if 'nouveau' in driver_test.working_drivers -%}
+        nouveau
+        {%- elif 'radeonsi' in driver_test.working_drivers -%}
+        radeonsi
+        {%- elif 'intel' in driver_test.working_drivers -%}
+        i965
+        {%- else -%}
+
+        {%- endif -%}
+      
+      # Additional environment variables for stability
+      additional_env_vars:
+        # Disable problematic features that cause memory issues
+        MESA_GLSL_CACHE_DISABLE: "1"
+        # Force specific GPU selection in multi-GPU systems
+        DRI_PRIME: "{{ '1' if gpu_info.amd_detected and gpu_info.nvidia_detected else '' }}"
+        # Vulkan driver selection
+        VK_ICD_FILENAMES: >-
+          {%- if gpu_info.amd_detected -%}
+          /usr/share/vulkan/icd.d/radeon_icd.x86_64.json
+          {%- elif gpu_info.nvidia_detected -%}
+          /usr/share/vulkan/icd.d/nouveau_icd.x86_64.json
+          {%- endif -%}
+      
+      # Configuration rationale
+      rationale: >-
+        {%- if (gpu_info.count | int) > 1 -%}
+        Multi-GPU system detected. Using {{ alacritty_gpu_config.optimal_driver | default('default') }} driver
+        {%- if gpu_info.amd_detected and gpu_info.nvidia_detected -%}
+        with AMD GPU preference for better MESA compatibility.
+        {%- endif -%}
+        {%- else -%}
+        Single GPU system using {{ alacritty_gpu_config.optimal_driver | default('default') }} driver.
+        {%- endif -%}
+  tags: ['alacritty', 'gpu', 'config']
+
+- name: "DRIVER SELECTION - Validate selected configuration"
+  shell: |
+    echo "🔧 CONFIGURATION VALIDATION: Testing selected driver configuration"
+    echo "================================================================="
+    
+    driver="{{ alacritty_gpu_config.mesa_loader_override }}"
+    
+    if [ -n "$driver" ]; then
+      echo "Testing selected driver: $driver"
+      
+      # Test the selected configuration
+      export MESA_LOADER_DRIVER_OVERRIDE="$driver"
+      {% if alacritty_gpu_config.additional_env_vars.MESA_GLSL_CACHE_DISABLE %}
+      export MESA_GLSL_CACHE_DISABLE="{{ alacritty_gpu_config.additional_env_vars.MESA_GLSL_CACHE_DISABLE }}"
+      {% endif %}
+      {% if alacritty_gpu_config.additional_env_vars.DRI_PRIME %}
+      export DRI_PRIME="{{ alacritty_gpu_config.additional_env_vars.DRI_PRIME }}"
+      {% endif %}
+      
+      if timeout 10s glxinfo -B 2>/dev/null | grep -q "OpenGL renderer"; then
+        renderer=$(timeout 5s glxinfo 2>/dev/null | grep "OpenGL renderer" | head -1 | sed 's/OpenGL renderer string: //')
+        echo "✅ Configuration validated successfully"
+        echo "   Renderer: $renderer"
+        echo "VALIDATION_STATUS:SUCCESS"
+      else
+        echo "❌ Configuration validation failed"
+        echo "VALIDATION_STATUS:FAILED"
+      fi
+    else
+      echo "Using default configuration (no driver override)"
+      if timeout 10s glxinfo -B 2>/dev/null | grep -q "OpenGL renderer"; then
+        renderer=$(timeout 5s glxinfo 2>/dev/null | grep "OpenGL renderer" | head -1 | sed 's/OpenGL renderer string: //')
+        echo "✅ Default configuration works"
+        echo "   Renderer: $renderer"
+        echo "VALIDATION_STATUS:SUCCESS"
+      else
+        echo "❌ Default configuration failed"
+        echo "VALIDATION_STATUS:FAILED"
+      fi
+    fi
+  args:
+    executable: /bin/bash
+  register: config_validation
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'validation']
+
+- name: "DRIVER SELECTION - Display final configuration"
+  debug:
+    msg: |
+      🔧 Optimal Alacritty GPU Configuration:
+      ======================================
+      
+      System: {{ alacritty_gpu_config.system_type | upper }}
+      Optimal Driver: {{ alacritty_gpu_config.optimal_driver | upper }}
+      
+      Environment Variables:
+      {% if alacritty_gpu_config.mesa_loader_override %}
+      • MESA_LOADER_DRIVER_OVERRIDE={{ alacritty_gpu_config.mesa_loader_override }}
+      {% endif %}
+      {% for key, value in alacritty_gpu_config.additional_env_vars.items() %}
+      {% if value %}
+      • {{ key }}={{ value }}
+      {% endif %}
+      {% endfor %}
+      
+      Rationale: {{ alacritty_gpu_config.rationale }}
+      
+      Validation: {{ '✅ PASSED' if 'VALIDATION_STATUS:SUCCESS' in config_validation.stdout else '❌ FAILED' }}
+  tags: ['alacritty', 'gpu', 'summary']

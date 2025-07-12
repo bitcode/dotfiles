@@ -1,0 +1,109 @@
+---
+# Container-aware package management for Arch Linux
+# Handles privilege escalation failures gracefully in container environments
+
+- name: Container-aware package operations
+  block:
+    # Only run package database update if this is the first call (empty package_list)
+    - name: Update package database (privileged)
+      pacman:
+        update_cache: yes
+      become: yes
+      when:
+        - dotsible_privilege_escalation | default(false)
+        - (package_list is not defined or package_list | length == 0)
+        - not (dotsible_container_restricted | default(false))
+
+    - name: Display package database update status
+      debug:
+        msg: |
+          📦 Package Database Update:
+          {% if dotsible_privilege_escalation | default(false) %}
+          ✅ Package database updated
+          {% else %}
+          ⚠️  Skipped due to container privilege restrictions
+          {% endif %}
+      when: (package_list is not defined or package_list | length == 0)
+
+    # Handle package installation when package_list is provided
+    - name: Install packages (privileged)
+      pacman:
+        name: "{{ package_list }}"
+        state: present
+      become: yes
+      when:
+        - dotsible_privilege_escalation | default(false)
+        - package_list is defined
+        - package_list | length > 0
+        - not (dotsible_container_restricted | default(false))
+
+    - name: Check package availability (unprivileged fallback)
+      shell: |
+        echo "🔍 Checking packages in restricted environment:"
+        for pkg in {{ package_list | join(' ') }}; do
+          if pacman -Q "$pkg" 2>/dev/null; then
+            echo "✅ $pkg: ALREADY INSTALLED"
+          else
+            echo "❌ $pkg: NOT AVAILABLE (requires privilege escalation)"
+          fi
+        done
+      register: container_package_check
+      when:
+        - not (dotsible_privilege_escalation | default(false))
+        - package_list is defined
+        - package_list | length > 0
+      failed_when: false
+
+    - name: Display package installation status
+      debug:
+        msg: |
+          📦 Package Installation Results for {{ package_list | length if package_list is defined else 0 }} packages:
+          {% if dotsible_privilege_escalation | default(false) %}
+          ✅ Packages processed with full privileges
+          {% else %}
+          ⚠️  Package installation skipped due to container restrictions
+          {% if container_package_check is defined and container_package_check.stdout_lines is defined %}
+          {{ container_package_check.stdout }}
+          {% endif %}
+          {% endif %}
+      when:
+        - package_list is defined
+        - package_list | length > 0
+
+    # Handle system upgrade when arch_full_upgrade is set
+    - name: Upgrade all packages (privileged)
+      pacman:
+        upgrade: yes
+      become: yes
+      when:
+        - dotsible_privilege_escalation | default(false)
+        - arch_full_upgrade | default(false)
+        - (package_list is not defined or package_list | length == 0)
+        - not (dotsible_container_restricted | default(false))
+
+    - name: Display upgrade status
+      debug:
+        msg: |
+          🔄 System Upgrade:
+          {% if dotsible_privilege_escalation | default(false) %}
+          {% if arch_full_upgrade | default(false) %}
+          ✅ System upgrade completed
+          {% else %}
+          ℹ️  System upgrade skipped (arch_full_upgrade=false)
+          {% endif %}
+          {% else %}
+          ⚠️  System upgrade skipped due to container privilege restrictions
+          {% endif %}
+      when:
+        - arch_full_upgrade | default(false)
+        - (package_list is not defined or package_list | length == 0)
+
+  rescue:
+    - name: Handle package management errors gracefully
+      debug:
+        msg: |
+          ⚠️  Package management operation failed - likely due to container restrictions
+          🐳 Container Environment: {{ 'Yes' if dotsible_container | default(false) else 'No' }}
+          🔐 Privilege Escalation: {{ 'Available' if dotsible_privilege_escalation | default(false) else 'Restricted' }}
+          💡 This is expected in restricted container environments
+          📦 Dotfiles configuration will continue with available tools

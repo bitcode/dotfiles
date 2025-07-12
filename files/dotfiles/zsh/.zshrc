@@ -1,7 +1,9 @@
 # ============================================================================
-# HOMEBREW ENVIRONMENT (must come first)
+# HOMEBREW ENVIRONMENT (macOS only)
 # ============================================================================
-eval "$(/opt/homebrew/bin/brew shellenv)"
+if [[ "$OSTYPE" == "darwin"* ]] && [[ -f "/opt/homebrew/bin/brew" ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
 
 # ============================================================================
 # ENVIRONMENT VARIABLES
@@ -31,9 +33,15 @@ done
 # ============================================================================
 # PATH CONFIGURATION
 # ============================================================================
-# Python PATH - Dotsible managed
-export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
+# Platform-specific PATH configuration
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS - Homebrew paths
+  [[ -d "/opt/homebrew/opt/python@3.13/bin" ]] && export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+  [[ -d "/opt/homebrew/bin" ]] && export PATH="/opt/homebrew/bin:$PATH"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  # Linux - system paths
+  [[ -d "/usr/bin/python3" ]] && export PATH="/usr/bin:$PATH"
+fi
 
 # Development tools
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -104,12 +112,12 @@ bindkey '^J' autosuggest-accept
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 #[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# Zsh Plugins
-source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-source ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh
-source ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+# Zsh Plugins (conditional loading)
+[[ -f ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+[[ -f ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+[[ -f ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+[[ -f ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh
+[[ -f ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 # Theme
 eval "$(starship init zsh)"
@@ -240,19 +248,43 @@ bindkey '^[[6~' down-line-or-history # Page Down
 
 # BEGIN ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins
 # Oh My Zsh Configuration
-export ZSH="/Users/mdrozrosario/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 
-# Plugins configuration
-plugins=(git sudo history colored-man-pages)
+# Plugins configuration (including custom plugins)
+plugins=(
+  git
+  sudo
+  history
+  colored-man-pages
+  docker
+  docker-compose
+  node
+  npm
+  python
+  pip
+  virtualenv
+  tmux
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+  zsh-completions
+  zsh-fzf-history-search
+  zsh-history-substring-search
+  zsh-vi-mode
+)
 
 # Load Oh My Zsh
-source $ZSH/oh-my-zsh.sh
+if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
+  source $ZSH/oh-my-zsh.sh
+fi
 # END ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins
 # BEGIN ANSIBLE MANAGED BLOCK - Plugin Settings
 # Plugin-specific configurations
 
+# BEGIN ANSIBLE MANAGED BLOCK - Plugin Settings
+# Plugin-specific configurations
+
 # zsh-autosuggestions
-if [[ -f /Users/mdrozrosario/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
   ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
   ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(end-of-line vi-end-of-line vi-add-eol)
   ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(vi-forward-word forward-word vi-forward-word-end forward-word-end vi-find vi-find-next)
@@ -260,7 +292,7 @@ if [[ -f /Users/mdrozrosario/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-a
 fi
 
 # zsh-history-substring-search
-if [[ -f /Users/mdrozrosario/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
+if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
   HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="bg=cyan,fg=white,bold"
   HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="bg=magenta,fg=white,bold"
   HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="i"
@@ -271,9 +303,10 @@ if [[ -f /Users/mdrozrosario/.oh-my-zsh/custom/plugins/zsh-history-substring-sea
 fi
 
 # zsh-syntax-highlighting (must be loaded last)
-if [[ -f /Users/mdrozrosario/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
   ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
 fi
+# END ANSIBLE MANAGED BLOCK - Plugin Settings
 # END ANSIBLE MANAGED BLOCK - Plugin Settings
 # BEGIN ANSIBLE MANAGED BLOCK - Theme Configuration
 # ZSH Theme Configuration
@@ -538,9 +571,11 @@ fdir() {
 # BEGIN ANSIBLE MANAGED BLOCK - Development Environment
 # Development Environment
 
-# Node.js/npm configuration
-export NPM_CONFIG_PREFIX="$HOME/.npm-global"
-[[ -d "$NPM_CONFIG_PREFIX/bin" ]] && export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+# Node.js/npm configuration (only if nvm is not present)
+if [[ ! -d "$HOME/.nvm" ]]; then
+  export NPM_CONFIG_PREFIX="$HOME/.npm-global"
+  [[ -d "$NPM_CONFIG_PREFIX/bin" ]] && export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+fi
 
 # Python configuration
 export PYTHONDONTWRITEBYTECODE=1
@@ -575,3 +610,4 @@ export NVM_DIR="$HOME/.nvm"
 # Created by `pipx` on 2025-06-15 06:41:36
 export PATH="$PATH:/Users/mdrozrosario/.local/bin"
 export PATH="$HOME/.dotnet/tools:$PATH"
+alias alacritty-gpu='/home/bit/.local/bin/alacritty-gpu'

@@ -1,0 +1,31 @@
+[Desktop Entry]
+Type=Application
+TryExec=alacritty-wrapper
+Exec=/usr/local/bin/alacritty-wrapper
+Icon=Alacritty
+Terminal=false
+Categories=System;TerminalEmulator;
+Name=Alacritty
+GenericName=Terminal Emulator
+Comment=GPU-optimized terminal emulator with automatic shell configuration
+StartupWMClass=Alacritty
+Actions=New;
+
+# GPU Configuration Info
+# System: {{ ansible_hostname }}
+# GPUs: {{ gpu_info.count }} detected
+{% if gpu_info.nvidia_detected %}
+# NVIDIA: {{ gpu_info.nvidia_model }}
+{% endif %}
+{% if gpu_info.amd_detected %}
+# AMD: {{ gpu_info.amd_model }}
+{% endif %}
+# Driver: {{ alacritty_gpu_config.optimal_driver }}
+{% if alacritty_gpu_config.mesa_loader_override %}
+# MESA Override: {{ alacritty_gpu_config.mesa_loader_override }}
+{% endif %}
+# Auto-configured for optimal performance and shell integration
+
+[Desktop Action New]
+Name=New Terminal
+Exec=/usr/local/bin/alacritty-wrapper

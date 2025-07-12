@@ -35,6 +35,15 @@ profiles:
       - nodejs
       - python
       - gdb
+      - neovim
+      - starship
+      - alacritty
+      # i3 window manager ecosystem (Linux X11 only)
+      - i3
+      - polybar
+      - rofi
+      - picom
+      - dunst
     packages:
       - essential
       - development
@@ -52,14 +61,36 @@ profiles:
       - .zshrc
       - .tmux.conf
       - .dockerconfig
+      - .config/nvim
+      - .config/starship.toml
+      - .config/alacritty
+      # i3 window manager dotfiles (Linux X11 only)
+      - .config/i3
+      - .config/polybar
+      - .config/rofi
+      - .config/picom.conf
     services:
       - docker
     gui_applications:
       - code
       - firefox
       - alacritty
+      # i3 window manager GUI components (Linux X11 only)
+      - polybar
+      - rofi
+      - dunst
     display_server_preference: "{{ display_server_preference | default('x11') }}"
     desktop_environment: "{{ desktop_environment | default('gnome') }}"
+    window_manager: "{{ window_manager | default('auto') }}"
+    # i3 window manager specific settings
+    i3_config:
+      enable_polybar: true
+      enable_rofi: true
+      enable_picom: true
+      enable_dunst: true
+      terminal: "alacritty"
+      browser: "firefox"
+      editor: "nvim"
 
   # Server profile - headless server configuration
   server:
@@ -194,6 +225,9 @@ profiles:
     gui_applications:
       - alacritty
       - code
+      # i3 window manager GUI components (Linux X11 only, enterprise-hardened)
+      - polybar
+      - rofi
     services:
       - ssh
       - cron
@@ -251,6 +285,16 @@ profile_configs:
     display_server:
       preference: "{{ display_server_preference | default('x11') }}"
       desktop_environment: "{{ desktop_environment | default('gnome') }}"
+      window_manager: "{{ window_manager | default('auto') }}"
+    i3:
+      mod_key: "Mod4"
+      terminal: "alacritty"
+      browser: "firefox"
+      editor: "nvim"
+      launcher: "rofi -show drun"
+      compositor: "picom"
+      bar: "polybar"
+      notification_daemon: "dunst"
 
   server:
     shell:

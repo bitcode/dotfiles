@@ -1,0 +1,163 @@
+# Pre-commit configuration for Dotsible
+# This file configures pre-commit hooks to ensure code quality and consistency
+# Install with: pre-commit install
+
+repos:
+  # Ansible Lint - Primary linting for Ansible content
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v24.12.2
+    hooks:
+      - id: ansible-lint
+        name: Ansible Lint
+        description: Run ansible-lint on Ansible files
+        entry: ansible-lint
+        language: python
+        files: \.(yml|yaml)$
+        exclude: |
+          (?x)^(
+            \.git/.*|
+            \.github/.*|
+            \.venv/.*|
+            venv/.*|
+            \.tox/.*|
+            tests/.*|
+            roles/external/.*|
+            .*\.md$|
+            docker-compose\.ya?ml$|
+            \.ansible-lint\.yml$
+          )$
+        args:
+          - --config-file=.ansible-lint.yml
+          - --force-color
+          - --parseable
+        additional_dependencies:
+          - ansible-core>=2.12
+          - ansible>=6.0
+        pass_filenames: true
+        require_serial: false
+        stages: [commit, push]
+
+  # YAML Linting - General YAML syntax and formatting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        name: YAML Lint
+        description: Check YAML syntax and formatting
+        args:
+          - --config-data
+          - |
+            extends: default
+            rules:
+              line-length:
+                max: 120
+                level: warning
+              indentation:
+                spaces: 2
+              truthy:
+                allowed-values: ['true', 'false', 'yes', 'no']
+              comments:
+                min-spaces-from-content: 1
+              document-start: disable
+              empty-lines:
+                max-end: 1
+        files: \.(yml|yaml)$
+        exclude: |
+          (?x)^(
+            \.git/.*|
+            \.github/.*|
+            \.venv/.*|
+            venv/.*|
+            \.tox/.*|
+            docker-compose\.ya?ml$
+          )$
+
+  # General file formatting and cleanup
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        exclude: \.(md|rst)$
+
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+        name: Fix End of Files
+        exclude: \.(md|rst)$
+
+      # Check for merge conflicts
+      - id: check-merge-conflict
+        name: Check for Merge Conflicts
+
+      # Check YAML syntax
+      - id: check-yaml
+        name: Check YAML Syntax
+        args: [--allow-multiple-documents]
+        exclude: |
+          (?x)^(
+            \.github/.*|
+            templates/.*\.j2$
+          )$
+
+      # Check for large files
+      - id: check-added-large-files
+        name: Check for Large Files
+        args: [--maxkb=1000]
+
+      # Check shell scripts
+      - id: check-executables-have-shebangs
+        name: Check Executables Have Shebangs
+
+      # Check for private keys
+      - id: detect-private-key
+        name: Detect Private Keys
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: Shell Script Lint
+        args:
+          - --severity=warning
+          - --shell=bash
+          - --exclude=SC1091,SC2034,SC2155
+        files: \.(sh|bash)$
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.42.0
+    hooks:
+      - id: markdownlint
+        name: Markdown Lint
+        args:
+          - --config=.markdownlint.json
+          - --fix
+        files: \.md$
+
+  # JSON formatting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: pretty-format-json
+        name: Format JSON
+        args: [--autofix, --indent=2]
+        files: \.json$
+
+# Global configuration
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [commit]
+
+# CI configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

@@ -61,15 +61,17 @@
   when: ansible_os_family != "Windows"
   tags: ['tmux', 'tpm', 'plugins']
 
-- name: Deploy Tmux configuration files
-  copy:
-    src: "{{ playbook_dir }}/files/dotfiles/tmux/"
-    dest: "{{ ansible_user_dir }}/"
-    mode: '0644'
-    backup: yes
+# NOTE: Tmux configuration files are deployed via the dotfiles role using GNU Stow
+# This ensures proper symlink management and avoids conflicts with stow deployment
+# The dotfiles role will handle: files/dotfiles/tmux/.tmux.conf -> ~/.tmux.conf
+- name: Tmux configuration deployment info
+  debug:
+    msg: |
+      Tmux configuration files will be deployed via the dotfiles role using GNU Stow.
+      Source: {{ playbook_dir }}/files/dotfiles/tmux/.tmux.conf
+      Target: {{ ansible_user_dir }}/.tmux.conf (symlink)
   when: ansible_os_family != "Windows"
-  notify: reload tmux
-  tags: ['tmux', 'config']
+  tags: ['tmux', 'config', 'info']
 
 - name: Check if tmux scripts directory exists
   stat:

@@ -56,14 +56,53 @@
             hyprland
           {%- elif sway_check.rc == 0 -%}
             sway
-          {%- elif gnome_check.rc == 0 or 'GNOME' in current_desktop.stdout -%}
+          {%- elif gnome_check.rc == 0 or (current_desktop.stdout is defined and 'GNOME' in current_desktop.stdout) -%}
             gnome
-          {%- elif kde_check.rc == 0 or 'KDE' in current_desktop.stdout -%}
+          {%- elif kde_check.rc == 0 or (current_desktop.stdout is defined and 'KDE' in current_desktop.stdout) -%}
             kde
           {%- else -%}
             unknown
           {%- endif -%}
   when: ansible_os_family == "Debian" or ansible_distribution == "Archlinux"
+
+- name: Detect container environment
+  block:
+    - name: Check for container indicators
+      shell: |
+        score=0
+        test -f /.dockerenv && score=$((score + 1))
+        test -f /run/.containerenv && score=$((score + 1))
+        test -f /proc/1/cgroup && grep -q "docker\|lxc\|containerd\|podman" /proc/1/cgroup 2>/dev/null && score=$((score + 1))
+        test -n "$container" && score=$((score + 1))
+        test -n "$CONTAINER_ID" && score=$((score + 1))
+        test "$$" = "1" && score=$((score + 1))
+        command -v capsh >/dev/null 2>&1 && capsh --print 2>/dev/null | grep -q "no-new-privs" && score=$((score + 1))
+        echo $score
+      register: container_indicators
+      failed_when: false
+      changed_when: false
+
+    - name: Test privilege escalation capability
+      shell: |
+        # Test if we can actually escalate privileges
+        if command -v sudo >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            echo "available"
+          else
+            echo "restricted"
+          fi
+        else
+          echo "unavailable"
+        fi
+      register: privilege_escalation_test
+      failed_when: false
+      changed_when: false
+
+    - name: Set container environment facts
+      set_fact:
+        detected_container: "{{ (container_indicators.stdout | default('0') | int) >= 2 }}"
+        privilege_escalation_available: "{{ (privilege_escalation_test.stdout | default('unavailable')) == 'available' }}"
+        container_restricted: "{{ (container_indicators.stdout | default('0') | int) >= 2 and (privilege_escalation_test.stdout | default('unavailable')) != 'available' }}"
 
 - name: Detect environment type
   block:
@@ -105,7 +144,7 @@
     - name: Set detected environment type
       set_fact:
         detected_environment: >-
-          {%- if 'enterprise' in domain_check.stdout or 'enterprise' in software_check.stdout -%}
+          {%- if (domain_check.stdout is defined and 'enterprise' in domain_check.stdout) or (software_check.stdout is defined and 'enterprise' in software_check.stdout) -%}
             enterprise
           {%- else -%}
             personal
@@ -181,6 +220,9 @@
       🏗️  Architecture: {{ detected_architecture }}
       🪟  Window Manager: {{ detected_window_manager | default('N/A') | title }}
       🏢  Environment Type: {{ detected_environment | title }}
+      📦  Container Environment: {{ 'Yes' if detected_container | default(false) else 'No' }}
+      🔐  Privilege Escalation: {{ 'Available' if privilege_escalation_available | default(false) else 'Restricted' }}
+      ⚠️  Container Restricted: {{ 'Yes' if container_restricted | default(false) else 'No' }}
       {% if ansible_os_family == "Windows" %}
       🪟  Windows Edition: {{ detected_windows_edition | default('Unknown') }}
       🔗  Domain Joined: {{ detected_domain_joined | default(false) }}
@@ -199,3 +241,6 @@
     dotsible_environment: "{{ detected_environment }}"
     dotsible_python_version: "{{ detected_python_version | default('unknown') }}"
     dotsible_python_needs_upgrade: "{{ python_needs_upgrade | default(true) }}"
+    dotsible_container: "{{ detected_container | default(false) }}"
+    dotsible_privilege_escalation: "{{ privilege_escalation_available | default(false) }}"
+    dotsible_container_restricted: "{{ container_restricted | default(false) }}"

@@ -1,5 +1,3 @@
-# Import additional configuration files
-import = ["~/dotfiles/alacritty/.config/alacritty/themes/everforest_dark.toml"]
 
 # Environment variables
 #env = { TERM = "alacritty" }
@@ -16,10 +14,16 @@ opacity = 0.8
 
 # Font configuration
 [font]
-normal = { family = "JetBrains Mono Nerd Font", style = "normal" }
-bold = { family = "JetBrains Mono Nerd Font", style = "bold" }
-italic = { family = "JetBrains Mono Nerd Font", style = "italic" }
-bold_italic = { family = "JetBrains Mono Nerd Font", style = "bold_italic" }
+normal = { family = "Iosevka Nerd Font", style = "normal" }
+bold = { family = "Iosevka Nerd Font", style = "bold" }
+italic = { family = "Iosevka Nerd Font", style = "italic" }
+bold_italic = { family = "Iosevka Nerd Font", style = "bold_italic" }
+
+[general]
+# Import additional configuration files
+import = ["~/dotfiles/alacritty/.config/alacritty/themes/everforest_dark.toml"]
+
+[terminal]
 
 # Colors
 #[colors]
@@ -29,7 +33,7 @@ bold_italic = { family = "JetBrains Mono Nerd Font", style = "bold_italic" }
 #}
 
 # Shell configuration
-[shell]
+[terminal.shell]
 program = "zsh"
 args = ["-c", "tmux new-session -A -s $(uuidgen | tr -d '-')"]
 

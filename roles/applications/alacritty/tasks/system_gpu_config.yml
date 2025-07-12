@@ -1,0 +1,124 @@
+---
+# System-Wide GPU Configuration for Alacritty
+# Creates system-wide MESA configuration to fix default Alacritty launches
+
+- name: "SYSTEM GPU CONFIG - Create system-wide MESA environment configuration"
+  template:
+    src: mesa-system-config.sh.j2
+    dest: "/etc/profile.d/mesa-gpu-config.sh"
+    mode: '0644'
+    backup: yes
+  become: yes
+  when: 
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'system', 'mesa']
+
+- name: "SYSTEM GPU CONFIG - Ensure environment.d directory exists"
+  file:
+    path: "{{ ansible_user_dir }}/.config/environment.d"
+    state: directory
+    mode: '0755'
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'user']
+
+- name: "SYSTEM GPU CONFIG - Create user-specific environment configuration"
+  template:
+    src: mesa-user-config.sh.j2
+    dest: "{{ ansible_user_dir }}/.config/environment.d/mesa-gpu.conf"
+    mode: '0644'
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'user', 'mesa']
+
+- name: "SYSTEM GPU CONFIG - Ensure systemd user service directory exists"
+  file:
+    path: "{{ ansible_user_dir }}/.config/systemd/user/alacritty.service.d"
+    state: directory
+    mode: '0755'
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+    - ansible_service_mgr == "systemd"
+  tags: ['alacritty', 'gpu', 'systemd']
+
+- name: "SYSTEM GPU CONFIG - Create systemd user environment override"
+  template:
+    src: mesa-systemd-env.conf.j2
+    dest: "{{ ansible_user_dir }}/.config/systemd/user/alacritty.service.d/gpu-override.conf"
+    mode: '0644'
+    backup: yes
+  when:
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+    - ansible_service_mgr == "systemd"
+  tags: ['alacritty', 'gpu', 'systemd']
+
+- name: "SYSTEM GPU CONFIG - Replace system Alacritty desktop entry"
+  template:
+    src: alacritty-system.desktop.j2
+    dest: "/usr/share/applications/Alacritty.desktop"
+    mode: '0644'
+    backup: yes
+  become: yes
+  when: 
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'system', 'desktop']
+
+- name: "SYSTEM GPU CONFIG - Create Alacritty wrapper script in system path"
+  template:
+    src: alacritty-system-wrapper.sh.j2
+    dest: "/usr/local/bin/alacritty-wrapper"
+    mode: '0755'
+    backup: yes
+  become: yes
+  when: 
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  tags: ['alacritty', 'gpu', 'system', 'wrapper']
+
+- name: "SYSTEM GPU CONFIG - Update desktop database"
+  command: update-desktop-database /usr/share/applications
+  become: yes
+  when: 
+    - ansible_os_family != "Windows"
+    - alacritty_gpu_config is defined
+  changed_when: false
+  failed_when: false
+  tags: ['alacritty', 'gpu', 'system', 'desktop']
+
+- name: "SYSTEM GPU CONFIG - Display system configuration summary"
+  debug:
+    msg: |
+      System-Wide GPU Configuration Applied:
+      ====================================
+      
+      System Files Created:
+      • /etc/profile.d/mesa-gpu-config.sh (system-wide MESA config)
+      • /usr/share/applications/Alacritty.desktop (updated desktop entry)
+      • /usr/local/bin/alacritty-wrapper (system wrapper script)
+      
+      User Files Created:
+      • {{ ansible_user_dir }}/.config/environment.d/mesa-gpu.conf (user environment)
+      {% if ansible_service_mgr == "systemd" %}
+      • {{ ansible_user_dir }}/.config/systemd/user/alacritty.service.d/gpu-override.conf (systemd override)
+      {% endif %}
+      
+      Configuration:
+      • MESA Driver: {{ alacritty_gpu_config.optimal_driver }}
+      • Override: {{ alacritty_gpu_config.mesa_loader_override }}
+      
+      Effect:
+      • Default 'alacritty' command now uses GPU optimization
+      • Desktop/rofi launches use GPU optimization
+      • All launch methods should work without MESA errors
+      
+      Restart Required:
+      • Log out and back in for full effect
+      • Or run: source /etc/profile.d/mesa-gpu-config.sh
+  tags: ['alacritty', 'gpu', 'system', 'summary']

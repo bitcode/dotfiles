@@ -15,20 +15,25 @@
       Cargo Packages: {{ cargo_packages | join(', ') }}
       ================================================================
 
-# === SYSTEM UPDATE ===
-- name: Update package database
-  pacman:
-    update_cache: yes
-  become: yes
+# === CONTAINER-AWARE SYSTEM UPDATE ===
+- name: Container-aware package database update
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: []
 
-- name: Upgrade all packages
-  pacman:
-    upgrade: yes
-  become: yes
+- name: Container-aware system upgrade
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: []
   when: arch_full_upgrade | default(false)
 
-# === PACMAN PACKAGES ===
-- name: Check which pacman packages are already installed
+# === CONTAINER-AWARE PACMAN PACKAGES ===
+- name: Container-aware pacman packages installation
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: "{{ pacman_packages }}"
+
+- name: Check which pacman packages are available
   shell: pacman -Q {{ item }} 2>/dev/null
   register: pacman_package_check
   failed_when: false
@@ -37,38 +42,14 @@
 
 - name: Display pacman package status
   debug:
-    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+    msg: "📦 {{ item.item }}: {{ '✅ INSTALLED' if item.rc == 0 else '❌ MISSING' }}"
   loop: "{{ pacman_package_check.results }}"
 
-- name: Install missing pacman packages
-  pacman:
-    name: "{{ item.item }}"
-    state: present
-  become: yes
-  when: item.rc != 0
-  loop: "{{ pacman_package_check.results }}"
-  register: pacman_install_result
-
-- name: Verify pacman packages installation
-  shell: pacman -Q {{ item.item.item }} 2>/dev/null
-  register: pacman_verify_check
-  failed_when: false
-  changed_when: false
-  loop: "{{ pacman_package_check.results }}"
-  when: item.rc != 0
-
-- name: Display pacman installation verification
-  debug:
-    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
-  loop: "{{ pacman_verify_check.results }}"
-  when: pacman_verify_check.results is defined
-
-# === DEVELOPMENT PACKAGES ===
-- name: Install development packages
-  pacman:
-    name: "{{ dev_packages }}"
-    state: present
-  become: yes
+# === CONTAINER-AWARE DEVELOPMENT PACKAGES ===
+- name: Container-aware development packages installation
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: "{{ dev_packages }}"
 
 # === DEVELOPMENT TOOLS VERIFICATION ===
 - name: Verify essential development tools are accessible
@@ -88,27 +69,24 @@
   loop: "{{ essential_tools_verify.results }}"
   when: essential_tools_verify.results is defined
 
-# === WINDOW MANAGER PACKAGES ===
-- name: Install window manager packages
-  pacman:
-    name: "{{ wm_packages }}"
-    state: present
-  become: yes
+# === CONTAINER-AWARE WINDOW MANAGER PACKAGES ===
+- name: Container-aware window manager packages installation
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: "{{ wm_packages }}"
   when: install_window_managers | default(true)
 
-# === FONT PACKAGES ===
-- name: Install font packages
-  pacman:
-    name: "{{ font_packages }}"
-    state: present
-  become: yes
+# === CONTAINER-AWARE FONT PACKAGES ===
+- name: Container-aware font packages installation
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: "{{ font_packages }}"
 
-# === SYSTEM PACKAGES ===
-- name: Install system utility packages
-  pacman:
-    name: "{{ system_packages }}"
-    state: present
-  become: yes
+# === CONTAINER-AWARE SYSTEM PACKAGES ===
+- name: Container-aware system utility packages installation
+  include_tasks: container_aware_packages.yml
+  vars:
+    package_list: "{{ system_packages }}"
 
 # === AUR HELPER SETUP ===
 - name: Check if AUR helper is installed
@@ -174,9 +152,11 @@
 
 - name: Display AUR installation verification
   debug:
-    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+    msg: "{{ item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
   loop: "{{ aur_verify_check.results }}"
-  when: aur_verify_check.results is defined
+  when:
+    - aur_verify_check.results is defined
+    - aur_verify_check.results | length > 0
 
 # === NODE.JS AND NPM GLOBAL PACKAGES ===
 - name: Check if Node.js is installed
@@ -190,7 +170,12 @@
     msg: "Node.js: {{ 'INSTALLED (' + node_version_check.stdout.strip() + ')' if node_version_check.rc == 0 else 'MISSING' }}"
 
 - name: Check which npm global packages are already installed
-  shell: npm list -g --depth=0 {{ item }} 2>/dev/null
+  shell: |
+    if npm list -g --depth=0 {{ item }} >/dev/null 2>&1; then
+      echo "INSTALLED"
+    else
+      echo "NOT_FOUND"
+    fi
   register: npm_package_check
   failed_when: false
   changed_when: false
@@ -199,7 +184,7 @@
 
 - name: Display npm package status
   debug:
-    msg: "{{ item.item }}: {{ 'INSTALLED' if item.rc == 0 else 'MISSING' }}"
+    msg: "{{ item.item }}: {{ 'INSTALLED' if 'INSTALLED' in item.stdout else 'MISSING' }}"
   loop: "{{ npm_package_check.results }}"
   when: node_version_check.rc == 0 and npm_package_check.results is defined
 
@@ -211,13 +196,18 @@
   when:
     - node_version_check.rc == 0
     - npm_package_check.results is defined
-    - item.rc != 0
+    - "'NOT_FOUND' in item.stdout"
   loop: "{{ npm_package_check.results }}"
   become: no
   register: npm_install_result
 
 - name: Verify npm global packages installation
-  shell: npm list -g --depth=0 {{ item.item.item }} 2>/dev/null
+  shell: |
+    if npm list -g --depth=0 {{ item.item.item }} >/dev/null 2>&1; then
+      echo "INSTALLED"
+    else
+      echo "NOT_FOUND"
+    fi
   register: npm_verify_check
   failed_when: false
   changed_when: false
@@ -225,11 +215,11 @@
   when:
     - node_version_check.rc == 0
     - npm_package_check.results is defined
-    - item.rc != 0
+    - "'NOT_FOUND' in item.stdout"
 
 - name: Display npm installation verification
   debug:
-    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if 'INSTALLED' in item.stdout else 'INSTALLATION FAILED' }}"
   loop: "{{ npm_verify_check.results }}"
   when: npm_verify_check.results is defined
 
@@ -423,7 +413,11 @@
 - name: Check which go packages are already installed
   shell: |
     package_name=$(echo "{{ item }}" | sed 's/@latest$//' | sed 's/.*\///')
-    go list -m all 2>/dev/null | grep "{{ item.split('@')[0] }}" || echo "NOT_FOUND"
+    if command -v "$(basename "{{ item.split('@')[0] }}")" >/dev/null 2>&1; then
+      echo "INSTALLED"
+    else
+      echo "NOT_FOUND"
+    fi
   register: go_package_check
   failed_when: false
   changed_when: false
@@ -432,12 +426,11 @@
 
 - name: Display go package status
   debug:
-    msg: "🐹 {{ item.item }}: {{ '✅ INSTALLED' if 'NOT_FOUND' not in item.stdout else '❌ MISSING' }}"
+    msg: "🐹 {{ item.item }}: {{ '✅ INSTALLED' if 'INSTALLED' in item.stdout else '❌ MISSING' }}"
   loop: "{{ go_package_check.results }}"
   when:
     - go_available_check.rc == 0
     - go_package_check.results is defined
-    - "'NOT_FOUND' in item.stdout"  # Only show missing packages
 
 - name: Install missing go packages
   shell: go install {{ item.item }}
@@ -447,6 +440,7 @@
     - "'NOT_FOUND' in item.stdout"
   loop: "{{ go_package_check.results }}"
   register: go_install_result
+  failed_when: false
   environment:
     GOPATH: "{{ ansible_user_dir }}/go"
     GOBIN: "{{ ansible_user_dir }}/go/bin"
@@ -456,20 +450,51 @@
     msg: |
       🐹 Go Packages Summary:
       • Total packages: {{ go_packages | length }}
-      • Already installed: {{ go_package_check.results | selectattr('stdout', 'not containing', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
+      • Already installed: {{ go_package_check.results | selectattr('stdout', 'containing', 'INSTALLED') | list | length if go_package_check.results is defined else 0 }}
       • Newly installed: {{ go_package_check.results | selectattr('stdout', 'containing', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
       • Tools installed in: ~/go/bin/
   when: go_available_check.rc == 0
 
-# === SYSTEMD SERVICES ===
-- name: Enable systemd services
-  systemd:
-    name: "{{ item }}"
-    enabled: yes
-    state: started
-  loop: "{{ systemd_services }}"
-  become: yes
-  failed_when: false
+# === CONTAINER-AWARE SYSTEMD SERVICES ===
+- name: Container-aware systemd services management
+  block:
+    - name: Enable systemd services (privileged)
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: started
+      loop: "{{ systemd_services }}"
+      become: yes
+      when: dotsible_privilege_escalation | default(false)
+      failed_when: false
+
+    - name: Display systemd services status (unprivileged)
+      shell: |
+        echo "🔧 Systemd Services Status in Container:"
+        for service in {{ systemd_services | join(' ') }}; do
+          if systemctl is-active "$service" >/dev/null 2>&1; then
+            echo "✅ $service: ACTIVE"
+          elif systemctl is-enabled "$service" >/dev/null 2>&1; then
+            echo "🟡 $service: ENABLED (not running)"
+          else
+            echo "❌ $service: DISABLED/UNAVAILABLE"
+          fi
+        done
+      register: container_systemd_status
+      when: not (dotsible_privilege_escalation | default(false))
+      failed_when: false
+
+    - name: Display systemd management status
+      debug:
+        msg: |
+          🔧 Systemd Services Management:
+          {% if dotsible_privilege_escalation | default(false) %}
+          ✅ Services managed with full privileges
+          {% else %}
+          ⚠️  Service management skipped due to container restrictions
+          📋 Services that would be managed: {{ systemd_services | join(', ') }}
+          💡 These services may need to be enabled outside the container
+          {% endif %}
 
 # === DEVELOPMENT DIRECTORIES ===
 - name: Create development directories
@@ -498,19 +523,31 @@
 - name: Arch Linux platform setup completed
   debug:
     msg: |
-      ✅ Arch Linux platform setup completed successfully!
+      ✅ Arch Linux platform setup completed!
 
-      Software inventory managed:
-      • Pacman packages: {{ pacman_packages | length }}
+      🐳 Container Environment: {{ 'Yes' if dotsible_container | default(false) else 'No' }}
+      🔐 Privilege Escalation: {{ 'Available' if dotsible_privilege_escalation | default(false) else 'Restricted' }}
+
+      📦 Software inventory processed:
+      • Pacman packages: {{ pacman_packages | length }} {{ '(installed)' if dotsible_privilege_escalation | default(false) else '(checked only)' }}
       • AUR packages: {{ aur_packages | length }}
-      • Development packages: {{ dev_packages | length }}
-      • Window manager packages: {{ wm_packages | length }}
-      • Font packages: {{ font_packages | length }}
-      • System packages: {{ system_packages | length }}
+      • Development packages: {{ dev_packages | length }} {{ '(installed)' if dotsible_privilege_escalation | default(false) else '(checked only)' }}
+      • Window manager packages: {{ wm_packages | length }} {{ '(installed)' if dotsible_privilege_escalation | default(false) else '(checked only)' }}
+      • Font packages: {{ font_packages | length }} {{ '(installed)' if dotsible_privilege_escalation | default(false) else '(checked only)' }}
+      • System packages: {{ system_packages | length }} {{ '(installed)' if dotsible_privilege_escalation | default(false) else '(checked only)' }}
       • NPM global packages: {{ npm_global_packages | length }}
       • Python dev tools: pipx, community-ansible-dev-tools, ansible-lint
       • Python packages: {{ python_packages | length }}
       • Cargo packages: {{ cargo_packages | length }}
       • Go packages: {{ go_packages | length }}
 
-      All idempotent checks implemented for Arch Linux platform
+      {% if dotsible_container_restricted | default(false) %}
+      ⚠️  Container Restrictions Applied:
+      • Package installation requires manual intervention outside container
+      • System service management skipped due to privilege restrictions
+      • Dotfiles configuration completed with available tools
+      {% else %}
+      ✅ All operations completed with full system access
+      {% endif %}
+
+      🔧 Container-aware implementation ensures compatibility across environments

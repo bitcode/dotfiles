@@ -15,15 +15,15 @@ zsh_packages:
     - zsh-completions
   windows: []  # ZSH not natively supported on Windows
 
-# ZSH configuration paths
-zsh_home_path: "{{ ansible_env.HOME if ansible_os_family != 'Windows' else ansible_env.USERPROFILE }}"
-zsh_config_path: "{{ zsh_home_path }}/.zshrc"
-zsh_profile_path: "{{ zsh_home_path }}/.zprofile"
-zsh_env_path: "{{ zsh_home_path }}/.zshenv"
+# ZSH configuration paths - Cross-platform compatible
+zsh_home_path: "{{ ansible_user_dir }}"
+zsh_config_path: "{{ ansible_user_dir }}/.zshrc"
+zsh_profile_path: "{{ ansible_user_dir }}/.zprofile"
+zsh_env_path: "{{ ansible_user_dir }}/.zshenv"
 
 # Oh My Zsh configuration
 zsh_oh_my_zsh_enabled: true
-zsh_oh_my_zsh_path: "{{ zsh_home_path }}/.oh-my-zsh"
+zsh_oh_my_zsh_path: "{{ ansible_user_dir }}/.oh-my-zsh"
 zsh_oh_my_zsh_custom_path: "{{ zsh_oh_my_zsh_path }}/custom"
 zsh_oh_my_zsh_install_url: "https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
 
@@ -118,7 +118,7 @@ zsh_options:
   - ALWAYS_TO_END
 
 # History configuration
-zsh_history_file: "{{ zsh_home_path }}/.zsh_history"
+zsh_history_file: "{{ ansible_user_dir }}/.zsh_history"
 zsh_history_size: 50000
 zsh_save_history: 50000
 
@@ -211,7 +211,7 @@ zsh_completion_waiting_dots: true
 zsh_disable_untracked_files_dirty: false
 
 # Powerlevel10k configuration
-zsh_p10k_config_path: "{{ zsh_home_path }}/.p10k.zsh"
+zsh_p10k_config_path: "{{ ansible_user_dir }}/.p10k.zsh"
 zsh_p10k_instant_prompt: true
 
 # Completion configuration

@@ -1,0 +1,166 @@
+---
+# GPU Detection and Configuration for Alacritty
+# This module detects available GPUs and configures optimal MESA drivers for Alacritty
+
+- name: "GPU DETECTION - Detect available graphics hardware"
+  shell: |
+    echo "🔍 GPU DETECTION: Scanning system graphics hardware"
+    echo "=================================================="
+    
+    # Detect GPUs using lspci
+    gpu_info=$(lspci | grep -E "(VGA|3D|Display)" || echo "No GPUs detected")
+    echo "Raw GPU detection:"
+    echo "$gpu_info"
+    echo ""
+    
+    # Initialize detection variables
+    nvidia_detected=false
+    amd_detected=false
+    intel_detected=false
+    gpu_count=0
+    
+    # Parse GPU information
+    while IFS= read -r line; do
+      if [[ -n "$line" ]]; then
+        gpu_count=$((gpu_count + 1))
+        echo "GPU $gpu_count: $line"
+        
+        # Check for NVIDIA
+        if echo "$line" | grep -qi "nvidia\|geforce\|quadro\|tesla"; then
+          nvidia_detected=true
+          nvidia_model=$(echo "$line" | sed 's/.*: //' | sed 's/ (rev.*//')
+          echo "  → NVIDIA GPU detected: $nvidia_model"
+        fi
+        
+        # Check for AMD
+        if echo "$line" | grep -qi "amd\|ati\|radeon\|raphael"; then
+          amd_detected=true
+          amd_model=$(echo "$line" | sed 's/.*: //' | sed 's/ (rev.*//')
+          echo "  → AMD GPU detected: $amd_model"
+        fi
+        
+        # Check for Intel
+        if echo "$line" | grep -qi "intel"; then
+          intel_detected=true
+          intel_model=$(echo "$line" | sed 's/.*: //' | sed 's/ (rev.*//')
+          echo "  → Intel GPU detected: $intel_model"
+        fi
+      fi
+    done <<< "$gpu_info"
+    
+    echo ""
+    echo "GPU Detection Summary:"
+    echo "====================="
+    echo "Total GPUs: $gpu_count"
+    echo "NVIDIA: $nvidia_detected"
+    echo "AMD: $amd_detected"
+    echo "Intel: $intel_detected"
+    
+    # Output structured data for Ansible
+    echo "GPU_COUNT:$gpu_count"
+    echo "NVIDIA_DETECTED:$nvidia_detected"
+    echo "AMD_DETECTED:$amd_detected"
+    echo "INTEL_DETECTED:$intel_detected"
+    if [ "$nvidia_detected" = true ]; then
+      echo "NVIDIA_MODEL:$nvidia_model"
+    fi
+    if [ "$amd_detected" = true ]; then
+      echo "AMD_MODEL:$amd_model"
+    fi
+    if [ "$intel_detected" = true ]; then
+      echo "INTEL_MODEL:$intel_model"
+    fi
+  args:
+    executable: /bin/bash
+  register: gpu_detection_result
+  changed_when: false
+  tags: ['alacritty', 'gpu', 'detection']
+
+- name: "GPU DETECTION - Parse detection results"
+  set_fact:
+    gpu_info:
+      count: "{{ gpu_detection_result.stdout_lines | select('match', '^GPU_COUNT:.*') | first | regex_replace('^GPU_COUNT:', '') | int }}"
+      nvidia_detected: "{{ (gpu_detection_result.stdout_lines | select('match', '^NVIDIA_DETECTED:.*') | first | regex_replace('^NVIDIA_DETECTED:', '')) == 'true' }}"
+      amd_detected: "{{ (gpu_detection_result.stdout_lines | select('match', '^AMD_DETECTED:.*') | first | regex_replace('^AMD_DETECTED:', '')) == 'true' }}"
+      intel_detected: "{{ (gpu_detection_result.stdout_lines | select('match', '^INTEL_DETECTED:.*') | first | regex_replace('^INTEL_DETECTED:', '')) == 'true' }}"
+      nvidia_model: "{{ gpu_detection_result.stdout_lines | select('match', '^NVIDIA_MODEL:.*') | first | default('NVIDIA_MODEL:Unknown') | regex_replace('^NVIDIA_MODEL:', '') }}"
+      amd_model: "{{ gpu_detection_result.stdout_lines | select('match', '^AMD_MODEL:.*') | first | default('AMD_MODEL:Unknown') | regex_replace('^AMD_MODEL:', '') }}"
+      intel_model: "{{ gpu_detection_result.stdout_lines | select('match', '^INTEL_MODEL:.*') | first | default('INTEL_MODEL:Unknown') | regex_replace('^INTEL_MODEL:', '') }}"
+  tags: ['alacritty', 'gpu', 'detection']
+
+- name: "GPU DETECTION - Detect available MESA drivers"
+  shell: |
+    echo "🔍 MESA DRIVER DETECTION: Scanning available drivers"
+    echo "=================================================="
+    
+    # Check for DRI drivers
+    dri_path="/usr/lib/dri"
+    if [ -d "$dri_path" ]; then
+      echo "Available DRI drivers in $dri_path:"
+      ls -la "$dri_path" | grep -E "\.(so|dri)$" | awk '{print $9}' | sort
+      echo ""
+      
+      # Check specific drivers
+      drivers_available=""
+      
+      if [ -f "$dri_path/radeonsi_dri.so" ]; then
+        echo "✅ radeonsi driver available"
+        drivers_available="$drivers_available radeonsi"
+      fi
+      
+      if [ -f "$dri_path/nouveau_dri.so" ]; then
+        echo "✅ nouveau driver available"
+        drivers_available="$drivers_available nouveau"
+      fi
+      
+      if [ -f "$dri_path/i965_dri.so" ] || [ -f "$dri_path/iris_dri.so" ]; then
+        echo "✅ Intel driver available"
+        drivers_available="$drivers_available intel"
+      fi
+      
+      if [ -f "$dri_path/llvmpipe_dri.so" ]; then
+        echo "✅ llvmpipe (software) driver available"
+        drivers_available="$drivers_available llvmpipe"
+      fi
+      
+      echo "AVAILABLE_DRIVERS:$drivers_available"
+    else
+      echo "❌ DRI drivers directory not found: $dri_path"
+      echo "AVAILABLE_DRIVERS:"
+    fi
+  args:
+    executable: /bin/bash
+  register: mesa_driver_detection
+  changed_when: false
+  tags: ['alacritty', 'gpu', 'mesa']
+
+- name: "GPU DETECTION - Parse MESA driver results"
+  set_fact:
+    mesa_drivers:
+      available: "{{ mesa_driver_detection.stdout_lines | select('match', '^AVAILABLE_DRIVERS:.*') | first | default('AVAILABLE_DRIVERS:') | regex_replace('^AVAILABLE_DRIVERS:', '') | trim | split(' ') | reject('equalto', '') | list }}"
+      radeonsi_available: "{{ 'radeonsi' in (mesa_driver_detection.stdout_lines | select('match', '^AVAILABLE_DRIVERS:.*') | first | default('AVAILABLE_DRIVERS:') | regex_replace('^AVAILABLE_DRIVERS:', '') | trim | split(' ')) }}"
+      nouveau_available: "{{ 'nouveau' in (mesa_driver_detection.stdout_lines | select('match', '^AVAILABLE_DRIVERS:.*') | first | default('AVAILABLE_DRIVERS:') | regex_replace('^AVAILABLE_DRIVERS:', '') | trim | split(' ')) }}"
+      intel_available: "{{ 'intel' in (mesa_driver_detection.stdout_lines | select('match', '^AVAILABLE_DRIVERS:.*') | first | default('AVAILABLE_DRIVERS:') | regex_replace('^AVAILABLE_DRIVERS:', '') | trim | split(' ')) }}"
+      llvmpipe_available: "{{ 'llvmpipe' in (mesa_driver_detection.stdout_lines | select('match', '^AVAILABLE_DRIVERS:.*') | first | default('AVAILABLE_DRIVERS:') | regex_replace('^AVAILABLE_DRIVERS:', '') | trim | split(' ')) }}"
+  tags: ['alacritty', 'gpu', 'mesa']
+
+- name: "GPU DETECTION - Display detection summary"
+  debug:
+    msg: |
+      🔍 GPU Detection Summary:
+      ========================
+      
+      Hardware Detected:
+      • Total GPUs: {{ gpu_info.count }}
+      • NVIDIA: {{ '✅ ' + gpu_info.nvidia_model if gpu_info.nvidia_detected else '❌ Not detected' }}
+      • AMD: {{ '✅ ' + gpu_info.amd_model if gpu_info.amd_detected else '❌ Not detected' }}
+      • Intel: {{ '✅ ' + gpu_info.intel_model if gpu_info.intel_detected else '❌ Not detected' }}
+      
+      MESA Drivers Available:
+      • radeonsi (AMD): {{ '✅' if mesa_drivers.radeonsi_available else '❌' }}
+      • nouveau (NVIDIA): {{ '✅' if mesa_drivers.nouveau_available else '❌' }}
+      • intel: {{ '✅' if mesa_drivers.intel_available else '❌' }}
+      • llvmpipe (software): {{ '✅' if mesa_drivers.llvmpipe_available else '❌' }}
+      
+      System Type: {{ 'Multi-GPU' if (gpu_info.count | int) > 1 else 'Single GPU' }}
+  tags: ['alacritty', 'gpu', 'summary']

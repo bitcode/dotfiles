@@ -1,0 +1,36 @@
+---
+# Developer Profile Tasks
+# Development-focused configuration for developer environments
+
+- name: "👨‍💻 DEVELOPER PROFILE CONFIGURATION"
+  debug:
+    msg: "Configuring developer tools and development environment"
+  tags: ['profiles', 'developer', 'banner']
+
+- name: Set developer environment variables
+  set_fact:
+    detected_environment: "developer"
+    dotsible_environment: "developer"
+  tags: ['profiles', 'developer', 'environment']
+
+- name: Configure developer settings
+  set_fact:
+    developer_config:
+      development_tools: true
+      extended_applications: true
+      custom_themes: true
+      social_integrations: true
+      external_plugins: true
+      performance_optimized: true
+  tags: ['profiles', 'developer', 'config']
+
+- name: "📊 DEVELOPER PROFILE SUMMARY"
+  debug:
+    msg: |
+      Developer profile configured:
+      • Environment: {{ detected_environment }}
+      • Development tools: {{ developer_config.development_tools }}
+      • Extended applications: {{ developer_config.extended_applications }}
+      • Custom themes: {{ developer_config.custom_themes }}
+      • Performance optimized: {{ developer_config.performance_optimized }}
+  tags: ['profiles', 'developer', 'summary']

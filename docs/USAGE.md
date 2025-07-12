@@ -10,8 +10,9 @@ This comprehensive guide covers all aspects of using Dotsible for cross-platform
 4. [Running Dotsible](#running-dotsible)
 5. [Profiles](#profiles)
 6. [Advanced Usage](#advanced-usage)
-7. [Troubleshooting](#troubleshooting)
-8. [Best Practices](#best-practices)
+7. [Code Quality and Linting](#code-quality-and-linting)
+8. [Troubleshooting](#troubleshooting)
+9. [Best Practices](#best-practices)
 
 ## Quick Start
 
@@ -461,6 +462,80 @@ dotfiles_templates:
       git_user_name: "{{ ansible_user_id }}"
       git_user_email: "{{ ansible_user_id }}@{{ ansible_hostname }}"
 ```
+
+## Code Quality and Linting
+
+Dotsible includes comprehensive linting and code quality tools to ensure consistent, reliable configurations.
+
+### Linting Tools
+
+The project uses multiple linting tools:
+
+- **ansible-lint**: Validates Ansible syntax and best practices
+- **yamllint**: Ensures YAML formatting consistency
+- **pre-commit hooks**: Automated quality checks on commits
+- **shellcheck**: Validates shell scripts
+
+### Quick Setup
+
+```bash
+# Install development dependencies (includes linting tools)
+pip3 install -r requirements-dev.txt
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run linting check
+./scripts/lint-ansible.sh
+```
+
+### Running Lints
+
+```bash
+# Run all linting checks
+./scripts/lint-ansible.sh
+
+# Run specific tools
+ansible-lint .                    # Ansible-specific linting
+yamllint .                        # YAML formatting
+pre-commit run --all-files        # All pre-commit hooks
+
+# Lint before committing
+git add .
+git commit -m "Your changes"      # Pre-commit hooks run automatically
+```
+
+### Integration with Development Workflow
+
+The linting workflow is integrated into the development process:
+
+1. **Pre-commit hooks**: Automatically run on `git commit`
+2. **CI/CD validation**: Runs in continuous integration
+3. **Manual validation**: Use `./scripts/lint-ansible.sh` anytime
+
+### Common Linting Issues
+
+**Syntax Errors**:
+```bash
+# Fix YAML indentation and syntax
+yamllint problematic-file.yml
+```
+
+**Ansible Best Practices**:
+```bash
+# Check specific Ansible rules
+ansible-lint --list-rules
+ansible-lint roles/your-role/
+```
+
+**Pre-commit Failures**:
+```bash
+# Update and reinstall hooks
+pre-commit autoupdate
+pre-commit install
+```
+
+For detailed linting documentation, see [`docs/ANSIBLE_LINTING.md`](ANSIBLE_LINTING.md).
 
 ## Troubleshooting
 

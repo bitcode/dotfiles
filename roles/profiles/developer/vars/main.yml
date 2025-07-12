@@ -1,0 +1,36 @@
+---
+# Developer Profile Variables
+# Development-focused configuration variables
+
+developer_profile:
+  name: "developer"
+  description: "Developer tools and development environment configuration"
+  development_focused: true
+  
+developer_applications:
+  required:
+    - git
+    - neovim
+    - tmux
+    - zsh
+    - fzf
+  recommended:
+    - starship
+    - alacritty
+    - gdb
+  optional:
+    - i3
+    - hyprland
+    - sway
+    - polybar
+    - waybar
+
+developer_config:
+  development_tools: true
+  extended_applications: true
+  custom_themes: true
+  social_integrations: true
+  external_plugins: true
+  performance_optimized: true
+  debugging_tools: true
+  version_control: true

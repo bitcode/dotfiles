@@ -39,19 +39,21 @@ pacman_packages:
   - zoxide
 
 # AUR packages (requires AUR helper)
+# Optimized for i3 window manager ecosystem and essential development tools
 aur_packages:
+  # Essential development tools
   - visual-studio-code-bin
-  - google-chrome
-  - discord
-  - slack-desktop
-  - notion-app
   - postman-bin
-  - zellij
-  - lazygit
-  - bottom
-  - obsidian
-  - figma-linux
-  - zoom
+
+  # i3 window manager ecosystem (latest/git versions for enhanced features)
+  - alacritty-git          # Latest terminal emulator features
+
+  # Development and productivity tools
+  - zellij                 # Modern terminal multiplexer
+  - lazygit                # Git TUI
+  - bottom                 # System monitor
+  - obsidian               # Note-taking (development documentation)
+  - figma-linux            # Design tool (for UI/UX development)
 
 # Development packages - Enhanced with comprehensive toolchain
 dev_packages:

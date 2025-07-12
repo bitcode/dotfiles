@@ -1,0 +1,21 @@
+---
+# Developer Profile Role Metadata
+
+galaxy_info:
+  author: Dotsible
+  description: Developer tools and development environment profile
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Darwin
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+    - name: ArchLinux
+      versions:
+        - all
+
+dependencies: []
