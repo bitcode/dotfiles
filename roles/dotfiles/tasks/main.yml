@@ -630,7 +630,7 @@
   args:
     executable: /bin/bash
   register: stow_deployment_results
-  loop: "{{ stow_compatible_apps | default(['nvim', 'zsh', 'starship', 'alacritty', 'tmux']) }}"
+  loop: "{{ stow_compatible_apps | default(['nvim', 'zsh', 'starship', 'alacritty', 'tmux', 'kitty']) }}"
   when:
     - dotfiles_source_check.stat.exists
     - stow_check.rc == 0
@@ -1073,9 +1073,9 @@
 
 - name: Set validation results
   set_fact:
-    dotfiles_validation_passed: "{{ 'VALIDATION_STATUS:PASSED' in final_validation.stdout }}"
-    dotfiles_critical_issues: "{{ final_validation.stdout_lines | select('match', '^Critical issues count:.*') | first | regex_replace('^Critical issues count: ', '') | int }}"
-    dotfiles_warnings: "{{ final_validation.stdout_lines | select('match', '^Warnings count:.*') | first | regex_replace('^Warnings count: ', '') | int }}"
+    dotfiles_validation_passed: "{{ 'VALIDATION_STATUS:PASSED' in final_validation.stdout if final_validation is defined and final_validation.stdout is defined else false }}"
+    dotfiles_critical_issues: "{{ (final_validation.stdout_lines | select('match', '^Critical issues count:.*') | list | first | regex_replace('^Critical issues count: ', '') | int) if (final_validation is defined and final_validation.stdout_lines is defined and (final_validation.stdout_lines | select('match', '^Critical issues count:.*') | list | length > 0)) else 0 }}"
+    dotfiles_warnings: "{{ (final_validation.stdout_lines | select('match', '^Warnings count:.*') | list | first | regex_replace('^Warnings count: ', '') | int) if (final_validation is defined and final_validation.stdout_lines is defined and (final_validation.stdout_lines | select('match', '^Warnings count:.*') | list | length > 0)) else 0 }}"
   when: final_validation is defined
   tags: ['dotfiles', 'validation']
 

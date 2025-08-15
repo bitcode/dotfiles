@@ -23,23 +23,27 @@
   register: xcode_tools_installed
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Install Xcode Command Line Tools
   shell: xcode-select --install 2>&1 || true
   when: xcode_tools_installed.rc != 0
   register: xcode_install_result
   failed_when: false
+  become: no
 
 - name: Check if Homebrew is installed
   shell: command -v brew >/dev/null 2>&1
   register: homebrew_installed
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Install Homebrew
   shell: |
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   when: homebrew_installed.rc != 0
+  become: no
   environment:
     NONINTERACTIVE: 1
 
@@ -47,16 +51,19 @@
   shell: uname -m
   register: cpu_arch
   changed_when: false
+  become: no
 
 - name: Check if Rosetta 2 is installed
   shell: /usr/bin/pgrep oahd >/dev/null 2>&1
   register: rosetta_installed
   failed_when: false
   changed_when: false
+  become: no
   when: cpu_arch.stdout == "arm64"
 
 - name: Install Rosetta 2 for Apple Silicon
   shell: softwareupdate --install-rosetta --agree-to-license
+  become: no
   when:
     - cpu_arch.stdout == "arm64"
     - rosetta_installed.rc != 0
@@ -67,6 +74,7 @@
   register: homebrew_package_check
   failed_when: false
   changed_when: false
+  become: no
   loop: "{{ homebrew_packages }}"
 
 - name: Display Homebrew package status
@@ -80,6 +88,7 @@
     name: "{{ item.item }}"
     state: present
   when: item.rc != 0
+  become: no
   loop: "{{ homebrew_package_check.results }}"
 
 - name: Homebrew packages summary
@@ -96,6 +105,7 @@
   register: dev_tools_check
   failed_when: false
   changed_when: false
+  become: no
   loop: "{{ development_tools }}"
 
 - name: Display development tools status
@@ -109,6 +119,7 @@
     name: "{{ item.item }}"
     state: present
   when: item.rc != 0
+  become: no
   loop: "{{ dev_tools_check.results }}"
   register: dev_tools_install_result
 
@@ -133,6 +144,7 @@
   register: essential_tools_verify
   failed_when: false
   changed_when: false
+  become: no
   loop:
     - { name: "gdb", command: "gdb --version" }
     - { name: "ripgrep", command: "rg --version" }
@@ -151,6 +163,7 @@
   register: homebrew_cask_check
   failed_when: false
   changed_when: false
+  become: no
   loop: "{{ homebrew_casks }}"
 
 - name: Display Homebrew cask status
@@ -165,6 +178,7 @@
     state: present
     accept_external_apps: true
   when: item.rc != 0
+  become: no
   loop: "{{ homebrew_cask_check.results }}"
   register: homebrew_cask_install_result
   retries: 3
@@ -211,10 +225,12 @@
   register: rust_check
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Install Rust
   shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   when: rust_check.rc != 0
+  become: no
   environment:
     CARGO_HOME: "{{ ansible_env.HOME }}/.cargo"
     RUSTUP_HOME: "{{ ansible_env.HOME }}/.rustup"
@@ -224,16 +240,19 @@
   stat:
     path: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
   register: nvm_installed
+  become: no
 
 - name: Install Node Version Manager (nvm)
   shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
   when: not nvm_installed.stat.exists
+  become: no
 
 - name: Check if nvm configuration exists in .zshrc
   shell: grep -q "NVM_DIR" "{{ ansible_env.HOME }}/.zshrc" 2>/dev/null
   register: nvm_config_exists
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Create .zshrc if it doesn't exist
   file:
@@ -241,6 +260,7 @@
     state: touch
     mode: '0644'
   when: nvm_config_exists.rc != 0
+  become: no
 
 - name: Add nvm configuration to .zshrc
   blockinfile:
@@ -252,6 +272,7 @@
       [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
     create: yes
   when: nvm_config_exists.rc != 0
+  become: no
 
 - name: Source .zshrc to load nvm in current session
   shell: |
@@ -261,6 +282,7 @@
   register: nvm_version_check
   failed_when: false
   changed_when: false
+  become: no
   when: nvm_installed.stat.exists or not nvm_installed.stat.exists
 
 - name: Display nvm installation status
@@ -276,6 +298,7 @@
     nvm use --lts
     nvm alias default lts/*
   when: nvm_version_check.rc == 0
+  become: no
   register: node_install_result
   changed_when: "'already installed' not in node_install_result.stdout"
 
@@ -287,6 +310,7 @@
   register: npm_package_check
   failed_when: false
   changed_when: false
+  become: no
   loop: "{{ npm_global_packages }}"
   when: nvm_version_check.rc == 0
 
@@ -308,6 +332,7 @@
     - nvm_version_check.rc == 0
     - npm_package_check.results is defined
     - item.rc != 0
+  become: no
   loop: "{{ npm_package_check.results }}"
 
 - name: Verify npm global packages installation
@@ -318,6 +343,7 @@
   register: npm_global_list
   failed_when: false
   changed_when: false
+  become: no
   when: nvm_version_check.rc == 0
 
 - name: NPM global packages summary
@@ -334,12 +360,14 @@
   register: pip3_check
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Check if pipx is already installed
   shell: pipx --version
   register: pipx_check
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Python development tools status
   debug:
@@ -494,12 +522,13 @@
     msg: "🐹 Go: {{ '✅ INSTALLED (' + go_path_check.stdout.strip() + ')' if go_path_check.rc == 0 else '❌ NOT INSTALLED' }}"
 
 - name: Install Go via Homebrew (preferred method)
-  homebrew:
+  community.general.homebrew:
     name: go
     state: present
   when:
     - go_path_check.rc != 0
     - go_homebrew_check.rc != 0
+  become: no
   register: go_homebrew_install
 
 - name: Verify Go installation after Homebrew install
@@ -566,12 +595,14 @@
   register: cargo_available_check
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Check which cargo packages are already installed
   shell: cargo install --list | grep "^{{ item }} "
   register: cargo_package_check
   failed_when: false
   changed_when: false
+  become: no
   loop: "{{ cargo_packages }}"
   when: cargo_available_check.rc == 0
 
@@ -590,6 +621,7 @@
     - cargo_available_check.rc == 0
     - cargo_package_check.results is defined
     - item.rc != 0
+  become: no
   loop: "{{ cargo_package_check.results }}"
   register: cargo_install_result
 
@@ -655,16 +687,19 @@
   register: zellij_check
   failed_when: false
   changed_when: false
+  become: no
 
 - name: Install Zellij
   shell: bash <(curl -L https://zellij.dev/launch)
   when: zellij_check.rc != 0
+  become: no
 
 # === MAC APP STORE APPLICATIONS ===
 - name: Check Mac App Store applications
   stat:
     path: "{{ item.path }}"
   register: mac_app_store_check
+  become: no
   loop: "{{ mac_app_store_apps }}"
 
 - name: Display Mac App Store app status
@@ -679,6 +714,7 @@
     defaults read com.apple.Finder AppleShowFilenameExtensions 2>/dev/null || echo "false"
   register: finder_settings
   changed_when: false
+  become: no
 
 - name: Configure Finder settings
   shell: |
@@ -686,6 +722,7 @@
     defaults write com.apple.Finder AppleShowFilenameExtensions -bool true
     killall Finder
   when: "'TRUE' not in finder_settings.stdout or 'true' not in finder_settings.stdout"
+  become: no
 
 # === FINAL SOFTWARE INVENTORY REPORT ===
 - name: macOS platform setup completed

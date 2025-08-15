@@ -191,9 +191,15 @@
       shell: |
         enterprise_score=0
         # Check for MDM enrollment
-        profiles status 2>/dev/null | grep -q "enrolled" && ((enterprise_score++))
+        if profiles status 2>/dev/null | grep -q "enrolled"; then
+          ((enterprise_score++))
+        fi
         # Check for enterprise apps
-        ls /Applications/ | grep -i "microsoft\|teams\|slack\|zoom" | wc -l | xargs -I {} expr {} + $enterprise_score
+        if [ -d "/Applications" ]; then
+          app_count=$(ls /Applications/ 2>/dev/null | grep -i "microsoft\|teams\|slack\|zoom" | wc -l)
+          enterprise_score=$((enterprise_score + app_count))
+        fi
+        echo $enterprise_score
       register: macos_enterprise_check
       failed_when: false
       changed_when: false
@@ -201,7 +207,7 @@
     - name: Set macOS environment type
       set_fact:
         detected_environment: >-
-          {%- if macos_enterprise_check.stdout | int > 2 -%}
+          {%- if macos_enterprise_check.stdout is defined and macos_enterprise_check.stdout | int > 2 -%}
             enterprise
           {%- else -%}
             personal

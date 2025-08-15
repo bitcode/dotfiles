@@ -1,3 +1,4 @@
+
 #!/bin/bash
 # Dotsible Bootstrap Script
 # Initial system setup and dependency installation
@@ -192,7 +193,9 @@ install_dependencies() {
     # Install Ansible Galaxy requirements
     if [ -f "$DOTSIBLE_ROOT/requirements.yml" ]; then
         log "Installing Ansible Galaxy requirements..."
-        ansible-galaxy install -r "$DOTSIBLE_ROOT/requirements.yml"
+        ansible-galaxy collection install -r "$DOTSIBLE_ROOT/requirements.yml"
+        # If you later add roles to the same file:
+        # ansible-galaxy role install -r "$DOTSIBLE_ROOT/requirements.yml"
     fi
     
     # Install OS-specific dependencies
@@ -427,3 +430,13 @@ case "${1:-}" in
         exit 1
         ;;
 esac
+
+# Add pip user scripts dir to PATH for this session
+USER_BASE="$(python3 -m site --user-base 2>/dev/null)"
+USER_BIN="$USER_BASE/bin"
+if [ -n "$USER_BIN" ] && [ -d "$USER_BIN" ] && [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
+    warning "Adding $USER_BIN to PATH for this session"
+    export PATH="$USER_BIN:$PATH"
+    log "Consider adding this to your shell profile (e.g. ~/.zprofile or ~/.zshrc):"
+    log "export PATH=\"$USER_BIN:\$PATH\""
+fi

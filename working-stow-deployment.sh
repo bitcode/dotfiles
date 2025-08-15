@@ -67,7 +67,7 @@ for file in .zshrc .gitconfig .tmux.conf; do
 done
 
 # Backup existing config directories
-for dir in nvim alacritty starship.toml; do
+for dir in nvim alacritty starship.toml kitty; do
     if [ -e "$HOME_DIR/.config/$dir" ] && [ ! -L "$HOME_DIR/.config/$dir" ]; then
         echo "📦 Backing up existing .config/$dir"
         mv "$HOME_DIR/.config/$dir" "$backup_dir/"
@@ -85,7 +85,7 @@ echo "Working directory: $(pwd)"
 echo ""
 
 # Applications to deploy
-apps=("zsh" "nvim" "alacritty" "starship" "tmux")
+apps=("zsh" "nvim" "alacritty" "starship" "tmux" "kitty")
 
 for app in "${apps[@]}"; do
     if [ -d "$app" ]; then
@@ -136,6 +136,14 @@ for app in "${apps[@]}"; do
                         echo "   ✅ Verified: ~/.tmux.conf → $target"
                     else
                         echo "   ❌ Failed: ~/.tmux.conf not created"
+                    fi
+                    ;;
+                "kitty")
+                    if [ -L "$HOME_DIR/.config/kitty" ]; then
+                        target=$(readlink "$HOME_DIR/.config/kitty")
+                        echo "   ✅ Verified: ~/.config/kitty → $target"
+                    else
+                        echo "   ❌ Failed: ~/.config/kitty not created"
                     fi
                     ;;
             esac
