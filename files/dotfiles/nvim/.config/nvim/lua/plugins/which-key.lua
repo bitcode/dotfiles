@@ -77,6 +77,7 @@ return {
             -- ========================================================================
             { "<leader>l", group = "🔧 LSP & Language", icon = "🔧" },
             { "<leader>ld", "<cmd>lua vim.lsp.buf.definition()<CR>", desc = "Go to Definition", icon = "📍" },
+            { "<leader>lD", "<cmd>lua vim.lsp.buf.declaration()<CR>", desc = "Go to Declaration", icon = "📍" },
             { "<leader>lr", "<cmd>lua vim.lsp.buf.references()<CR>", desc = "References", icon = "🔗" },
             { "<leader>li", "<cmd>lua vim.lsp.buf.implementation()<CR>", desc = "Go to Implementation", icon = "🎯" },
             { "<leader>lh", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover Info", icon = "💡" },
@@ -92,6 +93,23 @@ return {
             { "<leader>ll", "<cmd>lua vim.diagnostic.setloclist()<CR>", desc = "Diagnostics to LocList", icon = "📋" },
             { "<leader>lj", "<cmd>lua vim.diagnostic.goto_next()<CR>", desc = "Next Diagnostic", icon = "⬇️" },
             { "<leader>lk", "<cmd>lua vim.diagnostic.goto_prev()<CR>", desc = "Previous Diagnostic", icon = "⬆️" },
+
+            -- ========================================================================
+            -- LSP WORKSPACE & SYMBOLS (New keybindings from lspconfig.lua)
+            -- ========================================================================
+            { "<leader>w", group = "🌐 Workspace", icon = "🌐" },
+            { "<leader>ws", "<cmd>lua vim.lsp.buf.workspace_symbol()<CR>", desc = "Workspace Symbols", icon = "🔍" },
+
+            { "<leader>d", group = "📄 Document", icon = "📄" },
+            { "<leader>ds", "<cmd>lua vim.lsp.buf.document_symbol()<CR>", desc = "Document Symbols", icon = "📋" },
+
+            -- Additional LSP shortcuts that match lspconfig.lua keybindings
+            -- Note: These are duplicates of the <leader>l* versions above for convenience
+            { "<leader>rn", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename Symbol", icon = "✏️" },
+            { "<leader>ca", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code Actions", icon = "⚡" },
+            -- Note: <leader>f conflicts with Files group, use <leader>lf instead
+            -- Note: <leader>e and <leader>q would conflict with other potential uses
+            -- These keybindings are available through the <leader>l* versions above
 
             -- ========================================================================
             -- GIT OPERATIONS
@@ -139,7 +157,7 @@ return {
             { "<leader>c", group = "🤖 AI Assistant", icon = "🤖" },
             { "<leader>ct", "<cmd>CodeCompanionChat Toggle<CR>", desc = "Toggle Chat", icon = "💬" },
             { "<leader>co", "<cmd>CodeCompanionChat<CR>", desc = "Open Chat", icon = "🗨️" },
-            { "<leader>ca", "<cmd>CodeCompanionChat Add<CR>", desc = "Add Selection to Chat", icon = "➕" },
+            { "<leader>cA", "<cmd>CodeCompanionChat Add<CR>", desc = "Add Selection to Chat", icon = "➕" },
             { "<leader>ci", "<cmd>CodeCompanion<CR>", desc = "Inline Assistant", icon = "✨" },
             { "<leader>cp", "<cmd>CodeCompanionActions<CR>", desc = "Action Palette", icon = "🎨" },
             { "<leader>cf", "<cmd>CodeCompanion /fix<CR>", desc = "Fix Code", icon = "🔧" },
@@ -200,12 +218,23 @@ return {
         -- BUILT-IN NEOVIM KEYBINDINGS (Non-leader)
         -- ========================================================================
         wk.add({
-            -- Navigation & Movement
+            -- LSP Navigation & Documentation
             { "g", group = "🧭 Go/Navigation" },
             { "gd", desc = "Go to Definition" },
+            { "gD", desc = "Go to Declaration" },
+            { "gt", desc = "Go to Type Definition" },
             { "gi", desc = "Go to Implementation" },
             { "gr", desc = "Go to References" },
             { "K", desc = "Hover Documentation" },
+
+            -- Signature Help
+            { "<C-k>", desc = "Signature Help", mode = { "n", "i" } },
+
+            -- Diagnostic Navigation
+            { "[", group = "⬅️ Previous" },
+            { "[d", desc = "Previous Diagnostic" },
+            { "]", group = "➡️ Next" },
+            { "]d", desc = "Next Diagnostic" },
 
             -- Buffer Navigation
             { "<S-h>", desc = "Previous Buffer" },
@@ -216,7 +245,6 @@ return {
             -- Window Navigation (Ctrl+hjkl)
             { "<C-h>", desc = "Left Window" },
             { "<C-j>", desc = "Below Window" },
-            { "<C-k>", desc = "Above Window" },
             { "<C-l>", desc = "Right Window" },
 
             -- Line Movement (Alt+jk)
