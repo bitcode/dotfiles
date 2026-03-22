@@ -18,6 +18,20 @@
 - Don't add docstrings, type annotations, or refactoring beyond what's asked
 - Match the style and conventions already in the file
 
+## Multi-line Input
+- `Esc` → `o` — open new line below in vim normal mode (most natural)
+- `Esc` → `O` — open new line above
+- `Ctrl+G` — open full Neovim buffer for complex prompts; `:wq` sends it
+- `\` + `Enter` — quick newline escape, works everywhere
+- `Shift+Enter` — works natively in Kitty; run `/terminal-setup` inside
+  Claude Code to enable it in Alacritty
+
+## File Referencing
+- Type `@` to trigger file autocomplete (powered by `~/.claude/file-suggest.sh`)
+- Uses `fd` when available (fast, respects .gitignore), falls back to `find`
+- Drag and drop files/images directly into the prompt (iTerm2, Kitty, Ghostty)
+- Paste images from clipboard with `Cmd+V` — works in iTerm2 and Kitty
+
 ## Workflow Preferences
 - Make changes directly — don't propose changes to code you haven't read first
 - Read existing code before modifying it

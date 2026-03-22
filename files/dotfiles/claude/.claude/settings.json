@@ -1,9 +1,41 @@
 {
+  "editorMode": "vim",
+
+  "env": {
+    "EDITOR": "nvim",
+    "VISUAL": "nvim"
+  },
+
+  "terminalProgressBarEnabled": true,
+  "showTurnDuration": true,
+  "spinnerTipsEnabled": false,
+  "voiceEnabled": true,
+  "alwaysThinkingEnabled": false,
+
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "padding": 1
   },
+
+  "fileSuggestion": {
+    "type": "command",
+    "command": "~/.claude/file-suggest.sh"
+  },
+
+  "respectGitignore": true,
+
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(git show *)",
+      "Bash(git branch *)"
+    ]
+  },
+
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
       "source": {
