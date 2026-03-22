@@ -9,7 +9,7 @@ return {
     config = function()
         -- Function to check if code actions are supported
         local function has_code_action_support()
-            local active_clients = vim.lsp.get_active_clients()
+            local active_clients = vim.lsp.get_clients()
             for _, client in ipairs(active_clients) do
                 if client.server_capabilities.codeActionProvider then
                     return true

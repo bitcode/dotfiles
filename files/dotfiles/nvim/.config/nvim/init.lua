@@ -53,7 +53,7 @@ require("settings")vim.api.nvim_create_autocmd("BufRead", {
 })
 
 vim.api.nvim_create_user_command('LspInfo', function()
-    local clients = vim.lsp.get_active_clients()
+    local clients = vim.lsp.get_clients()
     if #clients == 0 then
         vim.notify("No LSP clients running.", vim.log.levels.WARN)
         return
@@ -118,7 +118,7 @@ vim.api.nvim_create_user_command('CheckCurrentLsp', function()
         return
     end
 
-    local available_servers = vim.lsp.get_active_clients({ bufnr = 0 })
+    local available_servers = vim.lsp.get_clients({ bufnr = 0 })
     if #available_servers == 0 then
         vim.notify("No LSP servers attached to current buffer", vim.log.levels.WARN)
     else

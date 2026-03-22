@@ -11,7 +11,7 @@ return {
             formatting = {
                 format = function(entry, vim_item)
                     -- Prevent error when no LSP client is attached
-                    if entry.source.name == 'nvim_lsp_document_symbol' and not vim.lsp.get_active_clients() then
+                    if entry.source.name == 'nvim_lsp_document_symbol' and not vim.lsp.get_clients() then
                         return nil -- Skip this source if no LSP clients are available
                     end
                     return lspkind.cmp_format({
@@ -77,7 +77,7 @@ return {
                     name = 'nvim_lsp_document_symbol',
                     keyword_length = 2,
                     is_available = function()
-                        return vim.tbl_isempty(vim.lsp.get_active_clients()) == false
+                        return vim.tbl_isempty(vim.lsp.get_clients()) == false
                     end
                 },
                 { name = 'nvim-lsp-signature-help', keyword_length = 2 },

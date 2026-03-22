@@ -4,7 +4,6 @@ return {
         'hrsh7th/cmp-nvim-lsp', -- LSP completion source
     },
     config = function()
-        local lspconfig = require('lspconfig')
         local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
         -- Enhanced capabilities for LSP
@@ -268,18 +267,17 @@ return {
             }
         end
 
-        -- Setup lspconfig for asm_lsp with multi-architecture support
-        lspconfig.asm_lsp.setup({
+        -- Setup asm_lsp using nvim 0.11+ native LSP config API
+        vim.lsp.config('asm_lsp', {
             cmd = { "asm-lsp" },
             filetypes = { "asm", "s", "S", "arm", "aarch64", "riscv" },
-            -- Enhanced root directory pattern
-            root_dir = lspconfig.util.root_pattern(
+            root_markers = {
                 ".asm-lsp.toml",
                 "compile_flags.txt",
                 ".git",
                 "Makefile",
-                "CMakeLists.txt"
-            ),
+                "CMakeLists.txt",
+            },
             capabilities = capabilities,
             settings = get_dynamic_settings(),
             on_attach = function(client, bufnr)
@@ -304,6 +302,7 @@ return {
                 enable_diagnostics = true,
             },
         })
+        vim.lsp.enable('asm_lsp')
 
         -- Create assembly-specific autocommands
         vim.api.nvim_create_augroup("AssemblyLSP", { clear = true })
