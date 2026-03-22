@@ -63,3 +63,20 @@ logs/
 .directory
 .fuse_hidden*
 .nfs*
+
+# Claude Code — never commit machine-specific or sensitive files
+.claude.json
+files/dotfiles/claude/.claude/history.jsonl
+files/dotfiles/claude/.claude/sessions/
+files/dotfiles/claude/.claude/cache/
+files/dotfiles/claude/.claude/paste-cache/
+files/dotfiles/claude/.claude/backups/
+files/dotfiles/claude/.claude/file-history/
+files/dotfiles/claude/.claude/shell-snapshots/
+files/dotfiles/claude/.claude/telemetry/
+files/dotfiles/claude/.claude/plans/
+files/dotfiles/claude/.claude/projects/
+files/dotfiles/claude/.claude/plugins/
+files/dotfiles/claude/.claude/settings.local.json
+files/dotfiles/claude/.claude/policy-limits.json
+files/dotfiles/claude/.claude/mcp-needs-auth-cache.json
