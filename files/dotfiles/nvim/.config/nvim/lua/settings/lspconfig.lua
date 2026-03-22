@@ -128,13 +128,6 @@ local function setup_nixd()
   })
 end
 
-local function setup_pyright()
-  lspconfig.pyright.setup({
-    capabilities = capabilities,
-    on_attach = on_attach,
-  })
-end
-
 local function setup_ts_ls()
   lspconfig.ts_ls.setup({
     capabilities = capabilities,
@@ -279,7 +272,7 @@ local function setup_ts_ls()
       -- Add custom commands if needed
       OrganizeImports = {
         function()
-          vim.lsp.buf.execute_command({
+          vim.lsp.buf.exec_cmd({
             command = "_typescript.organizeImports",
             arguments = { vim.api.nvim_buf_get_name(0) },
           })
@@ -321,7 +314,6 @@ local function setup_ts_ls()
     }
   })
 end
-
 
 local function setup_lua_ls()
   lspconfig.lua_ls.setup({
@@ -448,13 +440,6 @@ local function setup_asm_lsp()
     flags = {
       debounce_text_changes = 150,
     },
-  })
-end
-
-local function setup_tailwindcss()
-  lspconfig.tailwindcss.setup({
-    capabilities = capabilities,
-    on_attach = on_attach,
   })
 end
 

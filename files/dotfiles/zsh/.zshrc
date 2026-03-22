@@ -18,6 +18,7 @@ export COLORTERM="truecolor"
 export MANPAGER="/usr/bin/zsh -c 'col -b | nvim -c \"set ft=man ts=8 nomod nolist nonu noma\"'"
 export MANWIDTH=999
 export AUTOSWITCH_VIRTUAL_ENV_DIR=".virtualenv"
+export NODE_EXTRA_CA_CERTS="/Users/mdrozrosario/Downloads/Cisco_Umbrella_Root_CA.cer"
 
 # XDG Base Directory Specification
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -611,3 +612,6 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="$PATH:/Users/mdrozrosario/.local/bin"
 export PATH="$HOME/.dotnet/tools:$PATH"
 alias alacritty-gpu='/home/bit/.local/bin/alacritty-gpu'
+
+# Added by Antigravity
+export PATH="/Users/mdrozrosario/.antigravity/antigravity/bin:$PATH"
