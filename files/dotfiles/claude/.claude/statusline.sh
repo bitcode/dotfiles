@@ -167,9 +167,10 @@ git_info() {
     status_out=$(git -C "$cwd" status --porcelain 2>/dev/null)
 
     # X = index (staged), Y = worktree (unstaged)
-    staged=$(printf '%s\n' "$status_out"   | grep -cE '^[^? ]'  || echo 0)
-    modified=$(printf '%s\n' "$status_out" | grep -cE '^.[^? ]' || echo 0)
-    untracked=$(printf '%s\n' "$status_out"| grep -c  '^??'      || echo 0)
+    # Use awk — avoids grep alias (rg on this system) which breaks character classes
+    staged=$(printf '%s\n'    "$status_out" | awk 'length($0)>=1 && substr($0,1,1) !~ /[ ?]/{n++} END{print n+0}')
+    modified=$(printf '%s\n'  "$status_out" | awk 'length($0)>=2 && substr($0,2,1) !~ /[ ?]/{n++} END{print n+0}')
+    untracked=$(printf '%s\n' "$status_out" | awk '/^\?\?/{n++}  END{print n+0}')
 
     printf '%s|%s|%s|%s|%s' "$branch" "$repo" "$staged" "$modified" "$untracked" \
         | tee "$cache_file"
