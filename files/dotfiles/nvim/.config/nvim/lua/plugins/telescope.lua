@@ -33,6 +33,12 @@ return {
         },
       },
       },
+      pickers = {
+        find_files = {
+          hidden = true,
+          find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
+        },
+      },
     }
     -- require('telescope').load_extension('manscope')
     -- Keep your existing builtin picker calls here

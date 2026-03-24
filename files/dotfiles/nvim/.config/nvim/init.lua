@@ -34,23 +34,8 @@ require("lazy").setup("plugins", {
 })
 
 require("settings")
-require("settings")require('lualine').setup()
-require("settings")-- Load LSP configuration
-require("settings")require("settings.lspconfig")
-require("settings")
-require("settings")vim.api.nvim_create_autocmd("BufRead", {
-    callback = function()
-        local bufnr = vim.api.nvim_get_current_buf()
-        vim.defer_fn(function()
-            if vim.api.nvim_buf_is_valid(bufnr) then
-                local ft = vim.bo[bufnr].filetype
-                if _G.filetype_to_lsp[ft] then
-                    _G.filetype_to_lsp[ft]()
-                end
-            end
-        end, 100)
-    end
-})
+require('lualine').setup()
+require("settings.lspconfig")
 
 vim.api.nvim_create_user_command('LspInfo', function()
     local clients = vim.lsp.get_clients()
@@ -130,13 +115,7 @@ vim.api.nvim_create_user_command('CheckCurrentLsp', function()
         end
     end
 
-    -- Check if filetype has a configured LSP
-    if _G.filetype_to_lsp and _G.filetype_to_lsp[ft] then
-        vim.notify(string.format(
-            "Filetype '%s' has LSP configuration available",
-            ft
-        ), vim.log.levels.INFO)
-    else
+    if #available_servers == 0 then
         vim.notify(string.format(
             "No LSP configuration found for filetype '%s'",
             ft
@@ -159,15 +138,6 @@ for type, icon in pairs(signs) do
     vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
 end
 
-local function safe_setup(server_name, setup_fn)
-    local ok, err = pcall(setup_fn)
-    if not ok then
-        vim.notify(
-            string.format("Error setting up LSP %s: %s", server_name, err),
-            vim.log.levels.ERROR
-        )
-    end
-end
 
 
 

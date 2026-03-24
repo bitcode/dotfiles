@@ -152,23 +152,18 @@ return {
             { "<leader>jp", ":lua require('harpoon.ui').prev_buffer()<CR>", desc = "Previous Buffer", icon = "⏮️" },
 
             -- ========================================================================
-            -- AI ASSISTANCE (CODECOMPANION)
+            -- CLAUDE CODE
             -- ========================================================================
-            { "<leader>c", group = "🤖 AI Assistant", icon = "🤖" },
-            { "<leader>ct", "<cmd>CodeCompanionChat Toggle<CR>", desc = "Toggle Chat", icon = "💬" },
-            { "<leader>co", "<cmd>CodeCompanionChat<CR>", desc = "Open Chat", icon = "🗨️" },
-            { "<leader>cA", "<cmd>CodeCompanionChat Add<CR>", desc = "Add Selection to Chat", icon = "➕" },
-            { "<leader>ci", "<cmd>CodeCompanion<CR>", desc = "Inline Assistant", icon = "✨" },
-            { "<leader>cp", "<cmd>CodeCompanionActions<CR>", desc = "Action Palette", icon = "🎨" },
-            { "<leader>cf", "<cmd>CodeCompanion /fix<CR>", desc = "Fix Code", icon = "🔧" },
-            { "<leader>ce", "<cmd>CodeCompanion /explain<CR>", desc = "Explain Code", icon = "💡" },
-            { "<leader>cl", "<cmd>CodeCompanion /lsp<CR>", desc = "Explain LSP Error", icon = "🚨" },
-            { "<leader>cm", "<cmd>CodeCompanion /commit<CR>", desc = "Generate Commit Message", icon = "📝" },
-            { "<leader>cb", "<cmd>CodeCompanion /buffer<CR>", desc = "Buffer Analysis", icon = "📊" },
-            { "<leader>cs", "<cmd>CodeCompanion /tests<CR>", desc = "Generate Tests", icon = "🧪" },
-            { "<leader>cw", "<cmd>CodeCompanionChat workflow<CR>", desc = "Start Workflow", icon = "🔄" },
-            { "<leader>cx", "<cmd>CodeCompanionChat close<CR>", desc = "Close Chat", icon = "❌" },
-            { "<leader>cr", "<cmd>CodeCompanionChat regenerate<CR>", desc = "Regenerate Response", icon = "🔄" },
+            { "<leader>c",   group = "🤖 Claude Code",          icon = "🤖" },
+            { "<leader>cc",  "<cmd>ClaudeCode<CR>",              desc = "Toggle Claude",         icon = "🤖" },
+            { "<leader>cf",  "<cmd>ClaudeCodeFocus<CR>",         desc = "Focus Claude",          icon = "🎯" },
+            { "<leader>cr",  "<cmd>ClaudeCode --resume<CR>",     desc = "Resume session",        icon = "▶️" },
+            { "<leader>cC",  "<cmd>ClaudeCode --continue<CR>",   desc = "Continue session",      icon = "⏩" },
+            { "<leader>cm",  "<cmd>ClaudeCodeSelectModel<CR>",   desc = "Select model",          icon = "🧠" },
+            { "<leader>cb",  "<cmd>ClaudeCodeAdd %<CR>",         desc = "Add buffer to context", icon = "📎" },
+            { "<leader>cs",  "<cmd>ClaudeCodeSend<CR>",          desc = "Send selection",        icon = "📤", mode = "v" },
+            { "<leader>ca",  "<cmd>ClaudeCodeDiffAccept<CR>",    desc = "Accept diff",           icon = "✅" },
+            { "<leader>cd",  "<cmd>ClaudeCodeDiffDeny<CR>",      desc = "Deny diff",             icon = "❌" },
 
             -- ========================================================================
             -- ASSEMBLY DEVELOPMENT (ASM-LSP)
