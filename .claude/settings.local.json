@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/bitcode/dotfiles/files/dotfiles -type d -name *windows* -o -type d -name *powershell* -o -type d -name *pwsh*)",
+      "Bash(find /c/Users/bitcode/dotfiles -type f \\\\\\(-name *windows* -o -name *windows*.md \\\\\\))",
+      "Bash(find /c/Users/bitcode/dotfiles -name *.yml -type f -exec grep -l 'ansible_os_family == Windows' {})",
+      "Bash(2)",
+      "Bash(where scoop:*)",
+      "Bash(where winget:*)",
+      "Bash(where ansible:*)",
+      "Bash(where ansible-playbook:*)",
+      "Bash(powershell.exe -Command \"Get-ExecutionPolicy -Scope CurrentUser\")",
+      "Bash(pip --version)",
+      "Bash(pip install:*)",
+      "Bash(ls:*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File scripts/bootstrap_windows.ps1 -DryRun -SkipPackages 2>&1)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File scripts/bootstrap_windows.ps1 -SkipPackages -Force 2>&1)",
+      "Bash(choco install:*)",
+      "Bash(scoop --version)",
+      "Bash(powershell.exe -Command \"Get-Command scoop -ErrorAction SilentlyContinue | Select-Object Source\" 2>&1)",
+      "Bash(where pwsh:*)",
+      "Bash(pwsh --version)",
+      "Bash(pwsh -NoProfile -Command \"\nif \\(-not \\(Get-Command scoop -ErrorAction SilentlyContinue\\)\\) {\n    Write-Host 'Installing Scoop...'\n    Invoke-RestMethod https://get.scoop.sh | Invoke-Expression\n} else {\n    Write-Host 'Scoop already installed'\n}\nscoop --version\n\" 2>&1)",
+      "Bash(pwsh -NoProfile -File scripts/install_missing_tools.ps1 2>&1)",
+      "Bash(pwsh -NoProfile -File scripts/bootstrap_windows.ps1 -SkipPackages -DryRun 2>&1)",
+      "Bash(export PATH=\"$HOME/scoop/shims:$PATH\")",
+      "Bash(starship --version)",
+      "Bash(bat --version)",
+      "Bash(zoxide --version)",
+      "Bash(lsd --version)",
+      "Bash(pwsh -NoProfile -Command \"\n\\\\$env:PATH = \\\\\"\\\\$env:USERPROFILE\\\\scoop\\\\shims;\\\\$env:PATH\\\\\"\nscoop bucket list\n\" 2>&1)",
+      "Bash(pwsh -NoProfile -Command \"\n\\\\$env:PATH = \\\\\"\\\\$env:USERPROFILE\\\\scoop\\\\shims;\\\\$env:PATH\\\\\"\nscoop search Iosevka | Select-Object -First 10\n\" 2>&1)",
+      "Bash(pwsh -NoProfile -File scripts/bootstrap_windows.ps1 -SkipPackages -SkipDotfiles -DryRun 2>&1)"
+    ]
+  }
+}

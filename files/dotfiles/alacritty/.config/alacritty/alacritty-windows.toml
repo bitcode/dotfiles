@@ -1,0 +1,9 @@
+# Windows-specific Alacritty overrides
+# Imported after the main config to override Linux-specific settings
+
+[terminal.shell]
+program = "pwsh"
+
+[general]
+# Override the Linux theme import path for Windows
+# import = []  # Uncomment if the theme import path doesn't resolve on Windows

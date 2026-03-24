@@ -1,494 +1,741 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Windows-Specific Bootstrap Script for Dotsible
+    Self-sufficient Windows bootstrap for Dotsible.
 
 .DESCRIPTION
-    Configures Windows-specific requirements for Ansible-based dotfiles deployment:
-    - Enables necessary Windows features
-    - Installs package managers (Chocolatey, Scoop) if missing
-    - Configures PowerShell modules for Ansible
-    - Sets up WinRM for Ansible connectivity
+    Complete Windows environment setup — no Ansible dependency required.
+    Handles everything: package managers, packages, development tools,
+    dotfile deployment, PowerShell profile, environment configuration.
+
+    Steps:
+      1. Windows features (WSL, Hyper-V)
+      2. Package managers (Chocolatey, Scoop)
+      3. Core packages via Chocolatey
+      4. Development tools via Chocolatey + Scoop
+      5. PowerShell modules
+      6. Environment variables & registry settings
+      7. Development directories
+      8. Dotfile deployment (Neovim, Starship, Alacritty, etc.)
+      9. PowerShell profile installation
+     10. Final validation
 
 .PARAMETER EnvironmentType
     Environment type: personal or enterprise
 
+.PARAMETER SkipPackages
+    Skip package installation (useful for re-deploying dotfiles only)
+
+.PARAMETER SkipDotfiles
+    Skip dotfile deployment
+
+.PARAMETER DryRun
+    Show what would be done without making changes
+
 .PARAMETER Force
-    Force reinstallation of existing components
-
-.PARAMETER Verbose
-    Enable verbose output
+    Overwrite existing files without prompting
 
 .EXAMPLE
-    .\bootstrap_windows.ps1 -EnvironmentType personal
-
-.EXAMPLE
-    .\bootstrap_windows.ps1 -EnvironmentType enterprise -Verbose
-
-.NOTES
-    Requires PowerShell 5.1 or later
-    Should be run after main bootstrap.ps1
+    .\bootstrap_windows.ps1
+    .\bootstrap_windows.ps1 -EnvironmentType enterprise
+    .\bootstrap_windows.ps1 -SkipPackages          # dotfiles only
+    .\bootstrap_windows.ps1 -DryRun                 # preview
 #>
 
 [CmdletBinding()]
 param(
     [ValidateSet("personal", "enterprise")]
     [string]$EnvironmentType = "personal",
-    [switch]$Force,
-    [switch]$Verbose
+    [switch]$SkipPackages,
+    [switch]$SkipDotfiles,
+    [switch]$DryRun,
+    [switch]$Force
 )
 
-# Script configuration
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
 $Script:LogFile = "$env:USERPROFILE\.dotsible\logs\bootstrap_windows_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $Script:StartTime = Get-Date
+$Script:DotfilesRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
-# Configuration
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
 $Script:Config = @{
     ChocolateyInstallUrl = "https://chocolatey.org/install.ps1"
-    ScoopInstallUrl = "https://get.scoop.sh"
+    ScoopInstallUrl      = "https://get.scoop.sh"
+
+    # Windows optional features (require admin)
     RequiredFeatures = @(
         "Microsoft-Windows-Subsystem-Linux"
         "VirtualMachinePlatform"
     )
-    PowerShellModules = @(
-        "PowerShellGet"
-        "PackageManagement"
-        "PSWindowsUpdate"
-    )
-    ChocolateyPackages = @(
-        "git"
-        "7zip"
-        "curl"
-        "wget"
-    )
+
+    # Scoop buckets to add
     ScoopBuckets = @(
         "extras"
         "versions"
         "nerd-fonts"
     )
+
+    # PowerShell modules
+    PowerShellModules = @(
+        "PSReadLine"
+        "posh-git"
+        "Terminal-Icons"
+        "PSFzf"
+        "PowerShellGet"
+        "PackageManagement"
+    )
+
+    # --- Chocolatey packages (core + dev tools) ---
+    ChocolateyPackages = @(
+        # Core utilities
+        "git"
+        "7zip"
+        "curl"
+        "wget"
+        "powershell-core"
+
+        # Editors & terminals
+        "neovim"
+        "vim"
+        "alacritty"
+
+        # Languages & runtimes
+        "python3"
+        "nodejs"
+        "golang"
+        "rustup.install"
+
+        # CLI tools
+        "starship"
+        "ripgrep"
+        "fd"
+        "fzf"
+        "bat"
+        "jq"
+        "tree"
+        "zoxide"
+        "lsd"
+
+        # Containers & VMs
+        "docker-desktop"
+    )
+
+    # Development tools (Chocolatey) — heavier installs, separate step
+    DevToolsChocolatey = @(
+        "llvm"
+        "cmake"
+        "ninja"
+        "make"
+        "nasm"
+        "grep"
+        "sed"
+        "gawk"
+        "which"
+        "sysinternals"
+    )
+
+    # Scoop packages (things that work better via Scoop)
+    ScoopPackages = @(
+        "gdb"
+        "lazygit"
+    )
+
+    # Nerd Fonts (via Scoop nerd-fonts bucket)
+    # These provide the powerline/icon glyphs used by starship, lsd, Terminal-Icons
+    NerdFonts = @(
+        "Iosevka-NF"
+        "JetBrainsMono-NF"
+    )
+
+    # GUI apps (Chocolatey)
+    GuiPackages = @(
+        "vscode"
+        "firefox"
+        "googlechrome"
+        "discord"
+        "notion"
+        "obsidian"
+    )
+
+    # Environment variables
+    EnvironmentVars = @(
+        @{ Name = "EDITOR"; Value = "nvim" }
+        @{ Name = "VISUAL"; Value = "nvim" }
+        @{ Name = "STARSHIP_CONFIG"; Value = "$env:USERPROFILE\.config\starship.toml" }
+    )
+
+    # Registry settings
+    RegistrySettings = @(
+        @{ Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "HideFileExt"; Value = 0; Type = "DWord" }
+        @{ Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "Hidden"; Value = 1; Type = "DWord" }
+    )
+
+    # Development directories
+    DevDirectories = @(
+        "$env:USERPROFILE\dev"
+        "$env:USERPROFILE\projects"
+        "$env:USERPROFILE\.config"
+        "$env:USERPROFILE\.local\bin"
+    )
 }
 
-# Logging functions
+# ============================================================================
+# LOGGING
+# ============================================================================
 function Initialize-Logging {
     $logDir = Split-Path -Parent $Script:LogFile
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
     }
-    
-    try {
-        Start-Transcript -Path $Script:LogFile -Append
-    } catch {
-        Write-Warning "Could not start transcript: $_"
-    }
+    try { Start-Transcript -Path $Script:LogFile -Append } catch { }
 }
 
 function Write-Log {
     param(
         [string]$Message,
-        [ValidateSet("INFO", "WARN", "ERROR", "SUCCESS", "DEBUG")]
+        [ValidateSet("INFO", "WARN", "ERROR", "SUCCESS", "SKIP")]
         [string]$Level = "INFO"
     )
-    
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logMessage = "[$timestamp] [$Level] $Message"
-    
-    switch ($Level) {
-        "ERROR" { Write-Host $logMessage -ForegroundColor Red }
-        "WARN" { Write-Host $logMessage -ForegroundColor Yellow }
-        "SUCCESS" { Write-Host $logMessage -ForegroundColor Green }
-        "DEBUG" { if ($Verbose) { Write-Host $logMessage -ForegroundColor Magenta } }
-        default { Write-Host $logMessage -ForegroundColor Cyan }
+    $colors = @{ "INFO" = "Cyan"; "WARN" = "Yellow"; "ERROR" = "Red"; "SUCCESS" = "Green"; "SKIP" = "DarkGray" }
+    $timestamp = Get-Date -Format "HH:mm:ss"
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $colors[$Level]
+    Add-Content -Path $Script:LogFile -Value "[$timestamp] [$Level] $Message" -ErrorAction SilentlyContinue
+}
+
+function Show-StepBanner {
+    param([int]$Step, [int]$Total, [string]$Title)
+    Write-Host ""
+    Write-Host "  [$Step/$Total] $Title" -ForegroundColor White
+    Write-Host "  $("-" * ($Title.Length + 8))" -ForegroundColor DarkGray
+}
+
+function Refresh-Path {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    # Ensure scoop shims are in PATH (scoop adds itself to User PATH on install,
+    # but the current session may not see it yet)
+    $scoopShims = "$env:USERPROFILE\scoop\shims"
+    if ((Test-Path $scoopShims) -and ($env:Path -notlike "*$scoopShims*")) {
+        $env:Path = "$scoopShims;$env:Path"
     }
-    
-    Add-Content -Path $Script:LogFile -Value $logMessage -ErrorAction SilentlyContinue
 }
 
-function Show-Progress {
-    param(
-        [int]$Current,
-        [int]$Total,
-        [string]$Activity,
-        [string]$Status = "Processing..."
-    )
-    
-    $percent = [math]::Round(($Current / $Total) * 100)
-    Write-Progress -Activity $Activity -Status $Status -PercentComplete $percent
-}
-
-function Show-Banner {
-    Write-Host @"
-╔══════════════════════════════════════════════════════════════╗
-║                WINDOWS BOOTSTRAP SCRIPT                     ║
-║              Dotsible Environment Setup                     ║
-╚══════════════════════════════════════════════════════════════╝
-"@ -ForegroundColor Cyan
-}
-
-# Windows feature management
+# ============================================================================
+# STEP 1: WINDOWS FEATURES
+# ============================================================================
 function Enable-WindowsFeatures {
-    Write-Log "Checking Windows features..." -Level INFO
-    
     $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-    
+
     if (-not $isAdmin) {
-        Write-Log "Administrator privileges required for Windows feature management" -Level WARN
+        Write-Log "Skipping Windows features (requires admin). Run as Administrator to enable WSL/Hyper-V." "WARN"
         return
     }
-    
+
     foreach ($feature in $Script:Config.RequiredFeatures) {
         try {
-            $featureState = Get-WindowsOptionalFeature -Online -FeatureName $feature -ErrorAction SilentlyContinue
-            
-            if ($featureState -and $featureState.State -eq "Enabled") {
-                Write-Log "Windows feature already enabled: $feature" -Level SUCCESS
+            $state = Get-WindowsOptionalFeature -Online -FeatureName $feature -ErrorAction SilentlyContinue
+            if ($state -and $state.State -eq "Enabled") {
+                Write-Log "$feature already enabled" "SUCCESS"
             } else {
-                Write-Log "Enabling Windows feature: $feature" -Level INFO
-                Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart
-                Write-Log "Windows feature enabled: $feature" -Level SUCCESS
+                if ($DryRun) {
+                    Write-Log "Would enable: $feature" "INFO"
+                } else {
+                    Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart | Out-Null
+                    Write-Log "$feature enabled" "SUCCESS"
+                }
             }
         } catch {
-            Write-Log "Failed to enable Windows feature $feature`: $_" -Level WARN
+            Write-Log "Failed to enable ${feature}: $_" "WARN"
         }
     }
 }
 
-# Package manager installation
+# ============================================================================
+# STEP 2: PACKAGE MANAGERS
+# ============================================================================
 function Install-Chocolatey {
-    Write-Log "Checking Chocolatey installation..." -Level INFO
-    
     if (Get-Command choco -ErrorAction SilentlyContinue) {
-        Write-Log "Chocolatey already installed" -Level SUCCESS
-        
-        # Update Chocolatey
-        try {
-            Write-Log "Updating Chocolatey..." -Level INFO
-            & choco upgrade chocolatey -y
-        } catch {
-            Write-Log "Chocolatey update failed: $_" -Level WARN
-        }
+        $ver = & choco --version 2>$null
+        Write-Log "Chocolatey $ver already installed" "SUCCESS"
         return $true
     }
-    
+
+    if ($DryRun) {
+        Write-Log "Would install Chocolatey" "INFO"
+        return $true
+    }
+
     try {
-        Write-Log "Installing Chocolatey..." -Level INFO
-        
-        # Set execution policy temporarily
-        $originalPolicy = Get-ExecutionPolicy
+        Write-Log "Installing Chocolatey..." "INFO"
         Set-ExecutionPolicy Bypass -Scope Process -Force
-        
-        # Download and install Chocolatey
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString($Script:Config.ChocolateyInstallUrl))
-        
-        # Restore execution policy
-        Set-ExecutionPolicy $originalPolicy -Scope Process -Force
-        
-        # Refresh environment variables
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-        
+        Refresh-Path
+
         if (Get-Command choco -ErrorAction SilentlyContinue) {
-            Write-Log "Chocolatey installed successfully" -Level SUCCESS
-            
-            # Install essential packages
-            foreach ($package in $Script:Config.ChocolateyPackages) {
-                try {
-                    Write-Log "Installing Chocolatey package: $package" -Level INFO
-                    & choco install $package -y --no-progress
-                } catch {
-                    Write-Log "Failed to install $package`: $_" -Level WARN
-                }
-            }
-            
+            Write-Log "Chocolatey installed" "SUCCESS"
             return $true
-        } else {
-            Write-Log "Chocolatey installation verification failed" -Level ERROR
-            return $false
         }
+        Write-Log "Chocolatey install failed verification" "ERROR"
+        return $false
     } catch {
-        Write-Log "Chocolatey installation failed: $_" -Level ERROR
+        Write-Log "Chocolatey install failed: $_" "ERROR"
         return $false
     }
 }
 
 function Install-Scoop {
-    Write-Log "Checking Scoop installation..." -Level INFO
-    
     if (Get-Command scoop -ErrorAction SilentlyContinue) {
-        Write-Log "Scoop already installed" -Level SUCCESS
-        
-        # Update Scoop
-        try {
-            Write-Log "Updating Scoop..." -Level INFO
-            & scoop update
-        } catch {
-            Write-Log "Scoop update failed: $_" -Level WARN
-        }
+        Write-Log "Scoop already installed" "SUCCESS"
         return $true
     }
-    
+
+    if ($DryRun) {
+        Write-Log "Would install Scoop" "INFO"
+        return $true
+    }
+
     try {
-        Write-Log "Installing Scoop..." -Level INFO
-        
-        # Set execution policy temporarily
-        $originalPolicy = Get-ExecutionPolicy -Scope CurrentUser
+        Write-Log "Installing Scoop..." "INFO"
         Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        
-        # Install Scoop
         Invoke-RestMethod $Script:Config.ScoopInstallUrl | Invoke-Expression
-        
-        # Restore execution policy
-        Set-ExecutionPolicy $originalPolicy -Scope CurrentUser -Force
-        
+        Refresh-Path
+
         if (Get-Command scoop -ErrorAction SilentlyContinue) {
-            Write-Log "Scoop installed successfully" -Level SUCCESS
-            
-            # Add useful buckets
+            Write-Log "Scoop installed" "SUCCESS"
             foreach ($bucket in $Script:Config.ScoopBuckets) {
                 try {
-                    Write-Log "Adding Scoop bucket: $bucket" -Level INFO
-                    & scoop bucket add $bucket
+                    & scoop bucket add $bucket 2>$null
+                    Write-Log "Scoop bucket added: $bucket" "SUCCESS"
                 } catch {
-                    Write-Log "Failed to add bucket $bucket`: $_" -Level WARN
+                    Write-Log "Scoop bucket $bucket may already exist" "SKIP"
                 }
             }
-            
             return $true
-        } else {
-            Write-Log "Scoop installation verification failed" -Level ERROR
-            return $false
         }
+        Write-Log "Scoop install failed verification" "ERROR"
+        return $false
     } catch {
-        Write-Log "Scoop installation failed: $_" -Level ERROR
+        Write-Log "Scoop install failed: $_" "ERROR"
         return $false
     }
 }
 
-# PowerShell module management
-function Install-PowerShellModules {
-    Write-Log "Installing PowerShell modules..." -Level INFO
-    
-    foreach ($module in $Script:Config.PowerShellModules) {
+# ============================================================================
+# STEP 3-5: PACKAGE INSTALLATION
+# ============================================================================
+function Install-ChocoPackages {
+    param([string[]]$Packages, [string]$Category = "packages")
+
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Write-Log "Chocolatey not available, skipping $Category" "WARN"
+        return
+    }
+
+    $installed = 0
+    $skipped = 0
+    $failed = 0
+
+    foreach ($pkg in $Packages) {
+        # Check if already installed
+        $check = & choco list --local-only 2>$null | Select-String "^$pkg\s"
+        if ($check) {
+            $skipped++
+            Write-Log "$pkg already installed" "SKIP"
+            continue
+        }
+
+        if ($DryRun) {
+            Write-Log "Would install: $pkg" "INFO"
+            continue
+        }
+
         try {
-            if (Get-Module -ListAvailable -Name $module) {
-                Write-Log "PowerShell module already installed: $module" -Level SUCCESS
-            } else {
-                Write-Log "Installing PowerShell module: $module" -Level INFO
-                Install-Module -Name $module -Force -AllowClobber -Scope CurrentUser
-                Write-Log "PowerShell module installed: $module" -Level SUCCESS
-            }
+            & choco install $pkg -y --no-progress 2>&1 | Out-Null
+            $installed++
+            Write-Log "$pkg installed" "SUCCESS"
         } catch {
-            Write-Log "Failed to install PowerShell module $module`: $_" -Level WARN
+            $failed++
+            Write-Log "$pkg failed: $_" "WARN"
+        }
+    }
+
+    Refresh-Path
+    Write-Log "$Category summary: $installed installed, $skipped already present, $failed failed" "INFO"
+}
+
+function Install-ScoopPackages {
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-Log "Scoop not available, skipping Scoop packages" "WARN"
+        return
+    }
+
+    foreach ($pkg in $Script:Config.ScoopPackages) {
+        $check = & scoop list 2>$null | Select-String $pkg
+        if ($check) {
+            Write-Log "$pkg already installed (Scoop)" "SKIP"
+            continue
+        }
+
+        if ($DryRun) {
+            Write-Log "Would install (Scoop): $pkg" "INFO"
+            continue
+        }
+
+        try {
+            & scoop install $pkg 2>&1 | Out-Null
+            Write-Log "$pkg installed (Scoop)" "SUCCESS"
+        } catch {
+            Write-Log "$pkg failed (Scoop): $_" "WARN"
         }
     }
 }
 
-# WinRM configuration for Ansible
-function Initialize-WinRM {
-    Write-Log "Configuring WinRM for Ansible..." -Level INFO
-    
+# ============================================================================
+# STEP 5b: NERD FONTS (via Scoop)
+# ============================================================================
+function Install-NerdFonts {
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-Log "Scoop not available, skipping Nerd Fonts" "WARN"
+        return
+    }
+
+    # Ensure nerd-fonts bucket is added
+    $buckets = & scoop bucket list 2>$null
+    if ($buckets -notmatch "nerd-fonts") {
+        if (-not $DryRun) {
+            & scoop bucket add nerd-fonts 2>$null
+            Write-Log "Added nerd-fonts bucket" "SUCCESS"
+        }
+    }
+
+    foreach ($font in $Script:Config.NerdFonts) {
+        $check = & scoop list 2>$null | Select-String $font
+        if ($check) {
+            Write-Log "$font already installed" "SKIP"
+            continue
+        }
+
+        if ($DryRun) {
+            Write-Log "Would install font: $font" "INFO"
+            continue
+        }
+
+        try {
+            Write-Log "Installing $font (this may take a minute)..." "INFO"
+            & scoop install $font 2>&1 | Out-Null
+            Write-Log "$font installed" "SUCCESS"
+        } catch {
+            Write-Log "$font failed: $_" "WARN"
+        }
+    }
+
+    # Verify fonts are in the user font directory
+    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $iosevkaCount = (Get-ChildItem -Path $fontDir -Filter "IosevkaNerd*" -ErrorAction SilentlyContinue).Count
+    $jbCount = (Get-ChildItem -Path $fontDir -Filter "JetBrainsMono*Nerd*" -ErrorAction SilentlyContinue).Count
+    Write-Log "Nerd Fonts installed: Iosevka ($iosevkaCount files), JetBrainsMono ($jbCount files)" "INFO"
+}
+
+# ============================================================================
+# STEP 6: POWERSHELL MODULES
+# ============================================================================
+function Install-PSModules {
+    # Check if Install-Module works (PS 5.1 on some machines has broken PowerShellGet)
+    $canInstall = $true
     try {
-        # Check if WinRM is already configured
-        $winrmConfig = & winrm get winrm/config 2>$null
-        if ($winrmConfig) {
-            Write-Log "WinRM already configured" -Level SUCCESS
-        } else {
-            Write-Log "Configuring WinRM..." -Level INFO
-            
-            # Enable WinRM
-            & winrm quickconfig -quiet
-            
-            # Configure WinRM for Ansible
-            & winrm set winrm/config/service/auth '@{Basic="true"}'
-            & winrm set winrm/config/service '@{AllowUnencrypted="true"}'
-            & winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
-            
-            Write-Log "WinRM configured successfully" -Level SUCCESS
-        }
-        
-        # Start WinRM service
-        $winrmService = Get-Service -Name WinRM
-        if ($winrmService.Status -ne "Running") {
-            Write-Log "Starting WinRM service..." -Level INFO
-            Start-Service -Name WinRM
-        }
-        
-        # Set WinRM service to automatic startup
-        Set-Service -Name WinRM -StartupType Automatic
-        
-        Write-Log "WinRM service configured and started" -Level SUCCESS
-        return $true
+        Get-Command Install-Module -ErrorAction Stop | Out-Null
     } catch {
-        Write-Log "WinRM configuration failed: $_" -Level ERROR
-        return $false
+        $canInstall = $false
+        Write-Log "Install-Module not available in this PowerShell session" "WARN"
+        Write-Log "Run this bootstrap from PowerShell 7 (pwsh) for module installation" "WARN"
     }
-}
 
-# Environment-specific configuration
-function Initialize-Environment {
-    param([string]$EnvType)
-    
-    Write-Log "Configuring for environment type: $EnvType" -Level INFO
-    
-    switch ($EnvType) {
-        "enterprise" {
-            Write-Log "Applying enterprise-specific configurations..." -Level INFO
-            
-            # Enterprise-specific configurations
-            try {
-                # Configure Windows Update settings for enterprise
-                if (Get-Command Set-WUSettings -ErrorAction SilentlyContinue) {
-                    Set-WUSettings -MicrosoftUpdateEnabled -AutoUpdateOption "ScheduledInstallation"
-                }
-                
-                # Configure enterprise security settings
-                # Add enterprise-specific registry settings here
-                
-                Write-Log "Enterprise configuration completed" -Level SUCCESS
-            } catch {
-                Write-Log "Enterprise configuration failed: $_" -Level WARN
-            }
-        }
-        "personal" {
-            Write-Log "Applying personal environment configurations..." -Level INFO
-            
-            # Personal-specific configurations
-            try {
-                # Configure personal settings
-                # Add personal-specific configurations here
-                
-                Write-Log "Personal configuration completed" -Level SUCCESS
-            } catch {
-                Write-Log "Personal configuration failed: $_" -Level WARN
-            }
-        }
-        default {
-            Write-Log "Unknown environment type: $EnvType. Using default configuration." -Level WARN
-        }
-    }
-}
-
-# Final validation
-function Invoke-FinalValidation {
-    Write-Log "Performing final validation..." -Level INFO
-    
-    $validationResults = @()
-    
-    # Check Chocolatey
-    if (Get-Command choco -ErrorAction SilentlyContinue) {
-        $validationResults += "✓ Chocolatey: $(& choco --version)"
-    } else {
-        $validationResults += "✗ Chocolatey: Not found"
-    }
-    
-    # Check Scoop
-    if (Get-Command scoop -ErrorAction SilentlyContinue) {
-        $validationResults += "✓ Scoop: Available"
-    } else {
-        $validationResults += "✗ Scoop: Not found"
-    }
-    
-    # Check WinRM
-    try {
-        $winrmService = Get-Service -Name WinRM
-        if ($winrmService.Status -eq "Running") {
-            $validationResults += "✓ WinRM: Running"
-        } else {
-            $validationResults += "✗ WinRM: Not running"
-        }
-    } catch {
-        $validationResults += "✗ WinRM: Error checking status"
-    }
-    
-    # Check PowerShell modules
-    $moduleCount = 0
     foreach ($module in $Script:Config.PowerShellModules) {
         if (Get-Module -ListAvailable -Name $module) {
-            $moduleCount++
+            Write-Log "$module already installed" "SKIP"
+            continue
+        }
+
+        if ($DryRun) {
+            Write-Log "Would install module: $module" "INFO"
+            continue
+        }
+
+        if (-not $canInstall) {
+            Write-Log "$module skipped (Install-Module unavailable)" "SKIP"
+            continue
+        }
+
+        try {
+            Install-Module -Name $module -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
+            Write-Log "$module installed" "SUCCESS"
+        } catch {
+            Write-Log "$module failed: $_" "WARN"
         }
     }
-    $validationResults += "✓ PowerShell Modules: $moduleCount/$($Script:Config.PowerShellModules.Count) installed"
-    
-    Write-Log "Validation Results:" -Level INFO
-    foreach ($result in $validationResults) {
-        Write-Log "  $result" -Level INFO
-    }
-    
-    Write-Log "Windows-specific validation completed" -Level SUCCESS
-    return $true
 }
 
-# Main execution function
+# ============================================================================
+# STEP 7: ENVIRONMENT & REGISTRY
+# ============================================================================
+function Set-EnvironmentConfig {
+    # Environment variables
+    foreach ($var in $Script:Config.EnvironmentVars) {
+        $current = [System.Environment]::GetEnvironmentVariable($var.Name, "User")
+        if ($current -eq $var.Value) {
+            Write-Log "Env $($var.Name) already set" "SKIP"
+            continue
+        }
+        if ($DryRun) {
+            Write-Log "Would set env: $($var.Name)=$($var.Value)" "INFO"
+            continue
+        }
+        [System.Environment]::SetEnvironmentVariable($var.Name, $var.Value, "User")
+        Set-Item -Path "Env:$($var.Name)" -Value $var.Value
+        Write-Log "Set env: $($var.Name)=$($var.Value)" "SUCCESS"
+    }
+
+    # Registry settings
+    foreach ($reg in $Script:Config.RegistrySettings) {
+        try {
+            $current = Get-ItemProperty -Path $reg.Path -Name $reg.Name -ErrorAction SilentlyContinue
+            if ($current -and $current.$($reg.Name) -eq $reg.Value) {
+                Write-Log "Registry $($reg.Name) already set" "SKIP"
+                continue
+            }
+            if ($DryRun) {
+                Write-Log "Would set registry: $($reg.Name)=$($reg.Value)" "INFO"
+                continue
+            }
+            Set-ItemProperty -Path $reg.Path -Name $reg.Name -Value $reg.Value -Type $reg.Type
+            Write-Log "Set registry: $($reg.Name)=$($reg.Value)" "SUCCESS"
+        } catch {
+            Write-Log "Registry $($reg.Name) failed: $_" "WARN"
+        }
+    }
+}
+
+# ============================================================================
+# STEP 8: DEVELOPMENT DIRECTORIES
+# ============================================================================
+function New-DevDirectories {
+    foreach ($dir in $Script:Config.DevDirectories) {
+        if (Test-Path $dir) {
+            Write-Log "Directory exists: $dir" "SKIP"
+            continue
+        }
+        if ($DryRun) {
+            Write-Log "Would create: $dir" "INFO"
+            continue
+        }
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Write-Log "Created: $dir" "SUCCESS"
+    }
+}
+
+# ============================================================================
+# STEP 9: DOTFILE DEPLOYMENT
+# ============================================================================
+function Deploy-Dotfiles {
+    $deployScript = Join-Path $Script:DotfilesRoot "scripts\deploy_dotfiles_windows.ps1"
+
+    if (-not (Test-Path $deployScript)) {
+        Write-Log "Dotfile deploy script not found: $deployScript" "ERROR"
+        return
+    }
+
+    $deployArgs = @{
+        DotfilesRoot = $Script:DotfilesRoot
+    }
+    if ($DryRun) { $deployArgs["DryRun"] = $true }
+    if ($Force) { $deployArgs["Force"] = $true }
+
+    Write-Log "Deploying dotfiles..." "INFO"
+    & $deployScript @deployArgs
+}
+
+# ============================================================================
+# STEP 10: VALIDATION
+# ============================================================================
+function Invoke-Validation {
+    # Ensure scoop shims are in path for validation
+    Refresh-Path
+
+    Write-Host ""
+    Write-Host "  Validation" -ForegroundColor White
+    Write-Host "  ----------" -ForegroundColor DarkGray
+
+    $checks = @(
+        @{ Name = "Chocolatey"; Cmd = "choco" }
+        @{ Name = "Git"; Cmd = "git" }
+        @{ Name = "Python"; Cmd = "python" }
+        @{ Name = "Node.js"; Cmd = "node" }
+        @{ Name = "Neovim"; Cmd = "nvim" }
+        @{ Name = "Go"; Cmd = "go" }
+        @{ Name = "Starship"; Cmd = "starship" }
+        @{ Name = "ripgrep"; Cmd = "rg" }
+        @{ Name = "fd"; Cmd = "fd" }
+        @{ Name = "fzf"; Cmd = "fzf" }
+        @{ Name = "bat"; Cmd = "bat" }
+        @{ Name = "zoxide"; Cmd = "zoxide" }
+        @{ Name = "lsd"; Cmd = "lsd" }
+    )
+
+    $passed = 0
+    $total = $checks.Count
+
+    foreach ($check in $checks) {
+        if (Get-Command $check.Cmd -ErrorAction SilentlyContinue) {
+            Write-Log "$($check.Name): OK" "SUCCESS"
+            $passed++
+        } else {
+            Write-Log "$($check.Name): not found" "WARN"
+        }
+    }
+
+    # Check Nerd Fonts
+    Write-Host ""
+    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $iosevkaFonts = (Get-ChildItem -Path $fontDir -Filter "IosevkaNerd*" -ErrorAction SilentlyContinue).Count
+    $jbFonts = (Get-ChildItem -Path $fontDir -Filter "JetBrainsMono*Nerd*" -ErrorAction SilentlyContinue).Count
+    if ($iosevkaFonts -gt 0) {
+        Write-Log "Iosevka Nerd Font: $iosevkaFonts files installed" "SUCCESS"
+    } else {
+        Write-Log "Iosevka Nerd Font: not installed" "WARN"
+    }
+    if ($jbFonts -gt 0) {
+        Write-Log "JetBrainsMono Nerd Font: $jbFonts files installed" "SUCCESS"
+    } else {
+        Write-Log "JetBrainsMono Nerd Font: not installed" "WARN"
+    }
+
+    # Check dotfile targets
+    Write-Host ""
+    $dotfileChecks = @(
+        @{ Name = "Neovim config"; Path = "$env:LOCALAPPDATA\nvim\init.lua" }
+        @{ Name = "Starship config"; Path = "$env:USERPROFILE\.config\starship.toml" }
+        @{ Name = "PowerShell profile"; Path = "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" }
+        @{ Name = "Vim config"; Path = "$env:USERPROFILE\.vimrc" }
+    )
+
+    foreach ($dc in $dotfileChecks) {
+        if (Test-Path $dc.Path) {
+            Write-Log "$($dc.Name): deployed" "SUCCESS"
+        } else {
+            Write-Log "$($dc.Name): missing" "WARN"
+        }
+    }
+
+    Write-Host ""
+    Write-Log "Tools: $passed/$total available" "INFO"
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
 function Invoke-WindowsBootstrap {
     try {
         Initialize-Logging
-        Show-Banner
-        
-        Write-Log "Windows bootstrap started" -Level INFO
-        Write-Log "Environment type: $EnvironmentType" -Level INFO
-        Write-Log "Parameters: Force=$Force, Verbose=$Verbose" -Level INFO
-        Write-Log "Log file: $Script:LogFile" -Level INFO
-        
-        $totalSteps = 6
-        $currentStep = 0
-        
-        # Step 1: Windows features
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Enabling Windows features..."
+
+        Write-Host ""
+        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host "  DOTSIBLE - Windows Bootstrap" -ForegroundColor Cyan
+        Write-Host "  Self-sufficient setup (no Ansible required)" -ForegroundColor DarkGray
+        Write-Host "========================================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Log "Environment: $EnvironmentType" "INFO"
+        Write-Log "Dotfiles root: $Script:DotfilesRoot" "INFO"
+        if ($DryRun) { Write-Log "DRY RUN - no changes will be made" "WARN" }
+        if ($SkipPackages) { Write-Log "Skipping package installation" "INFO" }
+        if ($SkipDotfiles) { Write-Log "Skipping dotfile deployment" "INFO" }
+
+        $totalSteps = 11
+        $step = 0
+
+        # Step 1: Windows Features
+        Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Windows Features"
         Enable-WindowsFeatures
-        
-        # Step 2: Chocolatey
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Installing Chocolatey..."
-        Install-Chocolatey | Out-Null
-        
-        # Step 3: Scoop
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Installing Scoop..."
-        Install-Scoop | Out-Null
-        
-        # Step 4: PowerShell modules
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Installing PowerShell modules..."
-        Install-PowerShellModules
-        
-        # Step 5: WinRM
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Configuring WinRM..."
-        Initialize-WinRM | Out-Null
-        
-        # Step 6: Environment configuration
-        Show-Progress -Current (++$currentStep) -Total $totalSteps -Activity "Windows Bootstrap" -Status "Configuring environment..."
-        Initialize-Environment -EnvType $EnvironmentType
-        
-        Write-Progress -Activity "Windows Bootstrap" -Completed
-        
-        # Final validation
-        Invoke-FinalValidation | Out-Null
-        
-        # Success message
-        Write-Log "Windows bootstrap completed successfully!" -Level SUCCESS
-        Write-Host ""
-        Write-Log "Installed components:" -Level INFO
-        Write-Host "  - Package Managers: Chocolatey, Scoop"
-        Write-Host "  - PowerShell Modules: $($Script:Config.PowerShellModules -join ', ')"
-        Write-Host "  - WinRM: Configured and running"
-        Write-Host ""
-        Write-Log "Environment type: $EnvironmentType" -Level INFO
-        Write-Log "Log file: $Script:LogFile" -Level INFO
-        
+
+        if (-not $SkipPackages) {
+            # Step 2: Package Managers
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Package Managers"
+            $chocoOk = Install-Chocolatey
+            $scoopOk = Install-Scoop
+
+            # Step 3: Core Packages
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Core Packages (Chocolatey)"
+            Install-ChocoPackages -Packages $Script:Config.ChocolateyPackages -Category "Core packages"
+
+            # Step 4: Development Tools
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Development Tools"
+            Install-ChocoPackages -Packages $Script:Config.DevToolsChocolatey -Category "Dev tools"
+            Install-ScoopPackages
+
+            # Step 5: GUI Applications
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "GUI Applications"
+            Install-ChocoPackages -Packages $Script:Config.GuiPackages -Category "GUI apps"
+
+            # Step 6: Nerd Fonts
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Nerd Fonts"
+            Install-NerdFonts
+        } else {
+            $step += 5  # Skip package + font steps
+        }
+
+        # Step 7: PowerShell Modules
+        Show-StepBanner -Step (++$step) -Total $totalSteps -Title "PowerShell Modules"
+        Install-PSModules
+
+        # Step 8: Environment & Registry
+        Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Environment Configuration"
+        Set-EnvironmentConfig
+
+        # Step 9: Development Directories
+        Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Development Directories"
+        New-DevDirectories
+
+        if (-not $SkipDotfiles) {
+            # Step 10: Dotfile Deployment
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Dotfile Deployment"
+            Deploy-Dotfiles
+        } else {
+            $step++
+        }
+
+        # Step 11: Validation
+        Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Validation"
+        Invoke-Validation
+
+        # Done
         $duration = (Get-Date) - $Script:StartTime
-        Write-Log "Windows bootstrap completed in $($duration.TotalMinutes.ToString('F1')) minutes" -Level INFO
-        
+        Write-Host ""
+        Write-Host "========================================================" -ForegroundColor Green
+        Write-Host "  Bootstrap completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+        Write-Host "========================================================" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  Next steps:" -ForegroundColor White
+        Write-Host "    1. Restart your terminal (or run: pwsh)" -ForegroundColor DarkGray
+        Write-Host "    2. Your PowerShell profile will load automatically" -ForegroundColor DarkGray
+        Write-Host "    3. Starship prompt + zoxide + vi mode will be active" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  To re-deploy dotfiles only:" -ForegroundColor White
+        Write-Host "    .\scripts\deploy_dotfiles_windows.ps1 -Force" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  Log: $Script:LogFile" -ForegroundColor DarkGray
+        Write-Host ""
+
     } catch {
-        Write-Log "Windows bootstrap failed: $_" -Level ERROR
-        Write-Log "Check log file for details: $Script:LogFile" -Level ERROR
+        Write-Log "Bootstrap failed: $_" "ERROR"
+        Write-Log "Check log: $Script:LogFile" "ERROR"
         exit 1
     } finally {
-        try {
-            Stop-Transcript
-        } catch {
-            # Ignore transcript errors
-        }
+        try { Stop-Transcript } catch { }
     }
 }
 
-# Execute bootstrap
+# Execute
 Invoke-WindowsBootstrap
