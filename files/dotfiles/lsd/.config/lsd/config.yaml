@@ -1,0 +1,40 @@
+# lsd configuration
+# https://github.com/lsd-rs/lsd#config-file-content
+
+# Icons
+icons:
+  when: always
+  theme: fancy
+  separator: " "
+
+# Colors
+color:
+  when: auto
+  theme: default
+
+# Date format
+date: relative
+
+# Layout
+layout: grid
+
+# Sorting
+sorting:
+  column: name
+  reverse: false
+  dir-grouping: first
+
+# Permission style
+permission: rwx
+
+# Size display
+size: default
+
+# Symlinks
+symlink-arrow: "⇒"
+
+# Header row in long format
+header: false
+
+# Hyperlinks
+hyperlink: never

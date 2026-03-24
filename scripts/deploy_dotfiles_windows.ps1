@@ -10,8 +10,11 @@
     Dotfile mapping (Stow source → Windows target):
       nvim/.config/nvim/        → $env:LOCALAPPDATA\nvim\
       alacritty/.config/alacritty/ → $env:APPDATA\alacritty\
+      windows-terminal/settings.json → $env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_...\LocalState\settings.json
       starship/.config/starship.toml → $HOME\.config\starship.toml
       claude/.claude/           → $HOME\.claude\
+      vscode/settings.json      → $env:APPDATA\Code\User\settings.json
+      vscode/antigravity-settings.json → $env:APPDATA\Antigravity\User\settings.json
       vim/.vimrc                → $HOME\.vimrc
 
 .PARAMETER DotfilesRoot
@@ -225,6 +228,13 @@ if (-not $DryRun -and (Test-Path $alacrittyTarget)) {
     Write-Log "Alacritty: Windows override available at alacritty-windows.toml (add to [general].import)" "INFO"
 }
 
+# --- lsd ---
+$lsdSource = Join-Path $SourceBase "lsd\.config\lsd\config.yaml"
+$lsdXdgTarget = Join-Path $env:USERPROFILE ".config\lsd\config.yaml"
+$lsdAppDataTarget = Join-Path $env:APPDATA "lsd\config.yaml"
+Deploy-File -Source $lsdSource -Target $lsdXdgTarget -Name "lsd (XDG)"
+Deploy-File -Source $lsdSource -Target $lsdAppDataTarget -Name "lsd (AppData)"
+
 # --- Starship ---
 $starshipSource = Join-Path $SourceBase "starship\.config\starship.toml"
 $starshipTarget = Join-Path $env:USERPROFILE ".config\starship.toml"
@@ -240,6 +250,21 @@ foreach ($file in $claudeFiles) {
     $tgt = Join-Path $claudeTarget $file
     Deploy-File -Source $src -Target $tgt -Name "Claude/$file"
 }
+
+# --- Windows Terminal ---
+$wtSource = Join-Path $SourceBase "windows-terminal\settings.json"
+$wtTarget = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+Deploy-File -Source $wtSource -Target $wtTarget -Name "Windows Terminal"
+
+# --- VSCode ---
+$vscodeSource = Join-Path $SourceBase "vscode\settings.json"
+$vscodeTarget = Join-Path $env:APPDATA "Code\User\settings.json"
+Deploy-File -Source $vscodeSource -Target $vscodeTarget -Name "VSCode"
+
+# --- Antigravity (VSCode wrapper) ---
+$antigravitySource = Join-Path $SourceBase "vscode\antigravity-settings.json"
+$antigravityTarget = Join-Path $env:APPDATA "Antigravity\User\settings.json"
+Deploy-File -Source $antigravitySource -Target $antigravityTarget -Name "Antigravity"
 
 # --- Vim ---
 $vimSource = Join-Path $SourceBase "vim\.vimrc"
@@ -283,8 +308,11 @@ Write-Host ""
 Write-Host "  Targets:" -ForegroundColor White
 Write-Host "    Neovim:    $nvimTarget" -ForegroundColor DarkGray
 Write-Host "    Alacritty: $alacrittyTarget" -ForegroundColor DarkGray
+Write-Host "    WinTerm:   $wtTarget" -ForegroundColor DarkGray
 Write-Host "    Starship:  $starshipTarget" -ForegroundColor DarkGray
 Write-Host "    Claude:    $claudeTarget" -ForegroundColor DarkGray
+Write-Host "    VSCode:    $vscodeTarget" -ForegroundColor DarkGray
+Write-Host "    Antigrav:  $antigravityTarget" -ForegroundColor DarkGray
 Write-Host "    Vim:       $vimTarget" -ForegroundColor DarkGray
 Write-Host "    PS Profile: $pwshProfileTarget" -ForegroundColor DarkGray
 Write-Host "    Scripts:   $scriptsTarget" -ForegroundColor DarkGray

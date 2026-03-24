@@ -102,6 +102,7 @@ $Script:Config = @{
         "neovim"
         "vim"
         "alacritty"
+        "microsoft-windows-terminal"
 
         # Languages & runtimes
         "python3"

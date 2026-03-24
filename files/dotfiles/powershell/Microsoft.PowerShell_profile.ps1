@@ -50,7 +50,10 @@ foreach ($p in $pathAdditions) {
 # PSREADLINE CONFIGURATION
 # ============================================================================
 if (Get-Module -ListAvailable -Name PSReadLine) {
-    Import-Module PSReadLine
+    # Only import if not already loaded (PS7 auto-loads PSReadLine)
+    if (-not (Get-Module PSReadLine)) {
+        Import-Module PSReadLine
+    }
 
     # Vi mode (equivalent to set -o vi in zsh)
     Set-PSReadLineOption -EditMode Vi
@@ -61,15 +64,12 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
     Set-PSReadLineOption -MaximumHistoryCount 50000
     Set-PSReadLineOption -HistoryNoDuplicates
 
-    # Prediction / autosuggestion (equivalent to zsh-autosuggestions)
-    # Only enable predictions in PS 7+ with VT support (PS 5.1 throws on these)
+    # Prediction / autosuggestion (requires PS 7+ — PS 5.1's PSReadLine lacks these entirely)
     if ($PSVersionTable.PSVersion.Major -ge 7) {
         Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
         Set-PSReadLineOption -PredictionViewStyle InlineView -ErrorAction SilentlyContinue
-    } else {
-        Set-PSReadLineOption -PredictionSource History -ErrorAction SilentlyContinue
+        Set-PSReadLineOption -Colors @{ InlinePrediction = [ConsoleColor]::DarkGray } -ErrorAction SilentlyContinue
     }
-    Set-PSReadLineOption -Colors @{ InlinePrediction = [ConsoleColor]::DarkGray } -ErrorAction SilentlyContinue
 
     # Key bindings
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
@@ -113,13 +113,18 @@ if (Get-Module -ListAvailable -Name PSFzf) {
 # Enhanced ls/dir (lsd if available — provides Nerd Font icons in listings)
 if (Get-Command lsd -ErrorAction SilentlyContinue) {
     Set-Alias -Name ls -Value lsd -Option AllScope -Force
-    function l   { lsd -l @args }
-    function la  { lsd -la @args }
-    function ll  { lsd -la @args }
-    function lt  { lsd --tree @args }
+    function l   { lsd --icon always -l @args }
+    function la  { lsd --icon always -la @args }
+    function ll  { lsd --icon always -la @args }
+    function lt  { lsd --icon always --tree @args }
     # Override dir to also use lsd (built-in dir is an alias for Get-ChildItem)
-    Remove-Alias -Name dir -Force -ErrorAction SilentlyContinue
-    function dir { lsd -la @args }
+    # Remove-Alias requires PS 6+; on 5.1 use Remove-Item on the alias provider
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
+        Remove-Alias -Name dir -Force -ErrorAction SilentlyContinue
+    } else {
+        Remove-Item Alias:dir -Force -ErrorAction SilentlyContinue
+    }
+    function dir { lsd --icon always -la @args }
 } else {
     function l   { Get-ChildItem @args }
     function la  { Get-ChildItem -Force @args }

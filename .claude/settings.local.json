@@ -36,7 +36,21 @@
       "Bash(cp \"$src\" \"$HOME/Documents/PowerShell/Microsoft.PowerShell_profile.ps1\")",
       "Bash(cp \"$src\" \"$HOME/Documents/PowerShell/profile.ps1\")",
       "Bash(cp \"$src\" \"$HOME/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1\")",
-      "Bash(cp \"$src\" \"$HOME/Documents/WindowsPowerShell/profile.ps1\")"
+      "Bash(cp \"$src\" \"$HOME/Documents/WindowsPowerShell/profile.ps1\")",
+      "Read(//c/Users/bitcode/dotfiles/$APPDATA/**)",
+      "Read(//c/Users/bitcode/dotfiles/$HOME/.config/**)",
+      "Bash(mkdir -p \"$HOME/.config/lsd\")",
+      "Bash(mkdir -p \"$APPDATA/lsd\")",
+      "Bash(cp /c/Users/bitcode/dotfiles/files/dotfiles/lsd/.config/lsd/config.yaml \"$HOME/.config/lsd/config.yaml\")",
+      "Bash(cp /c/Users/bitcode/dotfiles/files/dotfiles/lsd/.config/lsd/config.yaml \"$APPDATA/lsd/config.yaml\")",
+      "Skill(keybindings-help)",
+      "Bash(find /c/Users/bitcode/dotfiles -type d -name *windows* -o -type d -name *terminal*)",
+      "Bash(grep -r windows /c/Users/bitcode/dotfiles/group_vars --include=*.yml)",
+      "Bash(find /c/Users/bitcode/dotfiles -name *windows* -type f ! -path */.git/*)",
+      "Bash(cp \"$APPDATA/Code/User/settings.json\" /c/Users/bitcode/dotfiles/files/dotfiles/vscode/settings.json)",
+      "Bash(cp \"$APPDATA/Antigravity/User/settings.json\" /c/Users/bitcode/dotfiles/files/dotfiles/vscode/antigravity-settings.json)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

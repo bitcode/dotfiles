@@ -1,0 +1,198 @@
+{
+    // --- General Theme and Fonts ---
+    "workbench.iconTheme": null,
+    "workbench.colorTheme": "Gruvbox Dark Medium",
+    "editor.fontFamily": "'Iosevka Nerd Font', 'JetBrainsMono Nerd Font', 'Consolas', monospace",
+    "workbench.fontAliasing": "antialiased",
+    "terminal.integrated.fontFamily": "'Iosevka Nerd Font', 'JetBrainsMono Nerd Font', 'Consolas', monospace",
+    "editor.fontSize": 14,
+    "editor.fontLigatures": true,
+    "editor.lineNumbers": "relative",
+    "editor.cursorBlinking": "solid",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": "active",
+    "editor.minimap.enabled": false,
+    "editor.renderWhitespace": "boundary",
+    "editor.smoothScrolling": true,
+    "editor.wordWrap": "off",
+    "terminal.integrated.fontSize": 13,
+    "terminal.integrated.cursorStyle": "line",
+    // --- Code-Specific Settings ---
+    "[csharp]": {
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "terminal.integrated.env.windows": {},
+    // --- Security and Workspace Trust (Kept from original) ---
+    "security.workspace.trust.enabled": true,
+    "security.workspace.trust.banner": "always",
+    "security.workspace.trust.emptyWindow": true,
+    "security.workspace.trust.startupPrompt": "always",
+    // --- Terminal Profiles ---
+    "terminal.integrated.profiles.windows": {
+        "PowerShell 7": {
+            "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+            "args": ["-NoLogo"],
+            "icon": "terminal-powershell"
+        },
+        "Git Bash": {
+            "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "args": ["-li"],
+            "icon": "terminal-bash"
+        },
+        "Command Prompt": {
+            "path": "C:\\Windows\\System32\\cmd.exe",
+            "icon": "terminal-cmd"
+        }
+    },
+    // --- AI Agent Terminal Integration (Optimized for Persistence and Interaction) ---
+    // 1. Core Persistence settings (Ensured they are present and correct)
+    "terminal.integrated.shellIntegration.enabled": true,
+    "terminal.integrated.shellIntegration.history": 1000,
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "terminal.integrated.enablePersistentSessions": true,
+    "terminal.integrated.detectLocale": "on",
+    // 2. CRITICAL: Ensures the terminal process itself is relaunched and restored
+    "terminal.integrated.persistentSessionReviveProcess": "onExit",
+    // 3. Prevents interruption popups when processes exit or are killed
+    "terminal.integrated.confirmOnExit": "never",
+    "terminal.integrated.confirmOnKill": "never",
+    // 4. Automation approvals
+    "chat.tools.autoApprove": true,
+    // 5. Default profiles for terminals and agent
+    "terminal.integrated.defaultProfile.windows": "PowerShell 7",
+    // 6. Advanced persistence and autonomous settings
+    "terminal.integrated.persistentSessionScrollback": 5000,
+    "terminal.integrated.showExitAlert": false,
+    "terminal.integrated.autoReplies": {
+        "Terminate batch job (Y/N)?": "Y\r",
+        "Press any key to continue . . .": "\r"
+    },
+    // --- Existing Agent and Extension Specific Settings (Kept) ---
+    "markdown-preview-enhanced.previewTheme": "atom-light.css",
+    "redhat.telemetry.enabled": false,
+    "explorer.sortOrder": "modified",
+    "roo-cline.allowedCommands": [
+        "git log",
+        "git diff",
+        "git show",
+        "dotnet build",
+        "dotnet run",
+        "dotnet test",
+        "dotnet restore",
+        "dotnet publish",
+        "dotnet new",
+        "dotnet clean",
+        "csc",
+        "msbuild",
+        "Stop-Process -Name \"WindowHighlighter.App\" -Force -ErrorAction SilentlyContinue",
+        "powershell.exe -ExecutionPolicy Bypass -File .\\clear_debug_logs.ps1",
+        ".\\bin\\Release\\net8.0-windows\\WindowHighlighter.App.exe -debug",
+        "dotnet clean WindowHighlighter.sln -c Debug",
+        "dotnet build WindowHighlighter.sln -c Debug --nologo -v q /clp:ErrorsOnly -p:WarningLevel=0",
+        "cd",
+        "python -m mcp_server_windbg",
+        "python",
+        "npm test",
+        "npm install",
+        "tsc",
+        "cdb"
+    ],
+    "workbench.sideBar.location": "right",
+    "terminal.integrated.fontLigatures.fallbackLigatures": [
+        "<--",
+        "<---",
+        "<<-",
+        "<-",
+        "->",
+        "->>",
+        "-->",
+        "--->",
+        "<==",
+        "<===",
+        "<<=",
+        "<=",
+        "=>",
+        "=>>",
+        "==>",
+        "===>",
+        ">=",
+        ">>=",
+        "<->",
+        "<-->",
+        "<--->",
+        "<---->",
+        "<=>",
+        "<==>",
+        "<===>",
+        "<====>",
+        "::",
+        ":::",
+        "<~~",
+        "</",
+        "</>",
+        "/>",
+        "~~>",
+        "==",
+        "!=",
+        "/=",
+        "~=",
+        "<>",
+        "===",
+        "!==",
+        "!===",
+        "<:",
+        ":=",
+        "*=",
+        "*+",
+        "<*",
+        "<*>",
+        "*>",
+        "<|",
+        "<|>",
+        "|>",
+        "+*",
+        "=*",
+        "=:",
+        ":>",
+        "/*",
+        "*/",
+        "+++",
+        "<!--",
+        "<!---"
+    ],
+    "editor.accessibilitySupport": "off",
+    "powershell.promptToUpdatePowerShell": false,
+    "roo-cline.deniedCommands": [],
+    "svelte.enable-ts-plugin": true,
+    "python.defaultInterpreterPath": "C:\\Users\\bitcode\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "kilo-code.allowedCommands": [
+        "git log",
+        "git diff",
+        "git show"
+    ],
+    "kilo-code.deniedCommands": [],
+    "xml.server.vmargs": "-Xmx256M",
+    "json.schemaDownload.enable": true,
+    "workbench.editor.enablePreviewFromCodeNavigation": true,
+    "workbench.editor.enablePreviewFromQuickOpen": true,
+    // Prevents memory-intensive features (like syntax highlighting, format on save) for very large files.
+    // This is enabled by default, but you can explicitly ensure it's on.
+    "editor.largeFileOptimizations": true,
+    // Sets the maximum memory a file can use before memory optimizations are applied.
+    // The default is around 20 MB, but you can adjust this value (in MB) as needed.
+    "files.maxMemoryForLargeFilesMB": 50,
+    // Displays a confirmation alert for files over a certain size (in GB) before opening.
+    // The default is 1 GB. Set this to a smaller value, e.g., 0.1 GB (100 MB), to be prompted sooner.
+    "workbench.editor.largeFileConfirmation": 0.1,
+    // --- Antigravity Browser Configuration ---
+    "antigravity.browser.profileDirectory": "C:\\Users\\bitcode\\.gemini\\antigravity-browser-profile",
+    "antigravity.browser.chromeExecutablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "antigravityUnifiedStateSync.browserPreferences.hasBrowserAllowlistMigrated": true,
+    "antigravityUnifiedStateSync.browserPreferences.hasAddedLocalhostToAllowlist": true,
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.selectedModel": "default"
+}
