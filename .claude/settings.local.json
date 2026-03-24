@@ -30,7 +30,13 @@
       "Bash(lsd --version)",
       "Bash(pwsh -NoProfile -Command \"\n\\\\$env:PATH = \\\\\"\\\\$env:USERPROFILE\\\\scoop\\\\shims;\\\\$env:PATH\\\\\"\nscoop bucket list\n\" 2>&1)",
       "Bash(pwsh -NoProfile -Command \"\n\\\\$env:PATH = \\\\\"\\\\$env:USERPROFILE\\\\scoop\\\\shims;\\\\$env:PATH\\\\\"\nscoop search Iosevka | Select-Object -First 10\n\" 2>&1)",
-      "Bash(pwsh -NoProfile -File scripts/bootstrap_windows.ps1 -SkipPackages -SkipDotfiles -DryRun 2>&1)"
+      "Bash(pwsh -NoProfile -File scripts/bootstrap_windows.ps1 -SkipPackages -SkipDotfiles -DryRun 2>&1)",
+      "Bash(pwsh -NoProfile -Command \"\n\\\\$env:PATH = \\\\\"\\\\$env:USERPROFILE\\\\scoop\\\\shims;\\\\$env:PATH\\\\\"\nWrite-Host 'lsd:' \\(Get-Command lsd -ErrorAction SilentlyContinue\\).Source\nlsd --version\n\" 2>&1)",
+      "Bash(src=\"/c/Users/bitcode/dotfiles/files/dotfiles/powershell/Microsoft.PowerShell_profile.ps1\")",
+      "Bash(cp \"$src\" \"$HOME/Documents/PowerShell/Microsoft.PowerShell_profile.ps1\")",
+      "Bash(cp \"$src\" \"$HOME/Documents/PowerShell/profile.ps1\")",
+      "Bash(cp \"$src\" \"$HOME/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1\")",
+      "Bash(cp \"$src\" \"$HOME/Documents/WindowsPowerShell/profile.ps1\")"
     ]
   }
 }

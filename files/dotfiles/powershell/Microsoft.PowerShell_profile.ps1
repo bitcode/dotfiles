@@ -110,13 +110,16 @@ if (Get-Module -ListAvailable -Name PSFzf) {
 # ALIASES (equivalent to .zshrc aliases)
 # ============================================================================
 
-# Enhanced ls (lsd if available)
+# Enhanced ls/dir (lsd if available — provides Nerd Font icons in listings)
 if (Get-Command lsd -ErrorAction SilentlyContinue) {
     Set-Alias -Name ls -Value lsd -Option AllScope -Force
     function l   { lsd -l @args }
     function la  { lsd -la @args }
     function ll  { lsd -la @args }
     function lt  { lsd --tree @args }
+    # Override dir to also use lsd (built-in dir is an alias for Get-ChildItem)
+    Remove-Alias -Name dir -Force -ErrorAction SilentlyContinue
+    function dir { lsd -la @args }
 } else {
     function l   { Get-ChildItem @args }
     function la  { Get-ChildItem -Force @args }

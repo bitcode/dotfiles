@@ -248,11 +248,15 @@ Deploy-File -Source $vimSource -Target $vimTarget -Name "Vim"
 
 # --- PowerShell Profile ---
 $profileSource = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
-# PowerShell 7+ (pwsh) profile path
+# AllHosts profile (loads in every host: terminal, VS Code, ISE, etc.)
+$pwshAllHostsTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\profile.ps1"
+$ps5AllHostsTarget = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\profile.ps1"
+# CurrentHost profiles (standard terminal only)
 $pwshProfileTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
-# Windows PowerShell 5.1 profile path
 $ps5ProfileTarget = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+Deploy-File -Source $profileSource -Target $pwshAllHostsTarget -Name "PowerShell 7 AllHosts Profile"
 Deploy-File -Source $profileSource -Target $pwshProfileTarget -Name "PowerShell 7 Profile"
+Deploy-File -Source $profileSource -Target $ps5AllHostsTarget -Name "PowerShell 5.1 AllHosts Profile"
 Deploy-File -Source $profileSource -Target $ps5ProfileTarget -Name "PowerShell 5.1 Profile"
 
 # --- Scripts (Windows-compatible only) ---
