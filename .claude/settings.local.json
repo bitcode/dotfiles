@@ -62,7 +62,18 @@
       "Bash(/bin/rm /Users/mdrozrosario/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/cmp-nvim-lsp.lua)",
       "Bash(nvim --startuptime /tmp/nvim-startup2.log --headless +qa)",
       "Bash(sort -t' ' -k2 -rn /tmp/nvim-startup2.log)",
-      "Bash(/bin/rm /Users/mdrozrosario/dotfiles/.git/index.lock)"
+      "Bash(/bin/rm /Users/mdrozrosario/dotfiles/.git/index.lock)",
+      "Bash(find /c/Users/bitcode/dotfiles -name *windows* -o -name *Windows*)",
+      "Bash(grep -E \"\\\\.\\(yml|ps1\\)$\")",
+      "Read(//c/Users/bitcode/dotfiles/$USERPROFILE/Documents/**)",
+      "Bash(rm -rf \"$LOCALAPPDATA/nvim\")",
+      "Bash(cp -r \"/c/Users/bitcode/dotfiles/files/dotfiles/nvim/.config/nvim\" \"$LOCALAPPDATA/nvim\")",
+      "Read(//c/Users/bitcode/dotfiles/$LOCALAPPDATA/**)",
+      "Bash(cp \"$src\" \"$USERPROFILE/Documents/PowerShell/Microsoft.PowerShell_profile.ps1\")",
+      "Bash(cp \"$src\" \"$USERPROFILE/Documents/PowerShell/profile.ps1\")",
+      "Bash(cp \"$src\" \"$USERPROFILE/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1\")",
+      "Bash(cp \"$src\" \"$USERPROFILE/Documents/WindowsPowerShell/profile.ps1\")",
+      "Bash(git rebase:*)"
     ]
   }
 }

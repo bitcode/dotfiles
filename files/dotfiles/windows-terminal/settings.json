@@ -35,6 +35,14 @@
                 "input": "\u001b[13;2u"
             },
             "id": "User.shiftEnterNewline"
+        },
+        {
+            "command":
+            {
+                "action": "sendInput",
+                "input": "\u001b[9;2u"
+            },
+            "id": "User.shiftTab"
         }
     ],
     "copyFormatting": "none",
@@ -61,6 +69,10 @@
         {
             "id": "User.shiftEnterNewline",
             "keys": "shift+enter"
+        },
+        {
+            "id": "User.shiftTab",
+            "keys": "shift+tab"
         }
     ],
     "newTabMenu":

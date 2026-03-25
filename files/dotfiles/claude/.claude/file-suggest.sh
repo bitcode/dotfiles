@@ -9,8 +9,15 @@
 #   2. find — POSIX fallback
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Resolve python command (python3 on Unix, python on Windows)
+if command -v python3 &>/dev/null; then
+    PY=python3
+else
+    PY=python
+fi
+
 DATA=$(cat)
-QUERY=$(printf '%s' "$DATA" | python3 -c "
+QUERY=$(printf '%s' "$DATA" | $PY -c "
 import sys, json
 try:    print(json.load(sys.stdin).get('query', ''), end='')
 except: print('', end='')
@@ -45,7 +52,7 @@ else
 fi
 
 # ── Output: JSON array of relative paths ─────────────────────────────────────
-printf '%s\n' "$RESULTS" | python3 -c "
+printf '%s\n' "$RESULTS" | $PY -c "
 import sys, json, os
 cwd = os.getcwd()
 paths = []
