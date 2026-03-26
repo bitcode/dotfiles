@@ -50,7 +50,19 @@
       "Bash(cp \"$APPDATA/Code/User/settings.json\" /c/Users/bitcode/dotfiles/files/dotfiles/vscode/settings.json)",
       "Bash(cp \"$APPDATA/Antigravity/User/settings.json\" /c/Users/bitcode/dotfiles/files/dotfiles/vscode/antigravity-settings.json)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(nvim --startuptime /tmp/nvim-startup.log --headless +qa)",
+      "Read(//tmp/**)",
+      "Bash(sort -t' ' -k2 -rn)",
+      "Bash(unalias rm:*)",
+      "Bash(/bin/rm /Users/mdrozrosario/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/vim-gitgutter.lua)",
+      "Bash(/bin/rm /Users/mdrozrosario/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/cmp-nvim-lsp.lua)",
+      "Bash(nvim --startuptime /tmp/nvim-startup2.log --headless +qa)",
+      "Bash(sort -t' ' -k2 -rn /tmp/nvim-startup2.log)",
+      "Bash(/bin/rm /Users/mdrozrosario/dotfiles/.git/index.lock)"
     ]
   }
 }
