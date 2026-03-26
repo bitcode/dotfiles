@@ -1,7 +1,7 @@
 return {
   "nvim-telescope/telescope-file-browser.nvim",
   dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
-  priority = 1000,
+  lazy = true,
   config = function()
     require('telescope').setup {
       extensions = {

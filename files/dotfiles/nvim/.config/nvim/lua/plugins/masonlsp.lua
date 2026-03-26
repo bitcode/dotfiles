@@ -2,7 +2,7 @@ return {
     "williamboman/mason-lspconfig.nvim",
     dependencies = { "neovim/nvim-lspconfig" },
     name = "mason-lspconfig.nvim",
-    priority = 1000,
+    event = "VeryLazy",
     config = function()
         require("mason-lspconfig").setup {
             ensure_installed = {

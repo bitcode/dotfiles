@@ -1,7 +1,7 @@
 return {
     "hrsh7th/nvim-cmp",
     name = "cmp",
-    priority = 1000,
+    event = { "InsertEnter", "CmdlineEnter" },
     config = function()
         local cmp = require 'cmp'
         local lspkind = require('lspkind')

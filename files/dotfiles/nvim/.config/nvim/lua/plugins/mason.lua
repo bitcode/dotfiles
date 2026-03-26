@@ -1,7 +1,7 @@
 return {
   "williamboman/mason.nvim",
   name = "mason.nvim",
-  priority = 1000,
+  cmd = "Mason",
   config = function()
     require("mason").setup({
     log_level = vim.log.levels.DEBUG,

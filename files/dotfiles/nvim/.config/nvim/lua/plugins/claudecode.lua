@@ -1,7 +1,6 @@
 return {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
-    lazy = false,
     opts = {
         auto_start = true,
         log_level = "info",
