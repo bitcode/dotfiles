@@ -1,8 +1,9 @@
 # Dotsible - Windows Bootstrap Entry Point
-# Usage: .\bootstrap.ps1 [-EnvironmentType personal|enterprise] [-SkipPackages] [-SkipDotfiles] [-DryRun] [-Force]
+# Usage: .\bootstrap.ps1 [-EnvironmentType personal|enterprise] [-AllUsers] [-SkipPackages] [-SkipDotfiles] [-DryRun] [-Force]
 param(
     [ValidateSet("personal", "enterprise")]
     [string]$EnvironmentType = "personal",
+    [switch]$AllUsers,
     [switch]$SkipPackages,
     [switch]$SkipDotfiles,
     [switch]$DryRun,
@@ -33,9 +34,10 @@ if (-not (Test-Path $BootstrapScript)) {
 $params = @{
     EnvironmentType = $EnvironmentType
 }
+if ($AllUsers)     { $params["AllUsers"]     = $true }
 if ($SkipPackages) { $params["SkipPackages"] = $true }
 if ($SkipDotfiles) { $params["SkipDotfiles"] = $true }
-if ($DryRun) { $params["DryRun"] = $true }
-if ($Force) { $params["Force"] = $true }
+if ($DryRun)       { $params["DryRun"]       = $true }
+if ($Force)        { $params["Force"]         = $true }
 
 & $BootstrapScript @params

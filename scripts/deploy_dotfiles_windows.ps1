@@ -7,18 +7,25 @@
     Replaces GNU Stow on Windows. Copies dotfiles from files/dotfiles/ to their
     correct Windows locations, with backup support and symlink option.
 
-    Dotfile mapping (Stow source → Windows target):
-      nvim/.config/nvim/        → $env:LOCALAPPDATA\nvim\
-      alacritty/.config/alacritty/ → $env:APPDATA\alacritty\
-      windows-terminal/settings.json → $env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_...\LocalState\settings.json
-      starship/.config/starship.toml → $HOME\.config\starship.toml
-      claude/.claude/           → $HOME\.claude\
-      vscode/settings.json      → $env:APPDATA\Code\User\settings.json
-      vscode/antigravity-settings.json → $env:APPDATA\Antigravity\User\settings.json
-      vim/.vimrc                → $HOME\.vimrc
+    Dotfile mapping (Stow source -> Windows target):
+      nvim/.config/nvim/        -> $env:LOCALAPPDATA\nvim\
+      alacritty/.config/alacritty/ -> $env:APPDATA\alacritty\
+      windows-terminal/settings.json -> $env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_...\LocalState\settings.json
+      starship/.config/starship.toml -> $HOME\.config\starship.toml
+      claude/.claude/           -> $HOME\.claude\
+      vscode/settings.json      -> $env:APPDATA\Code\User\settings.json
+      vscode/antigravity-settings.json -> $env:APPDATA\Antigravity\User\settings.json
+      vim/.vimrc                -> $HOME\.vimrc
+
+    With -AllUsers, deploys to all user home directories and installs a
+    system-wide PowerShell profile. Requires admin for cross-user directories.
 
 .PARAMETER DotfilesRoot
     Path to the dotfiles repo root. Defaults to the parent of the scripts/ directory.
+
+.PARAMETER AllUsers
+    Deploy dotfiles to all user home directories under C:\Users\ (requires admin).
+    Also installs system-wide PowerShell profiles.
 
 .PARAMETER UseSymlinks
     Use directory junctions/symlinks instead of copying. Requires admin for some targets.
@@ -31,6 +38,7 @@
 
 .EXAMPLE
     .\deploy_dotfiles_windows.ps1
+    .\deploy_dotfiles_windows.ps1 -AllUsers
     .\deploy_dotfiles_windows.ps1 -UseSymlinks
     .\deploy_dotfiles_windows.ps1 -DryRun
 #>
@@ -38,6 +46,7 @@
 [CmdletBinding()]
 param(
     [string]$DotfilesRoot,
+    [switch]$AllUsers,
     [switch]$UseSymlinks,
     [switch]$DryRun,
     [switch]$Force
@@ -51,15 +60,34 @@ if (-not $DotfilesRoot) {
 }
 $SourceBase = Join-Path $DotfilesRoot "files\dotfiles"
 
-# Backup directory
+# Backup directory (rooted at the running user's profile)
 $BackupDir = Join-Path $env:USERPROFILE ".dotsible\backups\dotfiles_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 
-# Logging
+# System accounts to skip when enumerating user homes
+$Script:SkipAccounts = @('Default', 'Public', 'defaultuser0', 'defaultuser1', 'All Users', 'TEMP')
+
+# ============================================================================
+# LOGGING
+# ============================================================================
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
     $colors = @{ "INFO" = "Cyan"; "SUCCESS" = "Green"; "WARN" = "Yellow"; "ERROR" = "Red"; "SKIP" = "DarkGray" }
     $timestamp = Get-Date -Format "HH:mm:ss"
     Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $colors[$Level]
+}
+
+# ============================================================================
+# HELPERS
+# ============================================================================
+function Get-WindowsUserHomes {
+    <#
+    .SYNOPSIS
+        Returns all real user home directories under C:\Users\,
+        excluding system accounts (Default, Public, etc.).
+    #>
+    Get-ChildItem "C:\Users" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notin $Script:SkipAccounts } |
+        ForEach-Object { $_.FullName }
 }
 
 function Backup-Item {
@@ -68,7 +96,8 @@ function Backup-Item {
         if (-not (Test-Path $BackupDir)) {
             New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
         }
-        $relativePath = $Path.Replace($env:USERPROFILE, "").TrimStart("\")
+        # Strip drive letter (e.g. "C:") so the path is safe to nest under BackupDir
+        $relativePath = $Path -replace '^[A-Za-z]:', '' | ForEach-Object { $_.TrimStart("\") }
         $backupTarget = Join-Path $BackupDir $relativePath
         $backupParent = Split-Path -Parent $backupTarget
         if (-not (Test-Path $backupParent)) {
@@ -127,7 +156,6 @@ function Deploy-Directory {
     }
 
     if ($UseSymlinks) {
-        # Remove existing target to create fresh link
         if (Test-Path $Target) {
             Remove-Item -Path $Target -Recurse -Force
         }
@@ -194,8 +222,144 @@ function Deploy-File {
 }
 
 # ============================================================================
-# Dotfile deployment map
+# PER-USER DEPLOYMENT
+# Deploys all dotfiles relative to a given user's home directory.
+# $UserHome — e.g. C:\Users\mdrozrosario or C:\Users\adminmedr
 # ============================================================================
+function Deploy-DotfilesToHome {
+    param([string]$UserHome)
+
+    $UserName       = Split-Path -Leaf $UserHome
+    $UserLocalApp   = Join-Path $UserHome "AppData\Local"
+    $UserRoaming    = Join-Path $UserHome "AppData\Roaming"
+    $UserDocuments  = Join-Path $UserHome "Documents"
+    $UserConfig     = Join-Path $UserHome ".config"
+
+    Write-Host ""
+    Write-Host "  -- User: $UserName ($UserHome)" -ForegroundColor White
+
+    # --- Neovim ---
+    $nvimSource = Join-Path $SourceBase "nvim\.config\nvim"
+    $nvimTarget = Join-Path $UserLocalApp "nvim"
+    Deploy-Directory -Source $nvimSource -Target $nvimTarget -Name "[$UserName] Neovim"
+
+    # --- Alacritty ---
+    $alacrittySource = Join-Path $SourceBase "alacritty\.config\alacritty"
+    $alacrittyTarget = Join-Path $UserRoaming "alacritty"
+    Deploy-Directory -Source $alacrittySource -Target $alacrittyTarget -Name "[$UserName] Alacritty"
+    if (-not $DryRun -and (Test-Path $alacrittyTarget)) {
+        Write-Log "[$UserName] Alacritty: Windows override available at alacritty-windows.toml (add to [general].import)" "INFO"
+    }
+
+    # --- lsd ---
+    $lsdSource        = Join-Path $SourceBase "lsd\.config\lsd\config.yaml"
+    $lsdXdgTarget     = Join-Path $UserConfig  "lsd\config.yaml"
+    $lsdAppDataTarget = Join-Path $UserRoaming "lsd\config.yaml"
+    Deploy-File -Source $lsdSource -Target $lsdXdgTarget     -Name "[$UserName] lsd (XDG)"
+    Deploy-File -Source $lsdSource -Target $lsdAppDataTarget -Name "[$UserName] lsd (AppData)"
+
+    # --- Starship ---
+    $starshipSource = Join-Path $SourceBase "starship\.config\starship.toml"
+    $starshipTarget = Join-Path $UserConfig "starship.toml"
+    Deploy-File -Source $starshipSource -Target $starshipTarget -Name "[$UserName] Starship"
+
+    # --- Claude ---
+    $claudeSource = Join-Path $SourceBase "claude\.claude"
+    $claudeTarget = Join-Path $UserHome ".claude"
+    $claudeFiles  = @("CLAUDE.md", "settings.json", "statusline.ps1", "statusline.sh", "file-suggest.sh")
+    foreach ($file in $claudeFiles) {
+        $src = Join-Path $claudeSource $file
+        $tgt = Join-Path $claudeTarget $file
+        Deploy-File -Source $src -Target $tgt -Name "[$UserName] Claude/$file"
+    }
+
+    # --- Windows Terminal ---
+    # The WindowsTerminal package dir uses a wildcard, so resolve it per user
+    $wtSource    = Join-Path $SourceBase "windows-terminal\settings.json"
+    $wtPackages  = Join-Path $UserLocalApp "Packages"
+    $wtPackage   = Get-ChildItem $wtPackages -Filter "Microsoft.WindowsTerminal_*" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($wtPackage) {
+        $wtTarget = Join-Path $wtPackage.FullName "LocalState\settings.json"
+        Deploy-File -Source $wtSource -Target $wtTarget -Name "[$UserName] Windows Terminal"
+    } else {
+        Write-Log "[$UserName] Windows Terminal: package directory not found (app may not be installed for this user)" "SKIP"
+    }
+
+    # --- VSCode ---
+    $vscodeSource = Join-Path $SourceBase "vscode\settings.json"
+    $vscodeTarget = Join-Path $UserRoaming "Code\User\settings.json"
+    Deploy-File -Source $vscodeSource -Target $vscodeTarget -Name "[$UserName] VSCode"
+
+    # --- Antigravity (VSCode wrapper) ---
+    $antigravitySource = Join-Path $SourceBase "vscode\antigravity-settings.json"
+    $antigravityTarget = Join-Path $UserRoaming "Antigravity\User\settings.json"
+    Deploy-File -Source $antigravitySource -Target $antigravityTarget -Name "[$UserName] Antigravity"
+
+    # --- Vim ---
+    $vimSource = Join-Path $SourceBase "vim\.vimrc"
+    $vimTarget = Join-Path $UserHome ".vimrc"
+    Deploy-File -Source $vimSource -Target $vimTarget -Name "[$UserName] Vim"
+
+    # --- PowerShell Profile (user-level) ---
+    $profileSource       = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
+    $pwshAllHostsTarget  = Join-Path $UserDocuments "PowerShell\profile.ps1"
+    $ps5AllHostsTarget   = Join-Path $UserDocuments "WindowsPowerShell\profile.ps1"
+    $pwshProfileTarget   = Join-Path $UserDocuments "PowerShell\Microsoft.PowerShell_profile.ps1"
+    $ps5ProfileTarget    = Join-Path $UserDocuments "WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+    Deploy-File -Source $profileSource -Target $pwshAllHostsTarget -Name "[$UserName] PS7 AllHosts Profile"
+    Deploy-File -Source $profileSource -Target $pwshProfileTarget  -Name "[$UserName] PS7 Profile"
+    Deploy-File -Source $profileSource -Target $ps5AllHostsTarget  -Name "[$UserName] PS5.1 AllHosts Profile"
+    Deploy-File -Source $profileSource -Target $ps5ProfileTarget   -Name "[$UserName] PS5.1 Profile"
+
+    # --- Scripts (Windows-compatible only) ---
+    $scriptsSource = Join-Path $SourceBase "scripts"
+    $scriptsTarget = Join-Path $UserHome ".local\bin"
+    if (Test-Path $scriptsSource) {
+        $windowsScripts = Get-ChildItem -Path $scriptsSource -File | Where-Object {
+            $_.Extension -in @(".ps1", ".py", ".bat", ".cmd")
+        }
+        foreach ($script in $windowsScripts) {
+            Deploy-File -Source $script.FullName -Target (Join-Path $scriptsTarget $script.Name) -Name "[$UserName] Scripts/$($script.Name)"
+        }
+    }
+}
+
+# ============================================================================
+# SYSTEM-WIDE POWERSHELL PROFILES
+# Deploys to $PSHOME so the profile loads for every user automatically,
+# regardless of whether their personal Documents\PowerShell directory is set up.
+# Requires admin.
+# ============================================================================
+function Deploy-SystemWideProfiles {
+    $profileSource = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
+
+    if (-not (Test-Path $profileSource)) {
+        Write-Log "System-wide PS profile: source not found" "SKIP"
+        return
+    }
+
+    # PowerShell 7 (pwsh) system profile — typically C:\Program Files\PowerShell\7\
+    # Only consider numeric version directories (e.g. "7", "7.4") — skip "Scripts", "Modules", etc.
+    $ps7Homes = Get-ChildItem "$env:ProgramFiles\PowerShell" -Directory -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '^\d' } |
+                    Sort-Object { [double]($_.Name -replace '[^\d].*','') } -Descending |
+                    Select-Object -First 1
+    if ($ps7Homes) {
+        $ps7AllUsers = Join-Path $ps7Homes.FullName "profile.ps1"
+        Deploy-File -Source $profileSource -Target $ps7AllUsers -Name "[System] PS7 AllUsers Profile"
+    } else {
+        Write-Log "[System] PS7 not found at $env:ProgramFiles\PowerShell — skipping system-wide PS7 profile" "SKIP"
+    }
+
+    # PowerShell 5.1 system profile
+    $ps5AllUsers = "$env:WINDIR\System32\WindowsPowerShell\v1.0\profile.ps1"
+    Deploy-File -Source $profileSource -Target $ps5AllUsers -Name "[System] PS5.1 AllUsers Profile"
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -204,6 +368,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Source:    $SourceBase" -ForegroundColor DarkGray
 Write-Host "  Mode:      $(if ($UseSymlinks) { 'Symlinks/Junctions' } else { 'Copy' })" -ForegroundColor DarkGray
+Write-Host "  All Users: $AllUsers" -ForegroundColor DarkGray
 Write-Host "  Dry Run:   $DryRun" -ForegroundColor DarkGray
 Write-Host "  Force:     $Force" -ForegroundColor DarkGray
 Write-Host ""
@@ -213,88 +378,25 @@ if ($DryRun) {
     Write-Host ""
 }
 
-# --- Neovim ---
-$nvimSource = Join-Path $SourceBase "nvim\.config\nvim"
-$nvimTarget = Join-Path $env:LOCALAPPDATA "nvim"
-Deploy-Directory -Source $nvimSource -Target $nvimTarget -Name "Neovim"
-
-# --- Alacritty ---
-# Deploy the main config, then note the Windows override file
-$alacrittySource = Join-Path $SourceBase "alacritty\.config\alacritty"
-$alacrittyTarget = Join-Path $env:APPDATA "alacritty"
-Deploy-Directory -Source $alacrittySource -Target $alacrittyTarget -Name "Alacritty"
-# Remind about Windows override (alacritty-windows.toml ships in the dir)
-if (-not $DryRun -and (Test-Path $alacrittyTarget)) {
-    Write-Log "Alacritty: Windows override available at alacritty-windows.toml (add to [general].import)" "INFO"
+if ($AllUsers -and -not $isAdmin) {
+    Write-Log "WARNING: -AllUsers specified but not running as Administrator." "WARN"
+    Write-Log "Cross-user directory access may fail. Re-run as Administrator for full multi-user deployment." "WARN"
+    Write-Host ""
 }
 
-# --- lsd ---
-$lsdSource = Join-Path $SourceBase "lsd\.config\lsd\config.yaml"
-$lsdXdgTarget = Join-Path $env:USERPROFILE ".config\lsd\config.yaml"
-$lsdAppDataTarget = Join-Path $env:APPDATA "lsd\config.yaml"
-Deploy-File -Source $lsdSource -Target $lsdXdgTarget -Name "lsd (XDG)"
-Deploy-File -Source $lsdSource -Target $lsdAppDataTarget -Name "lsd (AppData)"
+if ($AllUsers) {
+    $userHomes = Get-WindowsUserHomes
+    Write-Log "Found $($userHomes.Count) user(s): $($userHomes | ForEach-Object { Split-Path -Leaf $_ } | Join-String -Separator ', ')" "INFO"
 
-# --- Starship ---
-$starshipSource = Join-Path $SourceBase "starship\.config\starship.toml"
-$starshipTarget = Join-Path $env:USERPROFILE ".config\starship.toml"
-Deploy-File -Source $starshipSource -Target $starshipTarget -Name "Starship"
-
-# --- Claude ---
-$claudeSource = Join-Path $SourceBase "claude\.claude"
-$claudeTarget = Join-Path $env:USERPROFILE ".claude"
-# Claude is special — we deploy individual files, not the whole dir (user may have local state)
-$claudeFiles = @("CLAUDE.md", "settings.json", "statusline.ps1", "statusline.sh", "file-suggest.sh")
-foreach ($file in $claudeFiles) {
-    $src = Join-Path $claudeSource $file
-    $tgt = Join-Path $claudeTarget $file
-    Deploy-File -Source $src -Target $tgt -Name "Claude/$file"
-}
-
-# --- Windows Terminal ---
-$wtSource = Join-Path $SourceBase "windows-terminal\settings.json"
-$wtTarget = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
-Deploy-File -Source $wtSource -Target $wtTarget -Name "Windows Terminal"
-
-# --- VSCode ---
-$vscodeSource = Join-Path $SourceBase "vscode\settings.json"
-$vscodeTarget = Join-Path $env:APPDATA "Code\User\settings.json"
-Deploy-File -Source $vscodeSource -Target $vscodeTarget -Name "VSCode"
-
-# --- Antigravity (VSCode wrapper) ---
-$antigravitySource = Join-Path $SourceBase "vscode\antigravity-settings.json"
-$antigravityTarget = Join-Path $env:APPDATA "Antigravity\User\settings.json"
-Deploy-File -Source $antigravitySource -Target $antigravityTarget -Name "Antigravity"
-
-# --- Vim ---
-$vimSource = Join-Path $SourceBase "vim\.vimrc"
-$vimTarget = Join-Path $env:USERPROFILE ".vimrc"
-Deploy-File -Source $vimSource -Target $vimTarget -Name "Vim"
-
-# --- PowerShell Profile ---
-$profileSource = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
-# AllHosts profile (loads in every host: terminal, VS Code, ISE, etc.)
-$pwshAllHostsTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\profile.ps1"
-$ps5AllHostsTarget = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\profile.ps1"
-# CurrentHost profiles (standard terminal only)
-$pwshProfileTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
-$ps5ProfileTarget = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
-Deploy-File -Source $profileSource -Target $pwshAllHostsTarget -Name "PowerShell 7 AllHosts Profile"
-Deploy-File -Source $profileSource -Target $pwshProfileTarget -Name "PowerShell 7 Profile"
-Deploy-File -Source $profileSource -Target $ps5AllHostsTarget -Name "PowerShell 5.1 AllHosts Profile"
-Deploy-File -Source $profileSource -Target $ps5ProfileTarget -Name "PowerShell 5.1 Profile"
-
-# --- Scripts (Windows-compatible only) ---
-$scriptsSource = Join-Path $SourceBase "scripts"
-$scriptsTarget = Join-Path $env:USERPROFILE ".local\bin"
-if (Test-Path $scriptsSource) {
-    # Only deploy .ps1 files and .py files (Windows-compatible)
-    $windowsScripts = Get-ChildItem -Path $scriptsSource -File | Where-Object {
-        $_.Extension -in @(".ps1", ".py", ".bat", ".cmd")
+    foreach ($userHome in $userHomes) {
+        Deploy-DotfilesToHome -UserHome $userHome
     }
-    foreach ($script in $windowsScripts) {
-        Deploy-File -Source $script.FullName -Target (Join-Path $scriptsTarget $script.Name) -Name "Scripts/$($script.Name)"
-    }
+
+    Write-Host ""
+    Write-Host "  -- System-wide PowerShell profiles" -ForegroundColor White
+    Deploy-SystemWideProfiles
+} else {
+    Deploy-DotfilesToHome -UserHome $env:USERPROFILE
 }
 
 # ============================================================================
@@ -302,20 +404,8 @@ if (Test-Path $scriptsSource) {
 # ============================================================================
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Deployment Summary" -ForegroundColor Cyan
+Write-Host "  Deployment Complete" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "  Targets:" -ForegroundColor White
-Write-Host "    Neovim:    $nvimTarget" -ForegroundColor DarkGray
-Write-Host "    Alacritty: $alacrittyTarget" -ForegroundColor DarkGray
-Write-Host "    WinTerm:   $wtTarget" -ForegroundColor DarkGray
-Write-Host "    Starship:  $starshipTarget" -ForegroundColor DarkGray
-Write-Host "    Claude:    $claudeTarget" -ForegroundColor DarkGray
-Write-Host "    VSCode:    $vscodeTarget" -ForegroundColor DarkGray
-Write-Host "    Antigrav:  $antigravityTarget" -ForegroundColor DarkGray
-Write-Host "    Vim:       $vimTarget" -ForegroundColor DarkGray
-Write-Host "    PS Profile: $pwshProfileTarget" -ForegroundColor DarkGray
-Write-Host "    Scripts:   $scriptsTarget" -ForegroundColor DarkGray
 
 if (Test-Path $BackupDir) {
     Write-Host ""

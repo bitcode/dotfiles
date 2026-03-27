@@ -46,6 +46,7 @@
 param(
     [ValidateSet("personal", "enterprise")]
     [string]$EnvironmentType = "personal",
+    [switch]$AllUsers,
     [switch]$SkipPackages,
     [switch]$SkipDotfiles,
     [switch]$DryRun,
@@ -55,9 +56,11 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-$Script:LogFile = "$env:USERPROFILE\.dotsible\logs\bootstrap_windows_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
-$Script:StartTime = Get-Date
+$Script:LogFile    = "$env:USERPROFILE\.dotsible\logs\bootstrap_windows_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$Script:StartTime  = Get-Date
 $Script:DotfilesRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$Script:IsAdmin    = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+$Script:SkipAccounts = @('Default', 'Public', 'defaultuser0', 'defaultuser1', 'All Users', 'TEMP')
 
 # ============================================================================
 # CONFIGURATION
@@ -120,6 +123,7 @@ $Script:Config = @{
         "tree"
         "zoxide"
         "lsd"
+        "lazygit"
 
         # Containers & VMs
         "docker-desktop"
@@ -142,7 +146,6 @@ $Script:Config = @{
     # Scoop packages (things that work better via Scoop)
     ScoopPackages = @(
         "gdb"
-        "lazygit"
     )
 
     # Nerd Fonts (via Scoop nerd-fonts bucket)
@@ -228,9 +231,7 @@ function Refresh-Path {
 # STEP 1: WINDOWS FEATURES
 # ============================================================================
 function Enable-WindowsFeatures {
-    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-
-    if (-not $isAdmin) {
+    if (-not $Script:IsAdmin) {
         Write-Log "Skipping Windows features (requires admin). Run as Administrator to enable WSL/Hyper-V." "WARN"
         return
     }
@@ -396,49 +397,110 @@ function Install-ScoopPackages {
 }
 
 # ============================================================================
-# STEP 5b: NERD FONTS (via Scoop)
+# STEP 5b: NERD FONTS
+# Primary method: direct download from GitHub releases (no Scoop needed).
+# Falls back to Scoop if available and direct download fails.
+# When running as admin, installs system-wide to C:\Windows\Fonts so all
+# users get the fonts without per-user registration.
 # ============================================================================
+
+# Maps a friendly name to:
+#   GithubZip  — zip name in nerd-fonts GitHub releases
+#   Filter     — glob to check if already installed in the font dir
+$Script:NerdFontDefs = @(
+    @{ Name = "JetBrainsMono NF"; GithubZip = "JetBrainsMono.zip"; Filter = "JetBrainsMonoNerd*" }
+    @{ Name = "Iosevka NF";       GithubZip = "Iosevka.zip";       Filter = "IosevkaNerd*"       }
+)
+
+function Install-FontFile {
+    param([string]$FontPath, [string]$SystemFontsDir)
+    $ext = [IO.Path]::GetExtension($FontPath).ToLower()
+    if ($ext -notin @(".ttf", ".otf")) { return }
+
+    $dest = Join-Path $SystemFontsDir ([IO.Path]::GetFileName($FontPath))
+    if (Test-Path $dest) { return }   # already there
+
+    Copy-Item -Path $FontPath -Destination $dest -Force
+
+    # Register in HKLM so all users see the font
+    $regName = [IO.Path]::GetFileNameWithoutExtension($FontPath) + " (TrueType)"
+    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+    Set-ItemProperty -Path $regPath -Name $regName -Value ([IO.Path]::GetFileName($FontPath)) -ErrorAction SilentlyContinue
+}
+
 function Install-NerdFonts {
-    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-Log "Scoop not available, skipping Nerd Fonts" "WARN"
-        return
-    }
+    # Determine install target: system-wide if admin, user-level otherwise
+    $systemFontsDir = "$env:WINDIR\Fonts"
+    $userFontsDir   = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $fontsDir       = if ($Script:IsAdmin) { $systemFontsDir } else { $userFontsDir }
 
-    # Ensure nerd-fonts bucket is added
-    $buckets = & scoop bucket list 2>$null
-    if ($buckets -notmatch "nerd-fonts") {
-        if (-not $DryRun) {
-            & scoop bucket add nerd-fonts 2>$null
-            Write-Log "Added nerd-fonts bucket" "SUCCESS"
+    $releaseBase = "https://github.com/ryanoasis/nerd-fonts/releases/latest/download"
+    $tmpBase     = Join-Path $env:TEMP "dotsible-nerdfonts"
+
+    foreach ($fontDef in $Script:NerdFontDefs) {
+        # Check if already installed
+        $existing = Get-ChildItem -Path $fontsDir -Filter $fontDef.Filter -ErrorAction SilentlyContinue
+        if (-not $Script:IsAdmin) {
+            # Also check system fonts dir when running as user
+            $existing += Get-ChildItem -Path $systemFontsDir -Filter $fontDef.Filter -ErrorAction SilentlyContinue
         }
-    }
-
-    foreach ($font in $Script:Config.NerdFonts) {
-        $check = & scoop list 2>$null | Select-String $font
-        if ($check) {
-            Write-Log "$font already installed" "SKIP"
+        if ($existing.Count -gt 0) {
+            Write-Log "$($fontDef.Name): already installed ($($existing.Count) files)" "SKIP"
             continue
         }
 
         if ($DryRun) {
-            Write-Log "Would install font: $font" "INFO"
+            Write-Log "Would install: $($fontDef.Name) from $releaseBase/$($fontDef.GithubZip)" "INFO"
             continue
         }
 
+        $zipUrl  = "$releaseBase/$($fontDef.GithubZip)"
+        $zipPath = Join-Path $tmpBase $fontDef.GithubZip
+        $extractDir = Join-Path $tmpBase ([IO.Path]::GetFileNameWithoutExtension($fontDef.GithubZip))
+
         try {
-            Write-Log "Installing $font (this may take a minute)..." "INFO"
-            & scoop install $font 2>&1 | Out-Null
-            Write-Log "$font installed" "SUCCESS"
+            Write-Log "Downloading $($fontDef.Name) from GitHub..." "INFO"
+            New-Item -ItemType Directory -Path $tmpBase -Force | Out-Null
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            (New-Object Net.WebClient).DownloadFile($zipUrl, $zipPath)
+
+            Write-Log "Extracting $($fontDef.Name)..." "INFO"
+            Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+            Write-Log "Installing $($fontDef.Name) to $fontsDir..." "INFO"
+            $fontFiles = Get-ChildItem -Path $extractDir -Recurse -Include "*.ttf","*.otf" |
+                            Where-Object { $_.Name -notmatch "Windows Compatible" }
+            foreach ($f in $fontFiles) {
+                Install-FontFile -FontPath $f.FullName -SystemFontsDir $fontsDir
+            }
+
+            $installed = (Get-ChildItem -Path $fontsDir -Filter $fontDef.Filter -ErrorAction SilentlyContinue).Count
+            Write-Log "$($fontDef.Name): installed $installed font files" "SUCCESS"
+
+            # Cleanup
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+            Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
         } catch {
-            Write-Log "$font failed: $_" "WARN"
+            Write-Log "$($fontDef.Name): download/install failed: $_" "WARN"
+
+            # Fallback to Scoop if available
+            if (Get-Command scoop -ErrorAction SilentlyContinue) {
+                Write-Log "Trying Scoop fallback for $($fontDef.Name)..." "INFO"
+                try {
+                    & scoop bucket add nerd-fonts 2>$null
+                    & scoop install $fontDef.GithubZip.Replace(".zip","") 2>&1 | Out-Null
+                    Write-Log "$($fontDef.Name): installed via Scoop" "SUCCESS"
+                } catch {
+                    Write-Log "$($fontDef.Name): Scoop fallback also failed" "WARN"
+                }
+            }
         }
     }
 
-    # Verify fonts are in the user font directory
-    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
-    $iosevkaCount = (Get-ChildItem -Path $fontDir -Filter "IosevkaNerd*" -ErrorAction SilentlyContinue).Count
-    $jbCount = (Get-ChildItem -Path $fontDir -Filter "JetBrainsMono*Nerd*" -ErrorAction SilentlyContinue).Count
-    Write-Log "Nerd Fonts installed: Iosevka ($iosevkaCount files), JetBrainsMono ($jbCount files)" "INFO"
+    # Final count
+    $jbCount  = (Get-ChildItem -Path $fontsDir -Filter "JetBrainsMonoNerd*" -ErrorAction SilentlyContinue).Count
+    $ioCount  = (Get-ChildItem -Path $fontsDir -Filter "IosevkaNerd*"       -ErrorAction SilentlyContinue).Count
+    Write-Log "Nerd Fonts in $fontsDir — JetBrainsMono: $jbCount files, Iosevka: $ioCount files" "INFO"
 }
 
 # ============================================================================
@@ -472,8 +534,9 @@ function Install-PSModules {
         }
 
         try {
-            Install-Module -Name $module -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
-            Write-Log "$module installed" "SUCCESS"
+            $moduleScope = if ($AllUsers -and $Script:IsAdmin) { "AllUsers" } else { "CurrentUser" }
+            Install-Module -Name $module -Force -AllowClobber -Scope $moduleScope -ErrorAction Stop
+            Write-Log "$module installed ($moduleScope)" "SUCCESS"
         } catch {
             Write-Log "$module failed: $_" "WARN"
         }
@@ -485,37 +548,117 @@ function Install-PSModules {
 # ============================================================================
 function Set-EnvironmentConfig {
     # Environment variables
+    # When -AllUsers: set at Machine scope so all users inherit the values.
+    # STARSHIP_CONFIG uses %USERPROFILE% which Windows expands per-user at runtime.
+    $envScope = if ($AllUsers -and $Script:IsAdmin) { "Machine" } else { "User" }
+    if ($AllUsers -and -not $Script:IsAdmin) {
+        Write-Log "AllUsers env vars requested but not admin — falling back to User scope" "WARN"
+    }
+
     foreach ($var in $Script:Config.EnvironmentVars) {
-        $current = [System.Environment]::GetEnvironmentVariable($var.Name, "User")
-        if ($current -eq $var.Value) {
-            Write-Log "Env $($var.Name) already set" "SKIP"
+        # For Machine scope, STARSHIP_CONFIG value should use %USERPROFILE% so each
+        # user gets their own path when Windows expands the variable.
+        $value = $var.Value
+        if ($envScope -eq "Machine" -and $var.Name -eq "STARSHIP_CONFIG") {
+            $value = "%USERPROFILE%\.config\starship.toml"
+        }
+
+        $current = [System.Environment]::GetEnvironmentVariable($var.Name, $envScope)
+        if ($current -eq $value) {
+            Write-Log "Env $($var.Name) already set ($envScope)" "SKIP"
             continue
         }
         if ($DryRun) {
-            Write-Log "Would set env: $($var.Name)=$($var.Value)" "INFO"
+            Write-Log "Would set env ($envScope): $($var.Name)=$value" "INFO"
             continue
         }
-        [System.Environment]::SetEnvironmentVariable($var.Name, $var.Value, "User")
-        Set-Item -Path "Env:$($var.Name)" -Value $var.Value
-        Write-Log "Set env: $($var.Name)=$($var.Value)" "SUCCESS"
+        [System.Environment]::SetEnvironmentVariable($var.Name, $value, $envScope)
+        Set-Item -Path "Env:$($var.Name)" -Value $value
+        Write-Log "Set env ($envScope): $($var.Name)=$value" "SUCCESS"
     }
 
     # Registry settings
-    foreach ($reg in $Script:Config.RegistrySettings) {
-        try {
-            $current = Get-ItemProperty -Path $reg.Path -Name $reg.Name -ErrorAction SilentlyContinue
-            if ($current -and $current.$($reg.Name) -eq $reg.Value) {
-                Write-Log "Registry $($reg.Name) already set" "SKIP"
-                continue
+    # When -AllUsers: apply to each user's hive by loading NTUSER.DAT.
+    # Always apply to the current user (HKCU) regardless.
+    $regTargets = @()
+
+    # Current user (HKCU) — always apply
+    $regTargets += @{ Label = "CurrentUser"; HivePath = $null; HiveKey = $null }
+
+    if ($AllUsers -and $Script:IsAdmin) {
+        # Apply to Default User hive (new accounts created later will inherit these settings)
+        $defaultHive = "C:\Users\Default\NTUSER.DAT"
+        if (Test-Path $defaultHive) {
+            $regTargets += @{ Label = "Default"; HivePath = $defaultHive; HiveKey = "HKLM\DOTSIBLE_DEFAULT" }
+        }
+
+        # Apply to each existing user's hive (skip the running user — already covered by HKCU)
+        $userHomes = Get-ChildItem "C:\Users" -Directory -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -notin $Script:SkipAccounts } |
+                        Where-Object { $_.FullName -ne $env:USERPROFILE }
+        foreach ($uhome in $userHomes) {
+            $hivePath = Join-Path $uhome.FullName "NTUSER.DAT"
+            if (Test-Path $hivePath) {
+                $regTargets += @{ Label = $uhome.Name; HivePath = $hivePath; HiveKey = "HKLM\DOTSIBLE_$($uhome.Name)" }
             }
+        }
+    }
+
+    foreach ($target in $regTargets) {
+        $loaded = $false
+        $hiveRoot = "HKCU:"   # default: current user's hive
+
+        if ($null -ne $target.HiveKey) {
             if ($DryRun) {
-                Write-Log "Would set registry: $($reg.Name)=$($reg.Value)" "INFO"
-                continue
+                Write-Log "Would load hive for: $($target.Label)" "INFO"
+            } else {
+                try {
+                    & reg load $target.HiveKey $target.HivePath 2>&1 | Out-Null
+                    $loaded = $true
+                    # Map the loaded hive to a PS drive for Set-ItemProperty
+                    $hiveRoot = "HKLM:\$($target.HiveKey -replace 'HKLM\\','')"
+                } catch {
+                    Write-Log "Could not load hive for $($target.Label): $_" "WARN"
+                    continue
+                }
             }
-            Set-ItemProperty -Path $reg.Path -Name $reg.Name -Value $reg.Value -Type $reg.Type
-            Write-Log "Set registry: $($reg.Name)=$($reg.Value)" "SUCCESS"
-        } catch {
-            Write-Log "Registry $($reg.Name) failed: $_" "WARN"
+        }
+
+        foreach ($reg in $Script:Config.RegistrySettings) {
+            try {
+                # Remap HKCU: path to the loaded hive root when processing other users
+                $regPath = if ($loaded) {
+                    $reg.Path -replace "^HKCU:", $hiveRoot
+                } else {
+                    $reg.Path
+                }
+
+                $current = Get-ItemProperty -Path $regPath -Name $reg.Name -ErrorAction SilentlyContinue
+                if ($current -and $current.$($reg.Name) -eq $reg.Value) {
+                    Write-Log "[$($target.Label)] Registry $($reg.Name) already set" "SKIP"
+                    continue
+                }
+                if ($DryRun) {
+                    Write-Log "[$($target.Label)] Would set registry: $($reg.Name)=$($reg.Value)" "INFO"
+                    continue
+                }
+                if (-not (Test-Path $regPath)) {
+                    New-Item -Path $regPath -Force | Out-Null
+                }
+                Set-ItemProperty -Path $regPath -Name $reg.Name -Value $reg.Value -Type $reg.Type
+                Write-Log "[$($target.Label)] Set registry: $($reg.Name)=$($reg.Value)" "SUCCESS"
+            } catch {
+                Write-Log "[$($target.Label)] Registry $($reg.Name) failed: $_" "WARN"
+            }
+        }
+
+        if ($loaded -and -not $DryRun) {
+            try {
+                [gc]::Collect()
+                & reg unload $target.HiveKey 2>&1 | Out-Null
+            } catch {
+                Write-Log "Could not unload hive for $($target.Label) — may need manual cleanup" "WARN"
+            }
         }
     }
 }
@@ -524,17 +667,36 @@ function Set-EnvironmentConfig {
 # STEP 8: DEVELOPMENT DIRECTORIES
 # ============================================================================
 function New-DevDirectories {
-    foreach ($dir in $Script:Config.DevDirectories) {
-        if (Test-Path $dir) {
-            Write-Log "Directory exists: $dir" "SKIP"
-            continue
+    # Build the list of home directories to create dev dirs for
+    $targetHomes = @($env:USERPROFILE)
+    if ($AllUsers -and $Script:IsAdmin) {
+        $otherHomes = Get-ChildItem "C:\Users" -Directory -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Name -notin $Script:SkipAccounts } |
+                        Where-Object { $_.FullName -ne $env:USERPROFILE } |
+                        ForEach-Object { $_.FullName }
+        $targetHomes += $otherHomes
+    }
+
+    # The configured dirs use $env:USERPROFILE — strip to relative paths and reapply per home
+    $relDirs = $Script:Config.DevDirectories | ForEach-Object {
+        $_ -replace [regex]::Escape($env:USERPROFILE), ""
+    }
+
+    foreach ($userHome in $targetHomes) {
+        $userName = Split-Path -Leaf $userHome
+        foreach ($rel in $relDirs) {
+            $dir = Join-Path $userHome $rel.TrimStart("\")
+            if (Test-Path $dir) {
+                Write-Log "[$userName] Directory exists: $dir" "SKIP"
+                continue
+            }
+            if ($DryRun) {
+                Write-Log "[$userName] Would create: $dir" "INFO"
+                continue
+            }
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            Write-Log "[$userName] Created: $dir" "SUCCESS"
         }
-        if ($DryRun) {
-            Write-Log "Would create: $dir" "INFO"
-            continue
-        }
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        Write-Log "Created: $dir" "SUCCESS"
     }
 }
 
@@ -552,8 +714,9 @@ function Deploy-Dotfiles {
     $deployArgs = @{
         DotfilesRoot = $Script:DotfilesRoot
     }
-    if ($DryRun) { $deployArgs["DryRun"] = $true }
-    if ($Force) { $deployArgs["Force"] = $true }
+    if ($AllUsers) { $deployArgs["AllUsers"] = $true }
+    if ($DryRun)   { $deployArgs["DryRun"]   = $true }
+    if ($Force)    { $deployArgs["Force"]     = $true }
 
     Write-Log "Deploying dotfiles..." "INFO"
     & $deployScript @deployArgs
@@ -648,9 +811,18 @@ function Invoke-WindowsBootstrap {
         Write-Host "  Self-sufficient setup (no Ansible required)" -ForegroundColor DarkGray
         Write-Host "========================================================" -ForegroundColor Cyan
         Write-Host ""
-        Write-Log "Environment: $EnvironmentType" "INFO"
+        Write-Log "Environment:  $EnvironmentType" "INFO"
         Write-Log "Dotfiles root: $Script:DotfilesRoot" "INFO"
-        if ($DryRun) { Write-Log "DRY RUN - no changes will be made" "WARN" }
+        Write-Log "Running as admin: $Script:IsAdmin" "INFO"
+        if ($AllUsers) {
+            if ($Script:IsAdmin) {
+                Write-Log "All-users mode: deploying to all user accounts + system-wide settings" "INFO"
+            } else {
+                Write-Log "All-users mode requested but NOT running as Administrator — some steps will be limited" "WARN"
+                Write-Log "Re-run as Administrator for full multi-user deployment (Machine env vars, AllUsers PS modules, cross-user registry)" "WARN"
+            }
+        }
+        if ($DryRun)      { Write-Log "DRY RUN - no changes will be made" "WARN" }
         if ($SkipPackages) { Write-Log "Skipping package installation" "INFO" }
         if ($SkipDotfiles) { Write-Log "Skipping dotfile deployment" "INFO" }
 

@@ -85,7 +85,7 @@
     {
         "defaults":
         {
-            "colorScheme": "Gruvbox",
+            "colorScheme": "Gruvforest",
             "historySize": 65535
         },
         "list":
@@ -145,6 +145,29 @@
             "selectionBackground": "#665C54",
             "white": "#A89984",
             "yellow": "#FABD2F"
+        },
+        {
+            "name": "Gruvforest",
+            "background": "#2D353B",
+            "foreground": "#D4BE98",
+            "cursorColor": "#D8A657",
+            "selectionBackground": "#503946",
+            "black": "#343F44",
+            "red": "#EA6962",
+            "green": "#A9B665",
+            "yellow": "#D8A657",
+            "blue": "#7DAEA3",
+            "purple": "#D3869B",
+            "cyan": "#89B482",
+            "white": "#D3C6AA",
+            "brightBlack": "#475258",
+            "brightRed": "#EA6962",
+            "brightGreen": "#A9B665",
+            "brightYellow": "#D8A657",
+            "brightBlue": "#7DAEA3",
+            "brightPurple": "#D3869B",
+            "brightCyan": "#89B482",
+            "brightWhite": "#D4BE98"
         }
     ],
     "themes": []
