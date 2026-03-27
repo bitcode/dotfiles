@@ -3,6 +3,9 @@ return {
         "nvim-treesitter/nvim-treesitter",
         build = ":TSUpdate",
         config = function()
+            if vim.fn.has("win32") == 1 then
+                require("nvim-treesitter.install").compilers = { "zig", "clang", "gcc", "cl" }
+            end
             local config = require("nvim-treesitter.configs")
             config.setup({
                 ensure_installed = { "lua", "javascript", "asm", "c", "html", "go", "rust", "c_sharp" },

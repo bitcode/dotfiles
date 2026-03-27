@@ -73,7 +73,8 @@
     "chat.tools.terminal.terminalProfile.windows": "PowerShell 7",
 
     // 6. Advanced persistence and autonomous settings
-    "terminal.integrated.persistentSessionScrollback": 5000,
+    "terminal.integrated.scrollback": 100000,
+    "terminal.integrated.persistentSessionScrollback": 100000,
     "terminal.integrated.showExitAlert": false,
     "terminal.integrated.autoReplies": {
         "Terminate batch job (Y/N)?": "Y\r",
@@ -165,5 +166,10 @@
     "developer.logLevel": "trace",
     "workbench.colorTheme": "Ayu Dark",
     "xml.server.vmargs": "-Xmx256M",
-    "roo-cline.debug": false
+    "roo-cline.debug": false,
+
+    // --- Git: reduce polling to prevent index.lock conflicts with CLI ---
+    "git.autorefresh": false,
+    "git.autofetch": false,
+    "git.detectSubmodules": false
 }

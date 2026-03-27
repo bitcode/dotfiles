@@ -85,7 +85,8 @@
     {
         "defaults":
         {
-            "colorScheme": "Gruvbox"
+            "colorScheme": "Gruvbox",
+            "historySize": 65535
         },
         "list":
         [
