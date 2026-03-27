@@ -258,17 +258,8 @@ return {
         -- ========================================================================
         -- CUSTOM COMMANDS & ASSEMBLY UTILITIES
         -- ========================================================================
-        wk.add({
-            { ":", group = "📋 Commands" },
-            { ":AsmStatus", desc = "Assembly Status" },
-            { ":AsmDebug", desc = "Start Assembly Debug" },
-            { ":AsmEmulate", desc = "Start Assembly Emulation" },
-            { ":AsmQEMU", desc = "Launch QEMU" },
-            { ":AsmExamples", desc = "Open Assembly Examples" },
-            { ":LspInfo", desc = "LSP Information" },
-            { ":CheckLspInstall", desc = "Check LSP Installation" },
-            { ":CheckFiletypeLsp", desc = "Check Filetype LSP" },
-        })
+        -- Note: These are ex commands, not keymaps. Do NOT register ":" as a
+        -- which-key group — it hijacks the command-line key.
 
         -- ========================================================================
         -- TELESCOPE FILE BROWSER
@@ -277,7 +268,5 @@ return {
             { "<space>fb", ":Telescope file_browser<CR>", desc = "File Browser", icon = "📁" },
         })
 
-        -- Notify user about enhanced Which-Key configuration
-        vim.notify("🚀 Enhanced Which-Key configuration loaded with comprehensive keybinding coverage!", vim.log.levels.INFO)
     end,
 }

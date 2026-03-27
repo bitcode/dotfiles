@@ -39,6 +39,7 @@ $pathAdditions = @(
     "$HOME\go\bin",
     "$HOME\bin",
     "$HOME\scoop\shims",
+    "$HOME\scoop\apps\gcc\current\bin",
     "C:\tools\neovim\nvim-win64\bin"
 )
 foreach ($p in $pathAdditions) {
