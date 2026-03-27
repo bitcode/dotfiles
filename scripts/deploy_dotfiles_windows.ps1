@@ -301,15 +301,25 @@ function Deploy-DotfilesToHome {
     Deploy-File -Source $vimSource -Target $vimTarget -Name "[$UserName] Vim"
 
     # --- PowerShell Profile (user-level) ---
-    $profileSource       = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
-    $pwshAllHostsTarget  = Join-Path $UserDocuments "PowerShell\profile.ps1"
-    $ps5AllHostsTarget   = Join-Path $UserDocuments "WindowsPowerShell\profile.ps1"
-    $pwshProfileTarget   = Join-Path $UserDocuments "PowerShell\Microsoft.PowerShell_profile.ps1"
-    $ps5ProfileTarget    = Join-Path $UserDocuments "WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
-    Deploy-File -Source $profileSource -Target $pwshAllHostsTarget -Name "[$UserName] PS7 AllHosts Profile"
-    Deploy-File -Source $profileSource -Target $pwshProfileTarget  -Name "[$UserName] PS7 Profile"
-    Deploy-File -Source $profileSource -Target $ps5AllHostsTarget  -Name "[$UserName] PS5.1 AllHosts Profile"
-    Deploy-File -Source $profileSource -Target $ps5ProfileTarget   -Name "[$UserName] PS5.1 Profile"
+    # Only deploy to CurrentUserCurrentHost (Microsoft.PowerShell_profile.ps1).
+    # Deploying to AllHosts (profile.ps1) as well causes the full profile to load
+    # 2-3x per session (AllUsersAllHosts + CurrentUserAllHosts + CurrentUserCurrentHost).
+    $profileSource   = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
+    $pwshProfileTarget = Join-Path $UserDocuments "PowerShell\Microsoft.PowerShell_profile.ps1"
+    $ps5ProfileTarget  = Join-Path $UserDocuments "WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+    Deploy-File -Source $profileSource -Target $pwshProfileTarget -Name "[$UserName] PS7 Profile"
+    Deploy-File -Source $profileSource -Target $ps5ProfileTarget  -Name "[$UserName] PS5.1 Profile"
+
+    # Stub out AllHosts profiles so they don't double-load if they exist from a prior deploy
+    foreach ($allHostsTarget in @(
+        (Join-Path $UserDocuments "PowerShell\profile.ps1"),
+        (Join-Path $UserDocuments "WindowsPowerShell\profile.ps1")
+    )) {
+        if (Test-Path $allHostsTarget) {
+            if (-not $DryRun) { Set-Content -Path $allHostsTarget -Value "# Intentionally empty - see Microsoft.PowerShell_profile.ps1" -Encoding UTF8 }
+            Write-Log "[$UserName] Stubbed AllHosts profile: $allHostsTarget" "INFO"
+        }
+    }
 
     # --- Scripts (Windows-compatible only) ---
     $scriptsSource = Join-Path $SourceBase "scripts"
@@ -331,29 +341,28 @@ function Deploy-DotfilesToHome {
 # Requires admin.
 # ============================================================================
 function Deploy-SystemWideProfiles {
-    $profileSource = Join-Path $SourceBase "powershell\Microsoft.PowerShell_profile.ps1"
+    # Stub out system-wide AllUsers profiles so they don't double-load.
+    # Each user has their own Microsoft.PowerShell_profile.ps1 deployed directly;
+    # loading the full profile from AllUsers on top of that adds 2-4s to startup.
+    $stub = "# Intentionally empty - per-user profiles handle all configuration"
 
-    if (-not (Test-Path $profileSource)) {
-        Write-Log "System-wide PS profile: source not found" "SKIP"
-        return
-    }
-
-    # PowerShell 7 (pwsh) system profile — typically C:\Program Files\PowerShell\7\
-    # Only consider numeric version directories (e.g. "7", "7.4") — skip "Scripts", "Modules", etc.
     $ps7Homes = Get-ChildItem "$env:ProgramFiles\PowerShell" -Directory -ErrorAction SilentlyContinue |
                     Where-Object { $_.Name -match '^\d' } |
                     Sort-Object { [double]($_.Name -replace '[^\d].*','') } -Descending |
                     Select-Object -First 1
     if ($ps7Homes) {
         $ps7AllUsers = Join-Path $ps7Homes.FullName "profile.ps1"
-        Deploy-File -Source $profileSource -Target $ps7AllUsers -Name "[System] PS7 AllUsers Profile"
-    } else {
-        Write-Log "[System] PS7 not found at $env:ProgramFiles\PowerShell — skipping system-wide PS7 profile" "SKIP"
+        if (Test-Path $ps7AllUsers) {
+            if (-not $DryRun) { Set-Content -Path $ps7AllUsers -Value $stub -Encoding UTF8 }
+            Write-Log "[System] Stubbed PS7 AllUsers profile: $ps7AllUsers" "INFO"
+        }
     }
 
-    # PowerShell 5.1 system profile
     $ps5AllUsers = "$env:WINDIR\System32\WindowsPowerShell\v1.0\profile.ps1"
-    Deploy-File -Source $profileSource -Target $ps5AllUsers -Name "[System] PS5.1 AllUsers Profile"
+    if (Test-Path $ps5AllUsers) {
+        if (-not $DryRun) { Set-Content -Path $ps5AllUsers -Value $stub -Encoding UTF8 }
+        Write-Log "[System] Stubbed PS5.1 AllUsers profile: $ps5AllUsers" "INFO"
+    }
 }
 
 # ============================================================================

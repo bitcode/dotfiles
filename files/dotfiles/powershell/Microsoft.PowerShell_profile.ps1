@@ -38,7 +38,8 @@ $pathAdditions = @(
     "$HOME\.local\bin",
     "$HOME\go\bin",
     "$HOME\bin",
-    "$HOME\scoop\shims"
+    "$HOME\scoop\shims",
+    "C:\tools\neovim\nvim-win64\bin"
 )
 foreach ($p in $pathAdditions) {
     if ((Test-Path $p) -and ($env:PATH -notlike "*$p*")) {
@@ -49,29 +50,24 @@ foreach ($p in $pathAdditions) {
 # ============================================================================
 # PSREADLINE CONFIGURATION
 # ============================================================================
-if (Get-Module -ListAvailable -Name PSReadLine) {
-    # Only import if not already loaded (PS7 auto-loads PSReadLine)
-    if (-not (Get-Module PSReadLine)) {
-        Import-Module PSReadLine
-    }
-
-    # Vi mode (equivalent to set -o vi in zsh)
+# PS7 auto-loads PSReadLine; on PS5.1 import only if not already present
+if (-not (Get-Module PSReadLine)) {
+    Import-Module PSReadLine -ErrorAction SilentlyContinue
+}
+if (Get-Module PSReadLine) {
     Set-PSReadLineOption -EditMode Vi
     Set-PSReadLineOption -BellStyle None
-
-    # History
     Set-PSReadLineOption -HistorySearchCursorMovesToEnd
     Set-PSReadLineOption -MaximumHistoryCount 50000
     Set-PSReadLineOption -HistoryNoDuplicates
 
-    # Prediction / autosuggestion (requires PS 7+ — PS 5.1's PSReadLine lacks these entirely)
+    # Prediction — PS7+ only
     if ($PSVersionTable.PSVersion.Major -ge 7) {
         Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
         Set-PSReadLineOption -PredictionViewStyle InlineView -ErrorAction SilentlyContinue
         Set-PSReadLineOption -Colors @{ InlinePrediction = [ConsoleColor]::DarkGray } -ErrorAction SilentlyContinue
     }
 
-    # Key bindings
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
     Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
     Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
@@ -85,25 +81,16 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
 # ============================================================================
 # MODULES
 # ============================================================================
-# posh-git (git status in prompt / tab completion)
-if (Get-Module -ListAvailable -Name posh-git) {
-    Import-Module posh-git
-}
+# Direct imports — avoids the slow Get-Module -ListAvailable filesystem scan
+Import-Module posh-git      -ErrorAction SilentlyContinue
+Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+Import-Module PSFzf          -ErrorAction SilentlyContinue
 
-# Terminal-Icons (file icons in directory listings)
-if (Get-Module -ListAvailable -Name Terminal-Icons) {
-    Import-Module Terminal-Icons
-}
-
-# PSFzf (fzf integration)
-if (Get-Module -ListAvailable -Name PSFzf) {
-    Import-Module PSFzf
+if (Get-Module PSFzf) {
     Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
-
-    # FZF options (equivalent to zsh FZF config)
     $env:FZF_DEFAULT_COMMAND = "fd --type f --hidden --follow --exclude .git"
-    $env:FZF_CTRL_T_COMMAND = $env:FZF_DEFAULT_COMMAND
-    $env:FZF_ALT_C_COMMAND = "fd --type d --hidden --follow --exclude .git"
+    $env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
+    $env:FZF_ALT_C_COMMAND   = "fd --type d --hidden --follow --exclude .git"
 }
 
 # ============================================================================
@@ -111,21 +98,25 @@ if (Get-Module -ListAvailable -Name PSFzf) {
 # ============================================================================
 
 # Enhanced ls/dir (lsd if available — provides Nerd Font icons in listings)
-if (Get-Command lsd -ErrorAction SilentlyContinue) {
-    Set-Alias -Name ls -Value lsd -Option AllScope -Force
-    function l   { lsd --icon always -l @args }
-    function la  { lsd --icon always -la @args }
-    function ll  { lsd --icon always -la @args }
-    function lt  { lsd --icon always --tree @args }
-    # Override dir to also use lsd (built-in dir is an alias for Get-ChildItem)
-    # Remove-Alias requires PS 6+; on 5.1 use Remove-Item on the alias provider
+# Remove built-in ls/dir aliases first so our functions take effect cleanly
+@('ls', 'dir') | ForEach-Object {
     if ($PSVersionTable.PSVersion.Major -ge 6) {
-        Remove-Alias -Name dir -Force -ErrorAction SilentlyContinue
+        Remove-Alias -Name $_ -Force -ErrorAction SilentlyContinue
     } else {
-        Remove-Item Alias:dir -Force -ErrorAction SilentlyContinue
+        Remove-Item "Alias:$_" -Force -ErrorAction SilentlyContinue
     }
-    function dir { lsd --icon always -la @args }
+}
+
+if (Get-Command lsd -ErrorAction SilentlyContinue) {
+    function ls  { lsd --icon never @args }
+    function dir { lsd --icon never -la @args }
+    function l   { lsd --icon never -l @args }
+    function la  { lsd --icon never -la @args }
+    function ll  { lsd --icon never -la @args }
+    function lt  { lsd --icon never --tree @args }
 } else {
+    function ls  { Get-ChildItem @args }
+    function dir { Get-ChildItem -Force @args }
     function l   { Get-ChildItem @args }
     function la  { Get-ChildItem -Force @args }
     function ll  { Get-ChildItem -Force @args | Format-Table Mode, LastWriteTime, Length, Name }

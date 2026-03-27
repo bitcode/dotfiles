@@ -3,7 +3,7 @@
 
 # Icons
 icons:
-  when: always
+  when: never
   theme: fancy
   separator: " "
 
@@ -25,13 +25,21 @@ sorting:
   dir-grouping: first
 
 # Permission style
-permission: rwx
+permission: attributes
 
 # Size display
 size: default
 
 # Symlinks
 symlink-arrow: "⇒"
+
+# Columns shown in long format — excludes user/group which are very slow
+# on Windows due to security API calls per file
+blocks:
+  - permission
+  - size
+  - date
+  - name
 
 # Header row in long format
 header: false

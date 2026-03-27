@@ -121,7 +121,28 @@
       "Bash(pwsh -NoProfile -Command \"Get-Process | Where-Object { \\\\$_.Name -match 'choco|rustup|pwsh|powershell' } | Select-Object Id, Name, CPU, StartTime | Format-Table -AutoSize\")",
       "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/deploy_dotfiles_windows.ps1 -AllUsers -Force 2>&1)",
       "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -Command \"choco install lazygit -y --no-progress 2>&1\")",
-      "Bash(pwsh -NoProfile -Command \"lazygit --version\")"
+      "Bash(pwsh -NoProfile -Command \"lazygit --version\")",
+      "Bash(ssh -T git@github.com)",
+      "Read(//c/Users/adminmedr/.ssh/**)",
+      "Bash(ssh-add -l)",
+      "Read(//c/Users/mdrozrosario/.ssh/**)",
+      "Bash(ssh-keygen -y -f /c/Users/mdrozrosario/.ssh/id_rsa)",
+      "Bash(ssh -i /c/Users/mdrozrosario/.ssh/id_ed25519 -T git@github.com)",
+      "Bash(ssh -i /c/Users/mdrozrosario/.ssh/id_rsa -T git@github.com)",
+      "Bash(pwsh -NoProfile -Command \"ssh-keygen -y -f 'C:\\\\Users\\\\mdrozrosario\\\\.ssh\\\\id_rsa' 2>&1\")",
+      "Bash(pwsh -NoProfile -Command \"ssh -i 'C:\\\\Users\\\\mdrozrosario\\\\.ssh\\\\id_ed25519' -o IdentitiesOnly=yes -T git@github.com 2>&1\")",
+      "Bash(git remote:*)",
+      "Bash(pwsh -NoProfile -Command \"Get-Command nvim -ErrorAction SilentlyContinue | Select-Object Source; Get-ChildItem 'C:\\\\ProgramData\\\\chocolatey\\\\bin\\\\nvim*' -ErrorAction SilentlyContinue; Get-ChildItem 'C:\\\\tools\\\\neovim\\\\bin\\\\' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(pwsh -NoProfile -Command \"where.exe nvim 2>&1; Get-ChildItem 'C:\\\\tools\\\\' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(pwsh -NoProfile -Command \"Get-ChildItem 'C:\\\\tools\\\\neovim\\\\' -Recurse -Filter 'nvim.exe' | Select-Object FullName\")",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -Command \"\n\\\\$nvimPath = 'C:\\\\tools\\\\neovim\\\\nvim-win64\\\\bin'\n\\\\$machinePath = [Environment]::GetEnvironmentVariable\\('Path', 'Machine'\\)\nif \\(\\\\$machinePath -notlike \\\\\"*\\\\$nvimPath*\\\\\"\\) {\n    [Environment]::SetEnvironmentVariable\\('Path', \\\\\"\\\\$machinePath;\\\\$nvimPath\\\\\", 'Machine'\\)\n    Write-Host 'Added nvim to Machine PATH'\n} else {\n    Write-Host 'nvim already in Machine PATH'\n}\n\")",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\mdrozrosario\\\\dotfiles\\\\scripts\\\\deploy_dotfiles_windows.ps1\" -AllUsers -Force)",
+      "Read(//c/Users/mdrozrosario/AppData/Roaming/lsd/**)",
+      "Read(//c/Users/mdrozrosario/.config/lsd/**)",
+      "Bash(pwsh -NoProfile -Command \"lsd --version\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/lsd-rs/lsd/master/README.md\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/lsd-rs/lsd/master/src/config_file.rs\")",
+      "Bash(pwsh -NoProfile -Command \"\n'AllUsersAllHosts',\n'AllUsersCurrentHost',\n'CurrentUserAllHosts',\n'CurrentUserCurrentHost' | ForEach-Object {\n    \\\\$path = \\\\$PROFILE.\\\\$_\n    \\\\$exists = Test-Path \\\\$path\n    \\\\$size = if \\(\\\\$exists\\) { \\(Get-Item \\\\$path\\).Length } else { 'MISSING' }\n    [pscustomobject]@{ Profile = \\\\$_; Path = \\\\$path; Size = \\\\$size }\n} | Format-Table -AutoSize\")"
     ]
   }
 }
