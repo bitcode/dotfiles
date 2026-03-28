@@ -20,7 +20,6 @@ return {
                         ellipsis_char = '...',
                         show_labelDetails = true,
                         symbol_map = {
-                            Copilot = "",
                             Text = "󰉿",
                             Method = "󰆧",
                             Function = "󰊕",
@@ -71,7 +70,6 @@ return {
                 ['<CR>'] = cmp.mapping.confirm({ select = true }),
             }),
             sources = cmp.config.sources({
-                { name = "copilot",  group_index = 2 },
                 { name = 'nvim_lsp', keyword_length = 2 },
                 {
                     name = 'nvim_lsp_document_symbol',

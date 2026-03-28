@@ -65,3 +65,38 @@ map('n', '<C-j>', '<C-w>j')
 map('n', '<C-k>', '<C-w>k')
 map('n', '<C-l>', '<C-w>l')
 vim.o.clipboard = "unnamedplus"
+
+-- ============================================================================
+-- SHELL CONFIGURATION (cross-platform)
+-- Sets vim.o.shell so :terminal, floaterm, :!, system() all use the right shell.
+-- Must run early (before any terminal buffer opens).
+-- ============================================================================
+if vim.fn.has('win32') == 1 then
+    -- Use bare 'pwsh' (must be on PATH) to avoid spaces-in-path issues
+    -- with full paths like 'C:\Program Files\PowerShell\7\pwsh.exe'
+    if vim.fn.executable('pwsh') == 0 then
+        vim.notify('pwsh not found on PATH — terminal will use default shell', vim.log.levels.WARN)
+    end
+
+    vim.o.shell = 'pwsh'
+    vim.o.shellcmdflag = table.concat({
+        '-NoLogo',
+        '-NonInteractive',
+        '-NoProfile',
+        '-ExecutionPolicy RemoteSigned',
+        '-Command',
+        " [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();",
+        "$PSDefaultParameterValues['Out-File:Encoding']='utf8';",
+        "$PSStyle.OutputRendering='PlainText';",
+        "[System.Environment]::SetEnvironmentVariable('__SuppressAnsiEscapeSequences','1');",
+    }, ' ')
+    vim.o.shellpipe = '> %s 2>&1'
+    vim.o.shellredir = '> %s 2>&1'
+    vim.o.shellquote = ''
+    vim.o.shellxquote = ''
+    vim.o.shelltemp = false
+elseif vim.fn.executable('zsh') == 1 then
+    vim.o.shell = 'zsh'
+elseif vim.fn.executable('bash') == 1 then
+    vim.o.shell = 'bash'
+end

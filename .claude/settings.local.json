@@ -188,7 +188,24 @@
       "Bash(dotnet --version)",
       "Bash(dotnet --list-tools -g)",
       "Bash(dotnet tool:*)",
-      "Bash(\"$HOME/.local/share/nvim-data/mason/packages/omnisharp/OmniSharp.cmd\" --version)"
+      "Bash(\"$HOME/.local/share/nvim-data/mason/packages/omnisharp/OmniSharp.cmd\" --version)",
+      "Bash(curl -sL https://raw.githubusercontent.com/voldikss/vim-floaterm/master/README.md)",
+      "Bash(find C:Usersbitcodedotfiles -type d -iname *windows*terminal* -o -type d -iname *wt*)",
+      "Bash(where nvim:*)",
+      "WebFetch(domain:neovim.io)",
+      "Bash(echo {\"\"query\"\":\"\"which-key\"\"})",
+      "Bash(bash ~/.claude/file-suggest.sh)",
+      "Bash(find C:Usersbitcodedotfiles -type f \\\\\\(-name *.ps1 -o -name *powershell* -o -name *profile* \\\\\\))",
+      "Bash(where.exe pwsh:*)",
+      "Read(//c/Users/bitcode/dotfiles/$PROGRAMFILES/PowerShell/7/**)",
+      "Read(//c/Users/bitcode/dotfiles/$LOCALAPPDATA/Microsoft/PowerShell/**)",
+      "Bash(pwsh -NoProfile -Command '$PSVersionTable.PSVersion.ToString\\(\\)')",
+      "Bash(where.exe nvim:*)",
+      "Read(//c/Users/bitcode/dotfiles/$HOME/.config/nvim/lua/settings/**)",
+      "Read(//c/Users/bitcode/dotfiles/$HOME/.config/nvim/**)",
+      "Bash(pwsh -NoProfile -c 'echo ok')",
+      "Bash(cp \"$HOME/dotfiles/files/dotfiles/nvim/.config/nvim/lua/settings/init.lua\" \"$HOME/.config/nvim/lua/settings/init.lua\")",
+      "Bash(cp \"$HOME/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/float-term.lua\" \"$HOME/.config/nvim/lua/plugins/float-term.lua\")"
     ]
   }
 }

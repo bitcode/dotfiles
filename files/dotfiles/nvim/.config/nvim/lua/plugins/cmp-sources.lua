@@ -10,12 +10,4 @@ return {
   { "hrsh7th/cmp-nvim-lsp-document-symbol",    name = "nvim_lsp_document_symbol",  lazy = true },
   { "hrsh7th/cmp-nvim-lsp-signature-help",     name = "nvim-lsp-signature-help",   lazy = true },
   { "onsails/lspkind.nvim",                    name = "lspkind",                   lazy = true },
-  {
-    "zbirenbaum/copilot-cmp",
-    after = { "copilot.lua" },
-    lazy = true,
-    config = function()
-      require("copilot_cmp").setup()
-    end
-  }
 }

@@ -71,7 +71,7 @@ GNU Stow is used to symlink `files/dotfiles/<app>/` into `$HOME`. Each app dir m
 - `lua/settings/lspconfig.lua` — LSP setup with keybindings (recently active)
 - `lazy-lock.json` — frozen plugin versions
 
-Notable plugins: which-key (extensively configured), telescope, harpoon, oil.nvim, nvim-cmp, mason, lspsaga, treesitter, gitsigns, codecompanion, copilot
+Notable plugins: which-key (extensively configured), telescope, harpoon, oil.nvim, nvim-cmp, mason, lspsaga, treesitter, gitsigns, codecompanion
 
 Assembly support is a first-class feature: `asm_lsp.lua`, examples in `nvim/examples/` for ARM32/ARM64/RISC-V/x86-64.
 

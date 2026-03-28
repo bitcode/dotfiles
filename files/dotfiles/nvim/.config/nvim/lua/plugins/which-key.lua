@@ -134,10 +134,17 @@ return {
             -- ========================================================================
             { "<leader>t", group = "💻 Terminal", icon = "💻" },
             { "<leader>tn", ":FloatermNew<CR>", desc = "New Terminal", icon = "➕" },
-            { "<leader>tp", ":FloatermPrev<CR>", desc = "Previous Terminal", icon = "⬅️" },
             { "<leader>tt", ":FloatermToggle<CR>", desc = "Toggle Terminal", icon = "🔄" },
-            { "<leader>tx", ":FloatermKill<CR>", desc = "Close Terminal", icon = "❌" },
-            { "<leader>tc", ":FloatermNew bash -c 'gcc % && ./a.out; echo Press ENTER to close; read'<CR>", desc = "Compile & Run", icon = "⚡" },
+            { "<leader>tT", ":FloatermToggle!<CR>", desc = "Toggle All Terminals", icon = "🔄" },
+            { "<leader>t]", ":FloatermNext<CR>", desc = "Next Terminal", icon = "➡️" },
+            { "<leader>t[", ":FloatermPrev<CR>", desc = "Previous Terminal", icon = "⬅️" },
+            { "<leader>tx", ":FloatermKill<CR>", desc = "Kill Terminal", icon = "❌" },
+            { "<leader>tX", ":FloatermKill!<CR>", desc = "Kill All Terminals", icon = "❌" },
+            { "<leader>tc", ":FloatermRun<CR>", desc = "Compile & Run File", icon = "⚡" },
+            { "<leader>ts", ":'<,'>FloatermSend<CR>", desc = "Send Selection", icon = "📤", mode = "v" },
+            { "<leader>tg", ":FloatermLazygit<CR>", desc = "Lazygit", icon = "🔀" },
+            { "<leader>tp", ":FloatermPython<CR>", desc = "Python REPL", icon = "🐍" },
+            { "<leader>tj", ":FloatermNode<CR>", desc = "Node REPL", icon = "📦" },
 
             -- ========================================================================
             -- HARPOON NAVIGATION
