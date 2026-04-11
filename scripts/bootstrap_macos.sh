@@ -379,12 +379,25 @@ configure_macos_ansible() {
         "requests"
         "urllib3"
         "certifi"
+        "pylatexenc"
     )
-    
+
     for package in "${packages[@]}"; do
         info "Installing Python package: $package"
         python3 -m pip install --user "$package" || warning "Failed to install $package"
     done
+
+    # Neovim tooling: tree-sitter CLI (required by nvim-treesitter main branch)
+    if command -v npm >/dev/null 2>&1; then
+        if ! command -v tree-sitter >/dev/null 2>&1; then
+            info "Installing tree-sitter CLI via npm..."
+            npm install -g tree-sitter-cli || warning "Failed to install tree-sitter-cli"
+        else
+            success "tree-sitter CLI already installed"
+        fi
+    else
+        warning "npm not found — skipping tree-sitter-cli install (install Node.js first)"
+    fi
     
     # Create Ansible configuration directory
     local ansible_config_dir="$HOME/.ansible"

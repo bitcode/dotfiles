@@ -86,6 +86,7 @@ neovim_python_packages:
   - "isort"
   - "flake8"
   - "mypy"
+  - "pylatexenc"  # LaTeX math rendering for render-markdown.nvim
 
 # Node.js packages for Neovim
 neovim_node_packages:
@@ -94,3 +95,4 @@ neovim_node_packages:
   - "eslint_d"
   - "typescript"
   - "typescript-language-server"
+  - "tree-sitter-cli"  # Required by nvim-treesitter main branch to compile parsers

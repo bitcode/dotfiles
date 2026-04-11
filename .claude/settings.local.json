@@ -205,7 +205,28 @@
       "Read(//c/Users/bitcode/dotfiles/$HOME/.config/nvim/**)",
       "Bash(pwsh -NoProfile -c 'echo ok')",
       "Bash(cp \"$HOME/dotfiles/files/dotfiles/nvim/.config/nvim/lua/settings/init.lua\" \"$HOME/.config/nvim/lua/settings/init.lua\")",
-      "Bash(cp \"$HOME/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/float-term.lua\" \"$HOME/.config/nvim/lua/plugins/float-term.lua\")"
+      "Bash(cp \"$HOME/dotfiles/files/dotfiles/nvim/.config/nvim/lua/plugins/float-term.lua\" \"$HOME/.config/nvim/lua/plugins/float-term.lua\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./bootstrap.ps1 -DryRun -SkipDotfiles)",
+      "Bash(powershell -NoProfile -Command '& {try { $null = [System.Management.Automation.PSParser]::Tokenize\\(\\(Get-Content -Raw '\\\\''./scripts/bootstrap_windows.ps1'\\\\''\\), [ref]$null\\); '\\\\''OK'\\\\'' } catch { $_.Exception.Message }}')",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File ./bootstrap.ps1 -DryRun -SkipDotfiles)",
+      "Bash(powershell:*)",
+      "Bash(git -C /c/Users/bit/dotfiles diff scripts/bootstrap_windows.ps1)",
+      "Bash(xxd)",
+      "Bash(git -C /c/Users/bit/dotfiles show HEAD:scripts/bootstrap_windows.ps1)",
+      "Bash(command -v pwsh)",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File ./bootstrap.ps1 -DryRun -SkipDotfiles)",
+      "Bash(pwsh:*)",
+      "Read(//c/Users/bit/AppData/Local/nvim/**)",
+      "Read(//c/Users/bit/AppData/Local/**)",
+      "Read(//c/Users/bit/.config/**)",
+      "Bash(where tree-sitter:*)",
+      "Bash(where gcc:*)",
+      "Bash(where node:*)",
+      "Bash(python -c \"import pylatexenc; print\\('pylatexenc', pylatexenc.__version__\\)\")",
+      "Bash(CC=clang nvim --headless -c \"lua require\\('nvim-treesitter.install'\\).install\\({'lua'}\\)\" -c \"sleep 8\" -c \"qa\")",
+      "Bash(where cl.exe)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/**)",
+      "Bash(cmd //c \"\\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\VC\\\\Auxiliary\\\\Build\\\\vcvars64.bat\\\\\" && where cl.exe\")"
     ]
   }
 }

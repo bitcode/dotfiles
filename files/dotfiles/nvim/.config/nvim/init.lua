@@ -13,7 +13,8 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Setup LuaRocks
 local function setup_luarocks()
-  local home = os.getenv("HOME")
+  local home = os.getenv("HOME") or os.getenv("USERPROFILE")
+  if not home then return end
   local luarocks_path = home .. '/.luarocks/share/lua/5.1/?.lua;' .. home .. '/.luarocks/share/lua/5.1/?/init.lua;'
   local luarocks_cpath = home .. '/.luarocks/lib/lua/5.1/?.so;'
 

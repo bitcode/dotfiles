@@ -301,12 +301,29 @@ configure_arch_ansible() {
         "python-urllib3"
         "python-certifi"
         "python-pexpect"
+        "python-pylatexenc"
     )
-    
+
     for package in "${packages[@]}"; do
         info "Installing Python package: $package"
         sudo pacman -S --noconfirm --needed "$package" || warning "Failed to install $package"
     done
+
+    # Neovim tooling: tree-sitter CLI (required by nvim-treesitter main branch)
+    # Arch has a native package in [extra]
+    if ! command -v tree-sitter >/dev/null 2>&1; then
+        info "Installing tree-sitter CLI..."
+        sudo pacman -S --noconfirm --needed tree-sitter-cli || {
+            warning "pacman install failed, trying npm fallback..."
+            if command -v npm >/dev/null 2>&1; then
+                sudo npm install -g tree-sitter-cli || warning "Failed to install tree-sitter-cli"
+            else
+                warning "npm not found either — tree-sitter CLI not installed"
+            fi
+        }
+    else
+        success "tree-sitter CLI already installed"
+    fi
     
     # Create Ansible configuration directory
     local ansible_config_dir="$HOME/.ansible"

@@ -15,6 +15,52 @@ return {
             enabled = true,
             view = "cmdline_popup",
         },
+        views = {
+            cmdline_popup = {
+                position = {
+                    row = "50%",
+                    col = "50%",
+                },
+                size = {
+                    width = 60,
+                    height = "auto",
+                },
+                border = {
+                    style = "rounded",
+                    padding = { 0, 1 },
+                },
+                win_options = {
+                    winhighlight = {
+                        Normal      = "NoiceCmdlinePopup",
+                        FloatBorder = "NoiceCmdlinePopupBorder",
+                        FloatTitle  = "NoiceCmdlinePopupTitle",
+                    },
+                },
+            },
+            cmdline_popupmenu = {
+                relative = "editor",
+                position = {
+                    row = "50%+3",
+                    col = "50%",
+                },
+                size = {
+                    width = 60,
+                    height = 10,
+                },
+                border = {
+                    style = "rounded",
+                    padding = { 0, 1 },
+                },
+                win_options = {
+                    winhighlight = {
+                        Normal      = "NoicePopupmenu",
+                        FloatBorder = "NoicePopupmenuBorder",
+                        CursorLine  = "NoicePopupmenuSelected",
+                        PmenuMatch  = "NoicePopupmenuMatch",
+                    },
+                },
+            },
+        },
         messages = {
             enabled = true,
         },

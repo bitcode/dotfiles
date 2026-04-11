@@ -239,8 +239,19 @@ function Deploy-DotfilesToHome {
     Write-Host "  -- User: $UserName ($UserHome)" -ForegroundColor White
 
     # --- Neovim ---
+    # Honor XDG_CONFIG_HOME when set (nvim 0.9+ reads it on Windows too).
+    # Check the running user's env var first, then fall back to $UserHome\.config\nvim
+    # if that directory already exists, else Windows-native %LOCALAPPDATA%\nvim.
     $nvimSource = Join-Path $SourceBase "nvim\.config\nvim"
-    $nvimTarget = Join-Path $UserLocalApp "nvim"
+    $xdgConfigHome = [Environment]::GetEnvironmentVariable("XDG_CONFIG_HOME", "User")
+    if (-not $xdgConfigHome) { $xdgConfigHome = $env:XDG_CONFIG_HOME }
+    if ($xdgConfigHome -and ($UserHome -eq $env:USERPROFILE)) {
+        $nvimTarget = Join-Path $xdgConfigHome "nvim"
+    } elseif (Test-Path (Join-Path $UserConfig "nvim")) {
+        $nvimTarget = Join-Path $UserConfig "nvim"
+    } else {
+        $nvimTarget = Join-Path $UserLocalApp "nvim"
+    }
     Deploy-Directory -Source $nvimSource -Target $nvimTarget -Name "[$UserName] Neovim"
 
     # --- Alacritty ---

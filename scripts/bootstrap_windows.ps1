@@ -92,18 +92,18 @@ $Script:Config = @{
         "PackageManagement"
     )
 
-    # --- Chocolatey packages (core + dev tools) ---
+    # --- Chocolatey packages (core) ---
+    # Note: curl and vim are intentionally omitted — they ship with Git for
+    # Windows (C:\Program Files\Git\{mingw64,usr}\bin) which is already on PATH.
     ChocolateyPackages = @(
         # Core utilities
         "git"
         "7zip"
-        "curl"
         "wget"
         "powershell-core"
 
         # Editors & terminals
         "neovim"
-        "vim"
         "alacritty"
         "microsoft-windows-terminal"
 
@@ -124,9 +124,6 @@ $Script:Config = @{
         "zoxide"
         "lsd"
         "lazygit"
-
-        # Containers & VMs
-        "docker-desktop"
     )
 
     # Development tools (Chocolatey) — heavier installs, separate step
@@ -157,11 +154,8 @@ $Script:Config = @{
 
     # GUI apps (Chocolatey)
     GuiPackages = @(
-        "vscode"
         "firefox"
         "googlechrome"
-        "discord"
-        "notion"
         "obsidian"
     )
 
@@ -259,6 +253,8 @@ function Enable-WindowsFeatures {
 # STEP 2: PACKAGE MANAGERS
 # ============================================================================
 function Install-Chocolatey {
+    # Pick up choco if it was installed in another session (Machine PATH)
+    Refresh-Path
     if (Get-Command choco -ErrorAction SilentlyContinue) {
         $ver = & choco --version 2>$null
         Write-Log "Chocolatey $ver already installed" "SUCCESS"
@@ -290,6 +286,7 @@ function Install-Chocolatey {
 }
 
 function Install-Scoop {
+    Refresh-Path
     if (Get-Command scoop -ErrorAction SilentlyContinue) {
         Write-Log "Scoop already installed" "SUCCESS"
         return $true
@@ -303,7 +300,16 @@ function Install-Scoop {
     try {
         Write-Log "Installing Scoop..." "INFO"
         Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-        Invoke-RestMethod $Script:Config.ScoopInstallUrl | Invoke-Expression
+        # Scoop refuses admin installs by default. When elevated we must pass
+        # -RunAsAdmin explicitly; that requires downloading the installer as a
+        # script block we can invoke with args, rather than piping to iex.
+        $installer = Invoke-RestMethod $Script:Config.ScoopInstallUrl
+        $installerBlock = [ScriptBlock]::Create($installer)
+        if ($Script:IsAdmin) {
+            & $installerBlock -RunAsAdmin
+        } else {
+            & $installerBlock
+        }
         Refresh-Path
 
         if (Get-Command scoop -ErrorAction SilentlyContinue) {
@@ -329,6 +335,66 @@ function Install-Scoop {
 # ============================================================================
 # STEP 3-5: PACKAGE INSTALLATION
 # ============================================================================
+# Detect packages that were installed outside of Chocolatey (winget, MSI,
+# bundled with another tool, etc.) so we don't reinstall them. Checks for a
+# known command on PATH first, then falls back to Windows uninstall registry
+# keys matched by DisplayName.
+function Test-AppInstalledExternally {
+    param([string]$ChocoName)
+
+    $detectMap = @{
+        "git"                        = @{ Cmd = "git" }
+        "7zip"                       = @{ Reg = "7-Zip" }
+        "wget"                       = @{ Cmd = "wget" }
+        "powershell-core"            = @{ Cmd = "pwsh" }
+        "neovim"                     = @{ Cmd = "nvim" }
+        "alacritty"                  = @{ Cmd = "alacritty" }
+        "microsoft-windows-terminal" = @{ Reg = "Windows Terminal" }
+        "python3"                    = @{ Cmd = "python" }
+        "nodejs"                     = @{ Cmd = "node" }
+        "golang"                     = @{ Cmd = "go" }
+        "rustup.install"             = @{ Cmd = "rustup" }
+        "starship"                   = @{ Cmd = "starship" }
+        "ripgrep"                    = @{ Cmd = "rg" }
+        "fd"                         = @{ Cmd = "fd" }
+        "fzf"                        = @{ Cmd = "fzf" }
+        "bat"                        = @{ Cmd = "bat" }
+        "jq"                         = @{ Cmd = "jq" }
+        "tree"                       = @{ Cmd = "tree" }
+        "zoxide"                     = @{ Cmd = "zoxide" }
+        "lsd"                        = @{ Cmd = "lsd" }
+        "lazygit"                    = @{ Cmd = "lazygit" }
+        "llvm"                       = @{ Cmd = "clang" }
+        "cmake"                      = @{ Cmd = "cmake" }
+        "ninja"                      = @{ Cmd = "ninja" }
+        "make"                       = @{ Cmd = "make" }
+        "nasm"                       = @{ Cmd = "nasm" }
+        "firefox"                    = @{ Reg = "Mozilla Firefox" }
+        "googlechrome"               = @{ Reg = "Google Chrome" }
+        "obsidian"                   = @{ Reg = "Obsidian" }
+    }
+
+    if (-not $detectMap.ContainsKey($ChocoName)) { return $false }
+    $entry = $detectMap[$ChocoName]
+
+    if ($entry.Cmd) {
+        if (Get-Command $entry.Cmd -ErrorAction SilentlyContinue) { return $true }
+    }
+    if ($entry.Reg) {
+        $uninstallKeys = @(
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        foreach ($key in $uninstallKeys) {
+            $found = Get-ItemProperty $key -ErrorAction SilentlyContinue |
+                Where-Object { $_.DisplayName -like "*$($entry.Reg)*" }
+            if ($found) { return $true }
+        }
+    }
+    return $false
+}
+
 function Install-ChocoPackages {
     param([string[]]$Packages, [string]$Category = "packages")
 
@@ -342,7 +408,14 @@ function Install-ChocoPackages {
     $failed = 0
 
     foreach ($pkg in $Packages) {
-        # Check if already installed
+        # Skip if installed by another package manager / installer
+        if (Test-AppInstalledExternally -ChocoName $pkg) {
+            $skipped++
+            Write-Log "$pkg already present (installed externally)" "SKIP"
+            continue
+        }
+
+        # Check if already installed via Chocolatey
         $check = & choco list --local-only 2>$null | Select-String "^$pkg\s"
         if ($check) {
             $skipped++
@@ -393,6 +466,70 @@ function Install-ScoopPackages {
         } catch {
             Write-Log "$pkg failed (Scoop): $_" "WARN"
         }
+    }
+}
+
+# ============================================================================
+# Visual Studio Build Tools (MSVC C++ toolchain)
+# Required by tree-sitter CLI to compile parsers on Windows — tree-sitter
+# (via cc-rs) hardcodes cl.exe and does not honor CC=clang. Also useful for
+# any other native build (rustup MSVC target, native Node modules, etc.).
+#
+# Chocolatey's visualstudio2022buildtools package installs the bootstrapper
+# only — the C++ workload must be requested via package parameters.
+# ============================================================================
+function Test-VSBuildToolsInstalled {
+    # vswhere is the canonical way to detect any VS / Build Tools install with
+    # the VC tools component. It ships with every VS 2017+ install under
+    # Program Files (x86)\Microsoft Visual Studio\Installer.
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path $vswhere)) { return $false }
+    try {
+        $found = & $vswhere -latest -products '*' `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath 2>$null
+        return [bool]$found
+    } catch {
+        return $false
+    }
+}
+
+function Install-VSBuildTools {
+    if (Test-VSBuildToolsInstalled) {
+        Write-Log "Visual Studio Build Tools (VC++ workload) already installed" "SUCCESS"
+        return
+    }
+
+    if (-not $Script:IsAdmin) {
+        Write-Log "Visual Studio Build Tools install requires admin — skipping" "WARN"
+        Write-Log "Re-run bootstrap as Administrator to install the MSVC C++ toolchain" "WARN"
+        return
+    }
+
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Write-Log "Chocolatey not available — skipping Visual Studio Build Tools" "WARN"
+        return
+    }
+
+    if ($DryRun) {
+        Write-Log "Would install: visualstudio2022buildtools + VC++ workload" "INFO"
+        return
+    }
+
+    Write-Log "Installing Visual Studio 2022 Build Tools + VC++ workload (this is a 3-6 GB download)..." "INFO"
+    # --add selects the C++ workload; --includeRecommended pulls in Windows SDK,
+    # CMake integration, etc. --quiet + --norestart keep the installer headless.
+    $params = "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait --norestart"
+    try {
+        & choco install visualstudio2022buildtools -y --no-progress --package-parameters $params 2>&1 | Out-Null
+        if (Test-VSBuildToolsInstalled) {
+            Write-Log "Visual Studio Build Tools installed" "SUCCESS"
+        } else {
+            Write-Log "choco reported success but vswhere did not detect the VC++ workload" "WARN"
+            Write-Log "You may need to re-run or finish the install manually via the Visual Studio Installer" "WARN"
+        }
+    } catch {
+        Write-Log "Failed to install Visual Studio Build Tools: $_" "WARN"
     }
 }
 
@@ -701,6 +838,79 @@ function New-DevDirectories {
 }
 
 # ============================================================================
+# STEP 8b: NEOVIM RUNTIME DEPENDENCIES
+# Installs tooling required by Neovim plugins that can't be delivered via
+# chocolatey/scoop: tree-sitter CLI (for nvim-treesitter main branch) and
+# pylatexenc (for render-markdown.nvim LaTeX math rendering).
+# ============================================================================
+function Install-NeovimDeps {
+    Refresh-Path
+
+    # --- tree-sitter CLI (via npm global) ---
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        if (Get-Command tree-sitter -ErrorAction SilentlyContinue) {
+            Write-Log "tree-sitter CLI already installed" "SUCCESS"
+        } else {
+            if ($DryRun) {
+                Write-Log "Would install: tree-sitter-cli via npm" "INFO"
+            } else {
+                Write-Log "Installing tree-sitter CLI via npm..." "INFO"
+                try {
+                    & npm install -g tree-sitter-cli 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Log "tree-sitter CLI installed" "SUCCESS"
+                    } else {
+                        Write-Log "npm install -g tree-sitter-cli failed (exit $LASTEXITCODE)" "WARN"
+                    }
+                } catch {
+                    Write-Log "Failed to install tree-sitter-cli: $_" "WARN"
+                }
+            }
+        }
+    } else {
+        Write-Log "npm not found — skipping tree-sitter-cli (install Node.js first)" "WARN"
+    }
+
+    # --- pylatexenc (via pip) ---
+    $pythonCmd = $null
+    foreach ($candidate in @("python", "python3", "py")) {
+        if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+            $pythonCmd = $candidate
+            break
+        }
+    }
+    if ($pythonCmd) {
+        $alreadyInstalled = $false
+        try {
+            & $pythonCmd -c "import pylatexenc" 2>$null
+            if ($LASTEXITCODE -eq 0) { $alreadyInstalled = $true }
+        } catch { }
+
+        if ($alreadyInstalled) {
+            Write-Log "pylatexenc already installed" "SUCCESS"
+        } else {
+            if ($DryRun) {
+                Write-Log "Would install: pylatexenc via pip" "INFO"
+            } else {
+                Write-Log "Installing pylatexenc via pip..." "INFO"
+                try {
+                    & $pythonCmd -m pip install --user pylatexenc 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Log "pylatexenc installed" "SUCCESS"
+                    } else {
+                        Write-Log "pip install pylatexenc failed (exit $LASTEXITCODE)" "WARN"
+                    }
+                } catch {
+                    Write-Log "Failed to install pylatexenc: $_" "WARN"
+                }
+            }
+        }
+    } else {
+        Write-Log "python not found — skipping pylatexenc (install Python first)" "WARN"
+    }
+}
+
+# ============================================================================
 # STEP 9: DOTFILE DEPLOYMENT
 # ============================================================================
 function Deploy-Dotfiles {
@@ -779,8 +989,15 @@ function Invoke-Validation {
 
     # Check dotfile targets
     Write-Host ""
+    $xdgConfigHome = [Environment]::GetEnvironmentVariable("XDG_CONFIG_HOME", "User")
+    if (-not $xdgConfigHome) { $xdgConfigHome = $env:XDG_CONFIG_HOME }
+    $nvimConfigPath = if ($xdgConfigHome) {
+        Join-Path $xdgConfigHome "nvim\init.lua"
+    } else {
+        "$env:LOCALAPPDATA\nvim\init.lua"
+    }
     $dotfileChecks = @(
-        @{ Name = "Neovim config"; Path = "$env:LOCALAPPDATA\nvim\init.lua" }
+        @{ Name = "Neovim config"; Path = $nvimConfigPath }
         @{ Name = "Starship config"; Path = "$env:USERPROFILE\.config\starship.toml" }
         @{ Name = "PowerShell profile"; Path = "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1" }
         @{ Name = "Vim config"; Path = "$env:USERPROFILE\.vimrc" }
@@ -826,7 +1043,7 @@ function Invoke-WindowsBootstrap {
         if ($SkipPackages) { Write-Log "Skipping package installation" "INFO" }
         if ($SkipDotfiles) { Write-Log "Skipping dotfile deployment" "INFO" }
 
-        $totalSteps = 11
+        $totalSteps = 12
         $step = 0
 
         # Step 1: Windows Features
@@ -847,6 +1064,7 @@ function Invoke-WindowsBootstrap {
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Development Tools"
             Install-ChocoPackages -Packages $Script:Config.DevToolsChocolatey -Category "Dev tools"
             Install-ScoopPackages
+            Install-VSBuildTools
 
             # Step 5: GUI Applications
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "GUI Applications"
@@ -856,7 +1074,7 @@ function Invoke-WindowsBootstrap {
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Nerd Fonts"
             Install-NerdFonts
         } else {
-            $step += 5  # Skip package + font steps
+            $step += 5  # Skip package + font steps (Neovim deps handled separately below)
         }
 
         # Step 7: PowerShell Modules
@@ -871,15 +1089,23 @@ function Invoke-WindowsBootstrap {
         Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Development Directories"
         New-DevDirectories
 
+        if (-not $SkipPackages) {
+            # Step 10: Neovim runtime dependencies (tree-sitter CLI, pylatexenc)
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Neovim Dependencies"
+            Install-NeovimDeps
+        } else {
+            $step++
+        }
+
         if (-not $SkipDotfiles) {
-            # Step 10: Dotfile Deployment
+            # Step 11: Dotfile Deployment
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Dotfile Deployment"
             Deploy-Dotfiles
         } else {
             $step++
         }
 
-        # Step 11: Validation
+        # Step 12: Validation
         Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Validation"
         Invoke-Validation
 

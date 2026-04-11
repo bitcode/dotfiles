@@ -69,7 +69,7 @@ local function on_attach(client, bufnr)
   vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, opts)
   vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, opts)
 
-  if client.supports_method("textDocument/formatting") then
+  if client:supports_method("textDocument/formatting") then
     vim.api.nvim_create_autocmd("BufWritePre", {
       buffer = bufnr,
       callback = function()
