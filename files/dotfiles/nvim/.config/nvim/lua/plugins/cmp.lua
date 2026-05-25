@@ -1,7 +1,7 @@
 return {
     "hrsh7th/nvim-cmp",
     name = "cmp",
-    event = { "InsertEnter", "CmdlineEnter" },
+    event = "InsertEnter",
     config = function()
         local cmp = require 'cmp'
         local lspkind = require('lspkind')
@@ -88,22 +88,5 @@ return {
             })
         })
 
-        -- Cmdline setup for '/' and ':' commands
-        cmp.setup.cmdline('/', {
-            sources = cmp.config.sources({
-                { name = 'nvim_lsp_document_symbol' },
-                { name = 'nvim-lsp-signature-help' },
-            }, {
-                { name = 'buffer' }
-            })
-        })
-
-        cmp.setup.cmdline(':', {
-            sources = cmp.config.sources({
-                { name = 'path' },
-                { name = 'nvim-lsp-signature-help' },
-                { name = 'cmdline' }
-            })
-        })
     end
 }

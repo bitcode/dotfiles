@@ -304,11 +304,25 @@ vim.lsp.config('yamlls', {
   },
 })
 
+local omnisharp_dll = vim.fn.stdpath('data') .. "/mason/packages/omnisharp/libexec/OmniSharp.dll"
+
+local function find_dotnet()
+  local exe = vim.fn.exepath('dotnet')
+  if exe ~= '' then return exe end
+  if vim.fn.has('win32') == 1 then
+    local candidates = {
+      vim.env.ProgramFiles and (vim.env.ProgramFiles .. '\\dotnet\\dotnet.exe'),
+      vim.env.USERPROFILE and (vim.env.USERPROFILE .. '\\.dotnet\\dotnet.exe'),
+    }
+    for _, path in ipairs(candidates) do
+      if path and vim.uv.fs_stat(path) then return path end
+    end
+  end
+  return 'dotnet'
+end
+
 vim.lsp.config('omnisharp', {
-  cmd = {
-    "dotnet",
-    "C:\\Users\\bit\\AppData\\Local\\nvim-data\\mason\\packages\\omnisharp\\libexec\\OmniSharp.dll",
-  },
+  cmd = { find_dotnet(), omnisharp_dll },
   settings = {
     FormattingOptions = { EnableEditorConfigSupport = true, OrganizeImports = nil },
     MsBuild = { LoadProjectsOnDemand = nil },

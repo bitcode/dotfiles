@@ -226,7 +226,12 @@
       "Bash(CC=clang nvim --headless -c \"lua require\\('nvim-treesitter.install'\\).install\\({'lua'}\\)\" -c \"sleep 8\" -c \"qa\")",
       "Bash(where cl.exe)",
       "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/**)",
-      "Bash(cmd //c \"\\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\VC\\\\Auxiliary\\\\Build\\\\vcvars64.bat\\\\\" && where cl.exe\")"
+      "Bash(cmd //c \"\\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\VC\\\\Auxiliary\\\\Build\\\\vcvars64.bat\\\\\" && where cl.exe\")",
+      "Bash(where dotnet:*)",
+      "Read(//c/Users/bit/.local/share/nvim/mason/**)",
+      "Read(//c/Users/bit/.local/share/nvim-data/mason/packages/**)",
+      "Bash(cmd:*)",
+      "Bash(xargs -I {} basename {})"
     ]
   }
 }

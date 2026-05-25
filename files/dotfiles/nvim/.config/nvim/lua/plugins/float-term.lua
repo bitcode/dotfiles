@@ -122,12 +122,19 @@ return {
             end,
         })
 
-        -- Responsive resize
+        -- Responsive resize — only update if a floaterm window is visible
         vim.api.nvim_create_autocmd('VimResized', {
             pattern = '*',
             callback = function()
                 if vim.fn.exists(':FloatermUpdate') == 2 then
-                    vim.cmd('FloatermUpdate --height=0.85 --width=0.9')
+                    for _, win in ipairs(vim.api.nvim_list_wins()) do
+                        local buf = vim.api.nvim_win_get_buf(win)
+                        if vim.bo[buf].filetype == 'floaterm' then
+                            vim.api.nvim_set_current_win(win)
+                            vim.cmd('FloatermUpdate --height=0.85 --width=0.9')
+                            break
+                        end
+                    end
                 end
             end,
         })
