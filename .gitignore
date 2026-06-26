@@ -80,3 +80,11 @@ files/dotfiles/claude/.claude/plugins/
 files/dotfiles/claude/.claude/settings.local.json
 files/dotfiles/claude/.claude/policy-limits.json
 files/dotfiles/claude/.claude/mcp-needs-auth-cache.json
+# Secrets that may appear inside skills/ — never commit
+files/dotfiles/claude/.claude/.env*
+files/dotfiles/claude/.claude/.credentials.json
+files/dotfiles/claude/.claude/skills/**/.env*
+files/dotfiles/claude/.claude/skills/**/*credential*
+files/dotfiles/claude/.claude/skills/**/*secret*
+files/dotfiles/claude/.claude/skills/**/*.pem
+files/dotfiles/claude/.claude/skills/**/*.key
