@@ -10,34 +10,47 @@ return {
     { "<leader>fh", function() require('telescope.builtin').help_tags() end,  desc = "Help tags" },
   },
   config = function()
-    local builtin = require('telescope.builtin')
+    local copy_full_path = function(prompt_bufnr)
+      local entry = require("telescope.actions.state").get_selected_entry()
+      if not entry then
+        vim.notify("No entry selected", vim.log.levels.WARN)
+        return
+      end
+      local path = entry.value or entry.path or entry[1]
+      if not path then
+        vim.notify("No path on entry: " .. vim.inspect(vim.tbl_keys(entry)), vim.log.levels.WARN)
+        return
+      end
+      vim.fn.system({ "win32yank.exe", "-i", "--crlf" }, path)
+      vim.notify("Copied: " .. path, vim.log.levels.INFO)
+    end
+
     require('telescope').setup {
       defaults = {
         file_ignore_patterns = {
-      "node_modules/.*",
-      "^node_modules/",
-      "vendor/.*",
-      "%.git/.*",
-      "venv/"
-      -- Add other patterns as needed
-      },
-      hidden = true,
-      layout_strategy = "flex", -- Automatically switch between horizontal and vertical layouts
-      layout_config = {
-        height = function(_, max_lines)
-          return math.floor(max_lines * 0.95) -- Set height to 95% of available space
-        end,
-        width = function(_, max_columns)
-          return math.floor(max_columns * 0.95) -- Set width to 95% of available space
-        end,
-        horizontal = {
-          prompt_position = "top", -- Place prompt at the top in horizontal layout
-          preview_width = 0.6, -- Allocate 60% of width to preview window
+          "node_modules/.*",
+          "^node_modules/",
+          "vendor/.*",
+          "%.git/.*",
+          "venv/",
         },
-        vertical = {
-          mirror = false, -- Place preview below results in vertical layout
+        hidden = true,
+        layout_strategy = "flex",
+        layout_config = {
+          height = function(_, max_lines)
+            return math.floor(max_lines * 0.95)
+          end,
+          width = function(_, max_columns)
+            return math.floor(max_columns * 0.95)
+          end,
+          horizontal = {
+            prompt_position = "top",
+            preview_width = 0.6,
+          },
+          vertical = {
+            mirror = false,
+          },
         },
-      },
       },
       pickers = {
         find_files = {
@@ -45,12 +58,19 @@ return {
           find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
         },
       },
+      extensions = {
+        file_browser = {
+          hidden = true,
+          mappings = {
+            ["i"] = {
+              ["<A-p>"] = copy_full_path,
+            },
+            ["n"] = {
+              ["<A-p>"] = copy_full_path,
+            },
+          },
+        },
+      },
     }
-    -- require('telescope').load_extension('manscope')
-    -- Keep your existing builtin picker calls here
-    -- For example: 
-    -- builtin.find_files()
-    -- builtin.live_grep()
-    -- ...
   end
 }
