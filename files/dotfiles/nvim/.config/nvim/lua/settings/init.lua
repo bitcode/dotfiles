@@ -2,7 +2,7 @@ vim.cmd("set expandtab")
 vim.cmd("set shiftwidth=2")
 vim.cmd("set tabstop=2")
 vim.cmd("set softtabstop=2")
-vim.cmd([[colorscheme gruvbox]])
+vim.cmd([[colorscheme foraya]])
 vim.cmd [[
   " Dim the colors a bit and apply specific colors for added, modified, and removed lines
   highlight GitGutterAdd guifg=#689d6a guibg=None " dim green for added lines

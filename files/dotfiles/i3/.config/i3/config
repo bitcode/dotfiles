@@ -78,14 +78,8 @@ exec --no-startup-id picom --experimental-backends --daemon --config ~/.config/p
 # Hide Title Bar
 for_window [class="^.*"] border pixel 1
 
-# Color Settings
-# class                 border  bground text    indicator child_border
-client.focused          #A7C080 #A7C080 #2D353B #A7C080   #A7C080
-client.focused_inactive #3D484D #2D353B #859289 #3D484D   #3D484D
-client.unfocused        #3D484D #2D353B #859289 #3D484D   #3D484D
-client.urgent           #E67E80 #E67E80 #2D353B #E67E80   #E67E80
-client.placeholder      #2D353B #2D353B #859289 #2D353B   #2D353B
-client.background       #2D353B
+# Color Settings — Foraya theme (Ayu + Gruvbox + Everforest blend)
+include themes/foraya
 
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status

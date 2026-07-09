@@ -1,0 +1,23 @@
+; Foraya color theme (contrast={{ meta.contrast }}, accent={{ meta.accent }})
+; See theming/foraya/palette.yml — regenerate via theming/foraya/generate.py
+; Included from config.ini via `include-file = colors-foraya.ini`
+
+[colors]
+background = {{ bg.base }}
+background-alt = {{ bg.panel }}
+foreground = {{ fg.primary }}
+foreground-alt = {{ neutral.mid }}
+primary = {{ special.gold }}
+pink = {{ accents.purple }}
+blue = {{ accents.blue }}
+yellow = {{ accents.yellow }}
+inactive = {{ neutral.mid }}
+secondary = {{ accents.aqua }}
+alert = {{ accents.red }}
+disabled = {{ neutral.dim }}
+
+; Gradient colors setup (powerline-style separators)
+[gradient]
+color-1 = {{ neutral.bright }}
+color-2 = {{ neutral.mid }}
+color-3 = {{ bg.gutter }}

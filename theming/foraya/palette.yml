@@ -1,0 +1,78 @@
+# Foraya — a blend of Ayu (base/structure), Gruvbox (vivid accents), and
+# Everforest (muted accents), anchored on #0D1017 (Ayu's own ui.bg /
+# surface.base, and independently the user's favorite background color).
+#
+# This is the single source of truth. theming/foraya/generate.py resolves
+# this file plus the --contrast and --accent knobs into per-app config
+# files under files/dotfiles/<app>/... — do not hand-edit generated files,
+# edit this one and regenerate.
+
+meta:
+  name: foraya
+  contrast_tiers: [soft, medium, hard]
+  accent_tracks: [vivid, muted]
+  # Lightness delta (as a fraction of HSL L) applied to background tokens
+  # for the soft/hard contrast tiers, relative to medium. Measured from
+  # Everforest's own published soft/medium/hard bg0 spread (#333C43 /
+  # #2D353B / #272E33), which is symmetric at ~2.745 percentage points of
+  # HSL lightness. medium +delta = soft, medium -delta = hard.
+  contrast_delta_l: 0.02745
+
+# Background layer stack (medium tier — soft/hard are derived at render
+# time by lib/colorspace.py). All from Ayu Dark; base is the anchor.
+background:
+  base: "#0D1017"    # Ayu ui.bg / surface.base — the anchor
+  lift: "#10141C"    # Ayu editor.bg / surface.lift
+  panel: "#141821"   # Ayu ui.panel.bg
+  popup: "#0F131A"   # Ayu ui.popup.bg
+  line: "#161A24"    # Ayu editor.line (cursorline / active line)
+  gutter: "#1B1F29"  # Ayu ui.line (sign column / gutter)
+
+# Foreground / text. vivid = Gruvbox light1, muted = Everforest fg (same
+# value the existing Gruvforest kitty theme already uses). dim is
+# track-independent (Ayu's own comment-ish tone).
+foreground:
+  vivid: "#EBDBB2"
+  muted: "#D3C6AA"
+  dim: "#5A6378"
+
+# De-emphasized text/UI (inactive workspaces, disabled labels, etc.)
+neutral:
+  vivid:
+    dim: "#7C6F64"     # Gruvbox dark4
+    mid: "#928374"     # Gruvbox gray
+    bright: "#A89984"  # Gruvbox light4
+  muted:
+    dim: "#7A8478"     # Everforest grey0
+    mid: "#859289"     # Everforest grey1
+    bright: "#9DA9A0"  # Everforest grey2
+
+cursor:
+  color: "#E6B450"       # Ayu accent.tint (gold)
+  text_ref: "background.base"
+selection:
+  background: "#543A48"  # Everforest bg_visual
+  # foreground resolved at render time to the active track's foreground.<track>
+
+# 7 semantic accent roles. aqua doubles as terminal cyan (color6/14) —
+# neither source theme defines an 8th distinct hue; the existing
+# Gruvforest kitty theme already makes this same simplification.
+accents:
+  red:    { vivid: "#FB4934", muted: "#E67E80" }
+  orange: { vivid: "#FE8019", muted: "#E69875" }
+  yellow: { vivid: "#FABD2F", muted: "#DBBC7F" }
+  green:  { vivid: "#B8BB26", muted: "#A7C080" }
+  aqua:   { vivid: "#8EC07C", muted: "#83C092" }
+  blue:   { vivid: "#83A598", muted: "#7FBBB3" }
+  purple: { vivid: "#D3869B", muted: "#D699B6" }
+
+# Ayu's own accent thread — fixed regardless of the vivid/muted knob, so
+# Ayu contributes more than just the background.
+special:
+  gold: "#E6B450"       # cursor, nvim Constant/Number
+  hint: "#95E6CB"       # LSP hint diagnostics (Ayu teal)
+  info: "#39BAE6"       # LSP info diagnostics / links (Ayu indigo)
+  vcs:
+    added: "#70BF56"
+    modified: "#73B8FF"
+    removed: "#F26D78"

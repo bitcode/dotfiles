@@ -35,6 +35,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!theming/foraya/lib/
 lib64/
 parts/
 sdist/

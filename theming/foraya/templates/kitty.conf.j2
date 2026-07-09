@@ -1,0 +1,58 @@
+# Foraya — a blend of Ayu, Gruvbox, and Everforest (dark)
+#
+# Background/surfaces: Ayu's deep, cool, near-black tones (anchored on #0D1017)
+# Accents/palette: Gruvbox's vivid, warm hues / Everforest's muted, natural hues
+# Result: warm text on a cool, deep backdrop
+# contrast={{ meta.contrast }} accent={{ meta.accent }}
+
+# Core
+background            {{ bg.base }}
+foreground             {{ fg.primary }}
+cursor                 {{ cursor.color }}
+cursor_text_color      {{ cursor.text }}
+selection_background   {{ selection.background }}
+selection_foreground   {{ selection.foreground }}
+
+# URLs and borders
+url_color              {{ special.info }}
+active_border_color    {{ accents.green }}
+inactive_border_color  {{ neutral.dim }}
+bell_border_color      {{ accents.orange }}
+
+# Tabs
+active_tab_background   {{ bg.lift }}
+active_tab_foreground   {{ fg.primary }}
+inactive_tab_background {{ bg.base }}
+inactive_tab_foreground {{ neutral.dim }}
+
+# Black
+color0  {{ bg.lift }}
+color8  {{ bg.gutter }}
+
+# Red
+color1  {{ accents.red }}
+color9  {{ accents.red }}
+
+# Green
+color2  {{ accents.green }}
+color10 {{ accents.green }}
+
+# Yellow
+color3  {{ accents.yellow }}
+color11 {{ accents.yellow }}
+
+# Blue
+color4  {{ accents.blue }}
+color12 {{ accents.blue }}
+
+# Magenta / Purple
+color5  {{ accents.purple }}
+color13 {{ accents.purple }}
+
+# Cyan / Aqua
+color6  {{ accents.cyan }}
+color14 {{ accents.cyan }}
+
+# White
+color7  {{ neutral.bright }}
+color15 {{ fg.primary }}

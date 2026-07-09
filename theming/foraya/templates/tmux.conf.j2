@@ -1,0 +1,24 @@
+# Foraya color theme (contrast={{ meta.contrast }}, accent={{ meta.accent }})
+# See theming/foraya/palette.yml — regenerate via theming/foraya/generate.py
+set -g status-style "bg={{ bg.base }},fg={{ fg.primary }}"
+set -g pane-border-style "fg={{ bg.gutter }}"
+set -g pane-active-border-style "fg={{ accents.green }}"
+
+# Status line customization
+set -g status-left-length 40
+set -g status-justify centre
+
+# Change status bar color in prefix mode with PREFIX indicator
+set-option -g status-left '#{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ accents.green }}]} #S #{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ neutral.dim }}]} │'
+set-option -g status-right '#{?client_prefix,#[reverse]  PREFIX #[noreverse] ,}#{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ neutral.dim }}]}│ #{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ fg.primary }}]}%Y-%m-%d %H:%M '
+
+# Window status
+set-window-option -g window-status-current-format '#{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ accents.green }}]} #I:#W '
+set-window-option -g window-status-format '#{?client_prefix,#[bg={{ accents.green }}#,fg={{ bg.base }}],#[bg={{ bg.base }}#,fg={{ neutral.dim }}]} #I:#W '
+
+# Pane number display
+set-option -g display-panes-active-colour '{{ accents.red }}'
+set-option -g display-panes-colour '{{ bg.panel }}'
+
+# Bell
+set-window-option -g window-status-bell-style 'bg={{ accents.red }},fg={{ bg.panel }}'

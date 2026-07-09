@@ -14,4 +14,4 @@ configuration{
 }
 
 
-@theme "~/.config/rofi/themes/everforest.rasi"
+@theme "~/.config/rofi/themes/foraya.rasi"

@@ -1,5 +1,5 @@
 # ~/.config/starship.toml
-# Foraya color theme (contrast=medium, accent=vivid)
+# Foraya color theme (contrast={{ meta.contrast }}, accent={{ meta.accent }})
 # See theming/foraya/palette.yml — regenerate via theming/foraya/generate.py
 
 # Get editor completions based on the config schema
@@ -10,31 +10,31 @@ add_newline = false
 
 # Username module configuration
 [username]
-style_user = "bold #FABD2F"
+style_user = "bold {{ accents.yellow }}"
 disabled = false
 
 # Hostname module configuration
 [hostname]
 ssh_only = true
-style = "bold dimmed #83A598"
+style = "bold dimmed {{ accents.blue }}"
 disabled = false
 
 # Directory module configuration
 [directory]
 truncation_length = 3
 truncate_to_repo = false
-style = "bold #8EC07C"
+style = "bold {{ accents.cyan }}"
 disabled = false
 
 # Git branch module configuration
 [git_branch]
 symbol = " "
-style = "bold #D3869B"
+style = "bold {{ accents.purple }}"
 disabled = false
 
 # Git status module configuration
 [git_status]
-style = "bold #FB4934"
+style = "bold {{ accents.red }}"
 disabled = false
 
 # Package module configuration
@@ -44,25 +44,25 @@ disabled = true
 # NodeJS module configuration
 [nodejs]
 symbol = "⬢ "
-style = "bold #B8BB26"
+style = "bold {{ accents.green }}"
 disabled = false
 
 # Python module configuration
 [python]
 symbol = "🐍 "
-style = "bold #83A598"
+style = "bold {{ accents.blue }}"
 disabled = false
 
 # Jobs module configuration
 [jobs]
 threshold = 1
 symbol = "⚙️ "
-style = "bold #FB4934"
+style = "bold {{ accents.red }}"
 disabled = false
 
 # Character module configuration
 [character]
-success_symbol = "[➜](bold #B8BB26)"
-error_symbol = "[✗](bold #FB4934)"
-vicmd_symbol = "[❮](bold #D3869B)"
+success_symbol = "[➜](bold {{ accents.green }})"
+error_symbol = "[✗](bold {{ accents.red }})"
+vicmd_symbol = "[❮](bold {{ accents.purple }})"
 disabled = false

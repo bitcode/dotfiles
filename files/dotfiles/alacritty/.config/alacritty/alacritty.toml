@@ -21,7 +21,7 @@ bold_italic = { family = "Iosevka Nerd Font", style = "bold_italic" }
 
 [general]
 # Import additional configuration files
-import = ["~/dotfiles/alacritty/.config/alacritty/themes/everforest_dark.toml"]
+import = ["~/.config/alacritty/themes/foraya.toml"]
 
 [terminal]
 

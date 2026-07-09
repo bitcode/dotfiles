@@ -1,0 +1,29 @@
+######################### FORAYA (medium/vivid) #########################
+# Ayu base + Gruvbox/Everforest accents. See theming/foraya/palette.yml.
+
+set $bgdim    #0D1017
+set $bg0      #10141C
+set $bg1      #141821
+set $bg2      #0F131A
+set $bg3      #161A24
+set $bg4      #1B1F29
+set $fg       #EBDBB2
+set $gray0    #7C6F64
+set $gray1    #928374
+set $gray2    #A89984
+set $red      #FB4934
+set $orange   #FE8019
+set $yellow   #FABD2F
+set $green    #B8BB26
+set $blue     #83A598
+set $aqua     #8EC07C
+set $purple   #D3869B
+set $gold     #E6B450
+
+# target                  border   bg       text     indicator  child_border
+client.focused            $green   $green   $bgdim   $green     $green
+client.focused_inactive   $bg1     $bgdim   $gray1   $bg1       $bg1
+client.unfocused          $bg1     $bgdim   $gray1   $bg1       $bg1
+client.urgent             $red     $red     $bgdim   $red       $red
+client.placeholder        $bgdim   $bgdim   $gray1   $bgdim     $bgdim
+client.background         $bgdim

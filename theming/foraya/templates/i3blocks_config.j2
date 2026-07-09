@@ -31,7 +31,7 @@ markup=pango
 
 
 ######################################################################################
-# Foraya color theme (contrast=medium, accent=vivid)
+# Foraya color theme (contrast={{ meta.contrast }}, accent={{ meta.accent }})
 # See theming/foraya/palette.yml — regenerate via theming/foraya/generate.py
 ######################################################################################
 
@@ -39,12 +39,12 @@ markup=pango
 command=~/dotfiles/i3blocks/.config/i3blocks/scripts/memory/memory
 label=󰍛
 interval=30
-color=#A89984
+color={{ neutral.bright }}
 
 [temperature]
 command=~/dotfiles/i3blocks/.config/i3blocks/scripts/temperature/temperature
 label=
-color=#8EC07C
+color={{ accents.aqua }}
 interval=10
 #T_WARN=70
 #T_CRIT=90
@@ -65,7 +65,7 @@ label=
 
 [jas]
 command=~/dotfiles/i3blocks/.config/i3blocks/scripts/jas/jas
-color=#FABD2F
+color={{ accents.yellow }}
 label=󰃟
 markup=pango
 interval=once
@@ -76,12 +76,12 @@ signal=10
 command=~/dotfiles/i3blocks/.config/i3blocks/scripts/battery/battery
 interval=10
 label= 
-color=#B8BB26
+color={{ accents.green }}
 
 [spotify]
 label=
 command=python3 ~/dotfiles/i3blocks/.config/i3blocks/scripts/spotify/spotify.py
-color=#8EC07C
+color={{ accents.aqua }}
 interval=5
 
 [volume]
@@ -89,7 +89,7 @@ command=~/dotfiles/i3blocks/.config/i3blocks/scripts/volume/volume
 label=󰕾
 interval=1
 signal=10
-color=#D3869B
+color={{ accents.purple }}
 markup=pango
 
 #[mediaplayer]
@@ -106,14 +106,14 @@ markup=pango
 command=date '+%A %d.%m. %H:%M:%S'
 label=󰃰
 interval=1
-color=#EBDBB2
+color={{ fg.primary }}
 
 # Rofi baii
 [shutdown_menu]
 full_text=
 command=~/dotfiles/i3blocks/.config/i3blocks/scripts/shutdown_menu/shutdown_menu
 min_width=16
-color=#FB4934
+color={{ accents.red }}
 
 [separator]
 full_text=" "

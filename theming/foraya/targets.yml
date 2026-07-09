@@ -1,0 +1,60 @@
+# Maps each Jinja2 template to the file it renders into, relative to the
+# repo root. This is the ONLY file that knows about files/dotfiles/* paths.
+#
+# `mode: new` = output coexists with the current live theme file; nothing
+#   is activated until the app's one include/import/colorscheme line is
+#   flipped by hand.
+# `mode: overwrite` = the generator owns this file outright (no separate
+#   "foraya" variant — the app has no include mechanism), so the file is
+#   already "active" as soon as it's generated.
+
+targets:
+  - app: kitty
+    template: kitty.conf.j2
+    output: files/dotfiles/kitty/.config/kitty/themes/foraya.conf
+    mode: new
+
+  - app: alacritty
+    template: alacritty.toml.j2
+    output: files/dotfiles/alacritty/.config/alacritty/themes/foraya.toml
+    mode: new
+
+  - app: rofi
+    template: rofi.rasi.j2
+    output: files/dotfiles/rofi/.config/rofi/themes/foraya.rasi
+    mode: new
+
+  - app: i3
+    template: i3_theme.j2
+    output: files/dotfiles/i3/.config/i3/themes/foraya
+    mode: new
+
+  - app: tmux
+    template: tmux.conf.j2
+    output: files/dotfiles/tmux/.tmux-foraya.conf
+    mode: new
+
+  - app: polybar
+    template: polybar_colors.ini.j2
+    output: files/dotfiles/polybar/.config/polybar/colors-foraya.ini
+    mode: overwrite
+
+  - app: i3blocks
+    template: i3blocks_config.j2
+    output: files/dotfiles/i3blocks/.config/i3blocks/config
+    mode: overwrite
+
+  - app: starship
+    template: starship.toml.j2
+    output: files/dotfiles/starship/.config/starship.toml
+    mode: overwrite
+
+  - app: nvim
+    template: nvim_palette.lua.j2
+    output: files/dotfiles/nvim/.config/nvim/lua/foraya/palette.lua
+    mode: new
+
+  - app: nvim
+    template: nvim_colorscheme.lua.j2
+    output: files/dotfiles/nvim/.config/nvim/colors/foraya.lua
+    mode: new
