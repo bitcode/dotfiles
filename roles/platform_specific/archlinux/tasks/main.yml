@@ -141,7 +141,7 @@
   register: aur_install_result
 
 - name: Verify AUR packages installation
-  shell: pacman -Q {{ item.item.item }} 2>/dev/null
+  shell: pacman -Q {{ item.item }} 2>/dev/null
   register: aur_verify_check
   failed_when: false
   changed_when: false
@@ -152,11 +152,14 @@
 
 - name: Display AUR installation verification
   debug:
-    msg: "{{ item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if item.rc == 0 else 'INSTALLATION FAILED' }}"
   loop: "{{ aur_verify_check.results }}"
+  loop_control:
+    label: "{{ item.item.item | default('skipped') }}"
   when:
     - aur_verify_check.results is defined
     - aur_verify_check.results | length > 0
+    - item.rc is defined
 
 # === NODE.JS AND NPM GLOBAL PACKAGES ===
 - name: Check if Node.js is installed
@@ -203,7 +206,7 @@
 
 - name: Verify npm global packages installation
   shell: |
-    if npm list -g --depth=0 {{ item.item.item }} >/dev/null 2>&1; then
+    if npm list -g --depth=0 {{ item.item }} >/dev/null 2>&1; then
       echo "INSTALLED"
     else
       echo "NOT_FOUND"
@@ -219,7 +222,7 @@
 
 - name: Display npm installation verification
   debug:
-    msg: "{{ item.item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if 'INSTALLED' in item.stdout else 'INSTALLATION FAILED' }}"
+    msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if 'INSTALLED' in item.stdout else 'INSTALLATION FAILED' }}"
   loop: "{{ npm_verify_check.results }}"
   when: npm_verify_check.results is defined
 
@@ -270,15 +273,13 @@
     msg: "pipx: {{ 'INSTALLED' if pipx_check.rc == 0 else 'MISSING' }}"
   when: python3_version_check.rc == 0
 
-- name: Install pipx via pip3
-  pip:
-    name: pipx
+- name: Install pipx (Arch-native via pacman; avoids PEP 668 externally-managed error)
+  pacman:
+    name: python-pipx
     state: present
-    extra_args: --user
-  become: no
+  become: yes
   when:
     - python3_version_check.rc == 0
-    - pip3_check.rc == 0
     - pipx_check.rc != 0
   register: pipx_install_result
 
@@ -345,6 +346,8 @@
     - "'NOT_FOUND' in item.stdout"
   loop: "{{ pipx_package_check.results }}"
   register: pipx_install_packages
+  failed_when: false
+  changed_when: "'installed package' in (pipx_install_packages.stdout | default(''))"
 
 - name: Verify pipx packages installation
   shell: |
@@ -370,12 +373,13 @@
     - pipx_tools_verify.results is defined
 
 # === PYTHON PACKAGES ===
+# Installed via pacman (Arch-native names) — 'pip install --user' fails on Arch
+# under PEP 668 ('externally-managed-environment').
 - name: Install Python packages
-  pip:
+  pacman:
     name: "{{ python_packages }}"
     state: present
-    extra_args: --user
-  become: no
+  become: yes
 
 # === RUST AND CARGO PACKAGES ===
 - name: Check if Rust is installed
