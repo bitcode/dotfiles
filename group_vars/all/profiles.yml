@@ -44,6 +44,7 @@ profiles:
       - rofi
       - picom
       - dunst
+      - flameshot
     packages:
       - essential
       - development
@@ -69,6 +70,7 @@ profiles:
       - .config/polybar
       - .config/rofi
       - .config/picom.conf
+      - .config/flameshot
     services:
       - docker
     gui_applications:
@@ -79,6 +81,7 @@ profiles:
       - polybar
       - rofi
       - dunst
+      - flameshot
     display_server_preference: "{{ display_server_preference | default('x11') }}"
     desktop_environment: "{{ desktop_environment | default('gnome') }}"
     window_manager: "{{ window_manager | default('auto') }}"

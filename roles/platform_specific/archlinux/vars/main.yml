@@ -129,6 +129,7 @@ wm_packages:
   - grim
   - slurp
   - wl-clipboard
+  - flameshot
 
 # Fonts
 font_packages:
