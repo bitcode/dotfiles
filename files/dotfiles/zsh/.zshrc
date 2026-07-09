@@ -615,3 +615,5 @@ alias alacritty-gpu='/home/bit/.local/bin/alacritty-gpu'
 
 # Added by Antigravity
 export PATH="/Users/mdrozrosario/.antigravity/antigravity/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"

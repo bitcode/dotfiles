@@ -13,21 +13,20 @@ pacman_packages:
   - tmux
   - zsh
   - starship
-  - alacritty
+  # alacritty dropped: installed from AUR as 'alacritty-git' (newer); repo 'alacritty' conflicts
   - firefox
   - docker
   - docker-compose
   - python
   - python-pip
-  - nodejs
+  - nodejs-lts-jod  # provides node/npm; plain 'nodejs' conflicts with the pre-installed LTS
   - npm
   - go
-  - rust
-  - rustup
+  - rust           # rustup dropped: conflicts with the already-installed 'rust' package
   - ripgrep
   - fd
   - bat
-  - exa
+  - eza            # 'exa' was removed from the Arch repos and renamed to 'eza'
   - fzf
   - ranger
   - htop
@@ -75,7 +74,7 @@ dev_packages:
   - sqlite
   - postgresql
   - redis
-  - mongodb-bin
+  # mongodb-bin removed: it is an AUR package and cannot be installed via the pacman repo task
 
 # Cross-platform assemblers and low-level tools
 assembler_packages:
@@ -139,18 +138,18 @@ font_packages:
   - noto-fonts-emoji
   - powerline-fonts
   - ttf-hack
+  - ttf-iosevka-nerd  # default Alacritty font (alacritty.toml)
 
 # System utilities
 system_packages:
   - networkmanager
   - bluez
   - bluez-utils
-  - pulseaudio
-  - pulseaudio-bluetooth
   - pavucontrol
   - brightnessctl
   - acpi
   - upower
+  # pulseaudio / pulseaudio-bluetooth removed: system uses pipewire-pulse (conflicts otherwise)
 
 # NPM global packages (same as macOS for consistency)
 npm_global_packages:
@@ -189,18 +188,19 @@ oh_my_zsh_plugins:
 # FZF configuration
 fzf_install_method: "pacman"  # pacman, git, or binary
 
-# Python packages
+# Python packages (Arch-native package names — installed via pacman to avoid the
+# PEP 668 'externally-managed-environment' error that blocks 'pip install --user')
 python_packages:
-  - "pynvim"
-  - "black"
-  - "isort"
-  - "flake8"
+  - "python-pynvim"
+  - "python-black"
+  - "python-isort"
+  - "python-flake8"
   - "mypy"
-  - "pytest"
-  - "requests"
-  - "beautifulsoup4"
-  - "pandas"
-  - "numpy"
+  - "python-pytest"
+  - "python-requests"
+  - "python-beautifulsoup4"
+  - "python-pandas"
+  - "python-numpy"
 
 # Rust packages (cargo) - Enhanced with development tools
 cargo_packages:
@@ -210,7 +210,7 @@ cargo_packages:
   - "ripgrep"
   - "fd-find"
   - "bat"
-  - "exa"
+  - "eza"
   - "bottom"
   - "tokei"
   - "hyperfine"
