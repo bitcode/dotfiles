@@ -12,6 +12,7 @@ i3_packages:
     - compton
     - rofi
     - dunst
+    - x11-xserver-utils
   archlinux:
     - i3-wm
     - i3status
@@ -21,6 +22,7 @@ i3_packages:
     - picom
     - rofi
     - dunst
+    - xorg-xset
   fedora:
     - i3
     - i3status
@@ -30,6 +32,7 @@ i3_packages:
     - picom
     - rofi
     - dunst
+    - xorg-x11-server-utils
 
 # Configuration directory paths
 i3_config_dir:

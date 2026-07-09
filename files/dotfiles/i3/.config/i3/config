@@ -66,6 +66,12 @@ bindsym $mod+Shift+s exec ~/dotfiles/scripts/start_cmatrix_screensaver.sh
 # Automatically start the screensaver after inactivity using xautolock
 exec --no-startup-id xautolock -time 10 -locker "$HOME/dotfiles/scripts/start_cmatrix_screensaver.sh" -notify 30 -notifier "notify-send 'Screen will lock in 30 seconds'"
 
+# Screen (DPMS) power-off after 2 hours of no input. Disable the X11
+# screensaver's own blanking and standby/suspend DPMS states (unreliable
+# with the nouveau driver) so only the single "off" state at 7200s fires.
+exec --no-startup-id xset s off
+exec --no-startup-id xset dpms 0 0 7200
+
 # picom
 exec --no-startup-id picom --experimental-backends --daemon --config ~/.config/picom.conf
 
