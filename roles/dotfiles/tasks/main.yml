@@ -233,7 +233,7 @@
     # i3 window manager specific applications (only when i3 is detected or requested)
     i3_apps: "{{ dotfiles_apps | select('match', '^(i3|polybar|rofi|picom|dunst)$') | list if deploy_i3_apps else [] }}"
     # General Linux applications (excluding i3-specific ones)
-    linux_apps: "{{ dotfiles_apps | select('match', '^(compton|flameshot)$') | list if is_linux else [] }}"
+    linux_apps: "{{ dotfiles_apps | select('match', '^(compton|flameshot|scripts)$') | list if is_linux else [] }}"
   when: dotfiles_apps is defined
   tags: ['dotfiles', 'discovery']
 

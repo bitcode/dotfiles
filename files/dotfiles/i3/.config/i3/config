@@ -233,12 +233,6 @@ mode "resize" {
 
 bindsym $mod+r mode "resize"
 
-# Start i3bar to display a workspace bar (plus the system information i3status
-# finds out, if available)
-bar {
-        status_command SCRIPT_DIR=~/.config/i3blocks/scripts i3blocks -c ~/.config/i3blocks/config
-	font pango: JetBrains Mono Nerd Font 12
-	position top
-	tray_padding 4
-	separator_symbol "|"
-}
+# Note: the default i3-config-wizard i3bar block was removed here. Polybar
+# (loaded above via "exec --no-startup-id polybar bit ...") is the only bar;
+# it also owns the systray (see [module/tray] in polybar's config.ini).

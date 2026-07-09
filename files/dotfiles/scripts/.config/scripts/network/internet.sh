@@ -1,19 +1,12 @@
 #!/bin/bash
 
-# Function to get IP address
-get_ip_address() {
-    local iface=$1
-    nmcli -t -f IP4.ADDRESS dev show "$iface" | grep -oP '(\d+\.\d+\.\d+\.\d+)' | head -n1
-}
+# Auto-detect whichever interface currently owns the default route (works
+# with NetworkManager, systemd-networkd, dhcpcd, etc. — no nmcli dependency).
+IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
+IP_ADDRESS=$(ip -4 -o addr show "$IFACE" 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
 
-# Check Ethernet connection (enp3s0)
-ETH_INTERFACE="enp3s0"
-ETH_IP_ADDRESS=$(get_ip_address "$ETH_INTERFACE")
-
-# Display result
-if [ -n "$ETH_IP_ADDRESS" ]; then
-    echo "$ETH_INTERFACE: $ETH_IP_ADDRESS"
+if [ -n "$IP_ADDRESS" ]; then
+    echo "$IFACE: $IP_ADDRESS"
 else
     echo "--------"
 fi
-
