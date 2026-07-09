@@ -135,6 +135,30 @@ install_base_tools() {
     success "Base development tools installed"
 }
 
+# CLI essentials that are easy to forget on a fresh install but block
+# day-to-day dotsible usage (clipboard tools, GitHub CLI)
+install_cli_essentials() {
+    info "Installing CLI essentials..."
+
+    local cli_packages=(
+        "xclip"
+        "xsel"
+        "wl-clipboard"
+        "github-cli"
+    )
+
+    for package in "${cli_packages[@]}"; do
+        if pacman -Q "$package" >/dev/null 2>&1; then
+            success "CLI package already installed: $package"
+        else
+            info "Installing CLI package: $package"
+            sudo pacman -S --noconfirm --needed "$package"
+        fi
+    done
+
+    success "CLI essentials installed"
+}
+
 # Python installation
 install_python() {
     info "Installing Python..."
@@ -288,6 +312,25 @@ install_ansible() {
     else
         error "Ansible installation failed"
         exit 1
+    fi
+}
+
+# Install Ansible Galaxy collections (ansible.posix, community.general, etc.)
+# that site.yml depends on, so the user never has to run this by hand.
+install_ansible_dependencies() {
+    info "Installing Ansible Galaxy collections..."
+
+    local requirements_file="$SCRIPT_DIR/../requirements.yml"
+
+    if [[ ! -f "$requirements_file" ]]; then
+        warning "requirements.yml not found at $requirements_file, skipping"
+        return 0
+    fi
+
+    if ansible-galaxy collection install -r "$requirements_file"; then
+        success "Ansible Galaxy collections installed"
+    else
+        warning "Failed to install some Ansible Galaxy collections, continuing anyway"
     fi
 }
 
@@ -493,27 +536,33 @@ EOF
     log "Script location: $SCRIPT_DIR"
     
     # Main bootstrap sequence
-    local total_steps=9
+    local total_steps=11
     local current_step=0
-    
+
     show_progress $((++current_step)) $total_steps "Validating Arch system..."
     validate_arch_system
-    
+
     show_progress $((++current_step)) $total_steps "Updating system packages..."
     update_system
-    
+
     show_progress $((++current_step)) $total_steps "Installing base tools..."
     install_base_tools
-    
+
+    show_progress $((++current_step)) $total_steps "Installing CLI essentials..."
+    install_cli_essentials
+
     show_progress $((++current_step)) $total_steps "Installing Python..."
     install_python
-    
+
     show_progress $((++current_step)) $total_steps "Installing AUR helper..."
     install_aur_helper
-    
+
     show_progress $((++current_step)) $total_steps "Installing Ansible..."
     install_ansible
-    
+
+    show_progress $((++current_step)) $total_steps "Installing Ansible Galaxy collections..."
+    install_ansible_dependencies
+
     show_progress $((++current_step)) $total_steps "Configuring Ansible..."
     configure_arch_ansible
     

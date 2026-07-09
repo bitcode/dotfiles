@@ -37,6 +37,9 @@ pacman_packages:
   - jq
   - yq
   - zoxide
+  - xclip
+  - xsel
+  - github-cli
 
 # AUR packages (requires AUR helper)
 # Optimized for i3 window manager ecosystem and essential development tools

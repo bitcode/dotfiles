@@ -2,6 +2,23 @@
 
 This guide provides detailed instructions for setting up and configuring Dotsible for your environment.
 
+## Quick Start (Fresh Arch Linux Install)
+
+If you just finished installing Arch Linux (with your DE/WM of choice already set up) and haven't touched this repo yet, this is the fastest path to a fully configured machine — no manual `pacman -S git ansible ...` required:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bitcode/dotfiles/master/install.sh | bash
+```
+
+This installs `git` if missing, clones the repo to `~/dotfiles`, and hands off to `./bootstrap.sh`, which installs Python, Ansible, the `yay` AUR helper, CLI essentials (`xclip`, `xsel`, `wl-clipboard`, `github-cli`), and the required `ansible-galaxy` collections automatically. Once it finishes, run:
+
+```bash
+cd ~/dotfiles
+./run-dotsible.sh --profile developer
+```
+
+If you already have the repo cloned, just run `./bootstrap.sh` followed by `./run-dotsible.sh` directly — no need for the curl one-liner.
+
 ## Prerequisites
 
 ### Control Machine Requirements
@@ -33,6 +50,7 @@ sudo apt install ansible python3-pip
 ```bash
 sudo pacman -S ansible python-pip
 ```
+> On Arch, `./bootstrap.sh` (see Quick Start above) does this automatically, along with the `ansible-galaxy install -r requirements.yml` step below — manual installation is only needed if you're skipping bootstrap.sh entirely.
 
 #### macOS
 ```bash
