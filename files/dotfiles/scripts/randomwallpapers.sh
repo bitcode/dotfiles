@@ -4,7 +4,7 @@
 export DISPLAY=:0
 
 # Directory containing wallpapers
-WALLPAPER_DIR="$HOME/dotfiles/walls/"
+WALLPAPER_DIR="$HOME/dotfiles/files/dotfiles/walls/"
 
 # Select a random file from the directory
 WALLPAPER=$(find "$WALLPAPER_DIR" -type f | shuf -n 1)
