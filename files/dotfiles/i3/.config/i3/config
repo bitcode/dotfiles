@@ -41,7 +41,9 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 exec --no-startup-id nm-applet
 
 # Start Compositor Compton
-exec --no-startup-id compton
+# Force native nouveau GL (nvc0) instead of Mesa's zink (GL-over-Vulkan/NVK)
+# fallback — zink adds a translation layer that made blur/transitions janky.
+exec --no-startup-id env MESA_LOADER_DRIVER_OVERRIDE=nouveau compton
 
 # Synergy
 exec --no-startup-id /opt/Synergy/synergy --client --name runtime
