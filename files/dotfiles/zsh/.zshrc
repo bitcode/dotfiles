@@ -567,3 +567,9 @@ alias alacritty-gpu='/home/bit/.local/bin/alacritty-gpu'
 export PATH="/Users/mdrozrosario/.antigravity/antigravity/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+
+# Created by `pipx` on 2026-07-10 00:04:06
+export PATH="$PATH:/home/bit/.local/bin"
+export BROWSER="firefox"
+export TERMINAL="alacritty"
+export PATH="/home/bit/.local/bin:/home/bit/.cargo/bin:/home/bit/go/bin:$PATH"

@@ -269,7 +269,9 @@
       "Bash(busctl --user list)",
       "Bash(pacman -Q dunst)",
       "Bash(timeout 8 flameshot gui)",
-      "Bash(flameshot config *)"
+      "Bash(flameshot config *)",
+      "Read(//home/bit/.claude/**)",
+      "Read(//home/bit/.claude/backups/**)"
     ]
   }
 }
