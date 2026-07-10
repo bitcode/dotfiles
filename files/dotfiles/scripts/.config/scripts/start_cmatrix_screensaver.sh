@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to launch alacritty, set it to fullscreen, and then run cmatrix in fullscreen on workspace 8 in i3
 
-LOGFILE=~/dotfiles/scripts/start_cmatrix_screensaver.log
+LOGFILE=~/.config/scripts/start_cmatrix_screensaver.log
 
 # Log function
 log() {
