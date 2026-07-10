@@ -1,0 +1,53 @@
+# Dolphin — "cool browsing" defaults: rich previews, split view, natural
+# sorting, tabs remembered across restarts. Panel visibility (Places,
+# Information, Terminal) and window layout are stored by Qt outside this
+# file's plain keys — toggle them once via Dolphin's View > Panels menu (or
+# F6/F4) after first launch and they persist automatically from then on.
+#
+# Colors come from kdeglobals (ColorScheme=Foraya); see
+# theming/foraya/palette.yml to change them.
+
+[General]
+BrowseThroughArchives=true
+ConfirmClosingMultipleTabs=false
+EditableUrl=false
+GlobalViewProps=false
+ModifiedStartupSettings=true
+RememberOpenedTabs=true
+ShowFullPath=false
+ShowFullPathInTitlebar=true
+ShowSelectionToggle=true
+ShowSpaceInfo=true
+ShowStatusBar=true
+ShowZoomSlider=true
+SortingChoice=NaturalSorting
+SplitView=true
+Version=200
+
+[IconsMode]
+IconSize=48
+PreviewSize=64
+TextWidth=0
+
+[CompactMode]
+IconSize=16
+PreviewSize=32
+
+[DetailsMode]
+ExpandableFolders=true
+IconSize=16
+PreviewSize=32
+SortColumn=Name
+SortOrder=0
+
+[PreviewSettings]
+Plugins=directorythumbnail,imagethumbnail,jpegthumbnail,svgthumbnail,fontthumbnail,windowsexethumbnail,windowsimagethumbnail,comicbookthumbnail,opendocumentthumbnail,ffmpegthumbs,kraorathumbnail,djvuthumbnail,textthumbnail,audiothumbnail,rawthumbnail
+
+[InformationPanel]
+previewsShown=true
+dateShown=true
+sizeShown=true
+typeShown=true
+
+[PlacesPanel]
+IconSize=22

@@ -58,3 +58,8 @@ targets:
     template: nvim_colorscheme.lua.j2
     output: files/dotfiles/nvim/.config/nvim/colors/foraya.lua
     mode: new
+
+  - app: dolphin
+    template: kde_colorscheme.colors.j2
+    output: files/dotfiles/dolphin/.local/share/color-schemes/Foraya.colors
+    mode: new

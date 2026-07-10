@@ -58,7 +58,7 @@ i3_default_config:
   mod_key: "Mod4"  # Super key
   terminal: "alacritty"
   browser: "firefox"
-  file_manager: "ranger"
+  file_manager: "dolphin"
   launcher: "rofi -show drun"
   
 # i3 workspace configuration

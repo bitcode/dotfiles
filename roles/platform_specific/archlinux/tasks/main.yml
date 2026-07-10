@@ -224,7 +224,9 @@
   debug:
     msg: "{{ item.item.item }}: {{ 'SUCCESSFULLY INSTALLED' if 'INSTALLED' in item.stdout else 'INSTALLATION FAILED' }}"
   loop: "{{ npm_verify_check.results }}"
-  when: npm_verify_check.results is defined
+  when:
+    - npm_verify_check.results is defined
+    - item.stdout is defined
 
 - name: Display final npm global packages summary
   shell: npm list -g --depth=0
@@ -454,8 +456,8 @@
     msg: |
       🐹 Go Packages Summary:
       • Total packages: {{ go_packages | length }}
-      • Already installed: {{ go_package_check.results | selectattr('stdout', 'containing', 'INSTALLED') | list | length if go_package_check.results is defined else 0 }}
-      • Newly installed: {{ go_package_check.results | selectattr('stdout', 'containing', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
+      • Already installed: {{ go_package_check.results | selectattr('stdout', 'search', 'INSTALLED') | list | length if go_package_check.results is defined else 0 }}
+      • Newly installed: {{ go_package_check.results | selectattr('stdout', 'search', 'NOT_FOUND') | list | length if go_package_check.results is defined else 0 }}
       • Tools installed in: ~/go/bin/
   when: go_available_check.rc == 0
 

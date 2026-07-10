@@ -1,0 +1,87 @@
+---
+# Dolphin file manager installation and configuration
+- name: Check if running on Linux
+  fail:
+    msg: "Dolphin is only supported on Linux systems"
+  when: ansible_os_family == "Windows" or ansible_os_family == "Darwin"
+
+- name: Install Dolphin packages on Arch Linux
+  pacman:
+    name: "{{ dolphin_packages.archlinux }}"
+    state: present
+  become: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Install Dolphin packages on Ubuntu/Debian
+  apt:
+    name: "{{ dolphin_packages.debian }}"
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create Dolphin config directory
+  file:
+    path: "{{ dolphin_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create KDE color-schemes directory
+  file:
+    path: "{{ dolphin_color_scheme_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Dolphin config exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/dolphin/.config"
+  register: dolphin_config_source
+
+- name: Deploy Dolphin/kdeglobals configuration files
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/dolphin/.config/"
+    dest: "{{ dolphin_config_dir }}/"
+    mode: '0644'
+    backup: yes
+  when: dolphin_config_source.stat.exists
+  notify: restart dolphin
+
+- name: Check if Foraya KDE color scheme exists in dotfiles
+  stat:
+    path: "{{ playbook_dir }}/files/dotfiles/dolphin/.local/share/color-schemes"
+  register: dolphin_colorscheme_source
+
+- name: Deploy Foraya KDE color scheme
+  copy:
+    src: "{{ playbook_dir }}/files/dotfiles/dolphin/.local/share/color-schemes/"
+    dest: "{{ dolphin_color_scheme_dir }}/"
+    mode: '0644'
+    backup: yes
+  when: dolphin_colorscheme_source.stat.exists
+  notify: restart dolphin
+
+- name: Verify Dolphin installation
+  command: dolphin --version
+  register: dolphin_version
+  failed_when: false
+  changed_when: false
+
+- name: Display Dolphin installation status
+  debug:
+    msg: |
+      Dolphin installation completed.
+      {% if dolphin_version.rc == 0 %}
+      {{ dolphin_version.stdout | default('Dolphin') }} is available and ready to use.
+      {% else %}
+      Dolphin installation may have failed. Check the logs above.
+      {% endif %}
+
+      Theme: Foraya (kdeglobals ColorScheme=Foraya), Papirus-Dark icons, Breeze widget style.
+      Previews: images, video (ffmpegthumbs), PDF/PS (kdegraphics-thumbnailers), archives, fonts.
+      Git status/actions: enable once via Settings > Configure Dolphin > Services > "Git".
+      Terminal panel: F4 (needs konsole, now installed).
+
+      Split view is enabled by default (dolphinrc SplitView=true). Panel visibility
+      (Places/Information/Terminal) is saved by Qt's window-state, not by this role
+      — open Dolphin once, toggle the panels you want via the View menu, and they'll
+      persist after that.

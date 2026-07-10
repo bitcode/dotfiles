@@ -53,7 +53,8 @@ python3 theming/foraya/generate.py --contrast medium --accent vivid
 
 ## Apps covered (first pass)
 
-nvim, kitty, alacritty, tmux, i3 (+ i3blocks), polybar, rofi, starship.
+nvim, kitty, alacritty, tmux, i3 (+ i3blocks), polybar, rofi, starship,
+dolphin (via a generated KDE/Qt `.colors` scheme, see below).
 
 Deferred to a later pass: waybar, wofi, swaync, VS Code, ranger, zsh,
 hyprland, weston.
@@ -71,11 +72,19 @@ files until you flip one line:
 | i3 | `include themes/foraya` in `config` |
 | rofi | `@theme "~/.config/rofi/themes/foraya.rasi"` in `config.rasi` |
 | nvim | `colorscheme foraya` in `lua/settings/init.lua` |
+| dolphin | `ColorScheme=Foraya` under `[General]` in `~/.config/kdeglobals` |
 
 `polybar` (`colors-foraya.ini` via `include-file`), `i3blocks`
 (`config`), and `starship` (`starship.toml`) have no include mechanism,
 so the generator owns those files outright — regenerating them *is*
 activating them.
+
+Dolphin's `.colors` scheme renders to
+`files/dotfiles/dolphin/.local/share/color-schemes/Foraya.colors` (KDE
+looks for color schemes there) and is activated from a separate,
+hand-maintained `files/dotfiles/dolphin/.config/kdeglobals` — the same
+"generator owns the palette, a hand-edited one-line include activates it"
+split used everywhere else.
 
 ## Known follow-ups
 

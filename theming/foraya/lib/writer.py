@@ -21,6 +21,12 @@ def load_targets(apps=None):
     return targets
 
 
+def hexrgb(hex_color):
+    """'#RRGGBB' -> 'R,G,B' decimal, the format KDE .colors files use."""
+    h = hex_color.lstrip("#")
+    return ",".join(str(int(h[i : i + 2], 16)) for i in (0, 2, 4))
+
+
 def render(target, context):
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -28,6 +34,7 @@ def render(target, context):
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    env.filters["hexrgb"] = hexrgb
     template = env.get_template(target["template"])
     return template.render(**context)
 

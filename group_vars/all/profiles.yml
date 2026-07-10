@@ -45,6 +45,7 @@ profiles:
       - picom
       - dunst
       - flameshot
+      - dolphin
     packages:
       - essential
       - development
@@ -71,6 +72,8 @@ profiles:
       - .config/rofi
       - .config/picom.conf
       - .config/flameshot
+      - .config/dolphin
+      - .local/share/color-schemes
     services:
       - docker
     gui_applications:
@@ -82,6 +85,7 @@ profiles:
       - rofi
       - dunst
       - flameshot
+      - dolphin
     display_server_preference: "{{ display_server_preference | default('x11') }}"
     desktop_environment: "{{ desktop_environment | default('gnome') }}"
     window_manager: "{{ window_manager | default('auto') }}"
@@ -94,6 +98,7 @@ profiles:
       terminal: "alacritty"
       browser: "firefox"
       editor: "nvim"
+      file_manager: "dolphin"
 
   # Server profile - headless server configuration
   server:
@@ -294,6 +299,7 @@ profile_configs:
       terminal: "alacritty"
       browser: "firefox"
       editor: "nvim"
+      file_manager: "dolphin"
       launcher: "rofi -show drun"
       compositor: "picom"
       bar: "polybar"

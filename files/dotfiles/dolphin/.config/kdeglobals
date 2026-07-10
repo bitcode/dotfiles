@@ -1,0 +1,20 @@
+[General]
+ColorScheme=Foraya
+Name=Foraya
+widgetStyle=Breeze
+XftAntialias=true
+XftHintStyle=hintslight
+XftSubPixel=rgb
+fixed=JetBrainsMono Nerd Font,10,-1,5,50,0,0,0,0,0
+font=JetBrainsMono Nerd Font,10,-1,5,50,0,0,0,0,0
+menuFont=JetBrainsMono Nerd Font,10,-1,5,50,0,0,0,0,0
+smallestReadableFont=JetBrainsMono Nerd Font,8,-1,5,50,0,0,0,0,0
+toolBarFont=JetBrainsMono Nerd Font,10,-1,5,50,0,0,0,0,0
+
+[Icons]
+Theme=Papirus-Dark
+
+[KDE]
+LookAndFeelPackage=org.kde.breezedark.desktop
+SingleClick=false
+contrast=4

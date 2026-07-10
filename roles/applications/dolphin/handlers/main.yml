@@ -1,0 +1,6 @@
+---
+# Dolphin handlers
+- name: restart dolphin
+  debug:
+    msg: "Dolphin configuration updated. Close and reopen any open Dolphin windows to pick it up."
+  listen: "restart dolphin"

@@ -1,0 +1,32 @@
+---
+dependencies:
+  - role: common
+  - role: platform_specific/archlinux
+
+galaxy_info:
+  author: Dotsible Team
+  description: Dolphin file manager (KDE) with Foraya theming, for X11/Wayland Linux WMs
+  company: Dotsible
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: Ubuntu
+      versions: [18.04, 20.04, 22.04, 24.04]
+    - name: Debian
+      versions: [10, 11, 12]
+    - name: ArchLinux
+      versions: [all]
+
+  galaxy_tags:
+    - dolphin
+    - file-manager
+    - kde
+    - x11
+    - desktop
+    - linux
+    - i3
+
+collections:
+  - community.general
+  - ansible.posix

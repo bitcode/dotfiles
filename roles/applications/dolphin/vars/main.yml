@@ -1,0 +1,42 @@
+---
+# Dolphin file manager — package names per OS family.
+#
+# kio-extras: network browsing (sftp/smb/mtp/...) + broader thumbnailers
+# ffmpegthumbs / kdegraphics-thumbnailers / kimageformats: video, PDF/PS,
+#   and extra image-format (webp/avif/raw/...) thumbnail previews
+# ark: archive preview/extract-here integration (BrowseThroughArchives)
+# dolphin-plugins: git status/actions integration in the file view
+# kdenetwork-filesharing: "Share" tab in folder properties (Samba)
+# konsole: provides the KPart embedded by Dolphin's terminal panel (F4)
+# breeze / breeze-icons / papirus-icon-theme: clean widget style + icon set
+dolphin_packages:
+  archlinux:
+    - dolphin
+    - dolphin-plugins
+    - kio-extras
+    - kdenetwork-filesharing
+    - ffmpegthumbs
+    - kdegraphics-thumbnailers
+    - kimageformats
+    - ark
+    - konsole
+    - breeze
+    - breeze-icons
+    - papirus-icon-theme
+    - kcolorscheme
+  debian:
+    - dolphin
+    - dolphin-plugins
+    - kio-extras
+    - kdenetwork-filesharing
+    - ffmpegthumbs
+    - kdegraphics-thumbnailers
+    - kimageformat-plugins
+    - ark
+    - konsole
+    - breeze
+    - breeze-icon-theme
+    - papirus-icon-theme
+
+dolphin_config_dir: "{{ ansible_user_dir }}/.config"
+dolphin_color_scheme_dir: "{{ ansible_user_dir }}/.local/share/color-schemes"

@@ -355,6 +355,10 @@
       tags: ['applications', 'starship']
       when: "'starship' in profiles[profile | default('minimal')].applications | default([])"
 
+    - role: applications/dolphin
+      tags: ['applications', 'dolphin']
+      when: "'dolphin' in profiles[profile | default('minimal')].applications | default([])"
+
     # Window manager specific configurations (Linux only)
     - role: applications/i3
       tags: ['applications', 'i3', 'window-manager']
