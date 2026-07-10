@@ -5,8 +5,14 @@
 IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}')
 IP_ADDRESS=$(ip -4 -o addr show "$IFACE" 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
 
-if [ -n "$IP_ADDRESS" ]; then
-    echo "$IFACE: $IP_ADDRESS"
+if [ -d "/sys/class/net/$IFACE/wireless" ]; then
+    ICON="󰖩"
 else
-    echo "--------"
+    ICON="󰈀"
+fi
+
+if [ -n "$IP_ADDRESS" ]; then
+    echo "$ICON $IP_ADDRESS"
+else
+    echo "󰈂 disconnected"
 fi
