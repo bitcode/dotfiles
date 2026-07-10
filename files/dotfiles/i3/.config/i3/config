@@ -48,7 +48,7 @@ exec --no-startup-id /opt/Synergy/synergy --client --name runtime
 
 # Wallpaper
 # exec --no-startup-id feh --bg-scale ~/Pictures/florest-stair2.jpg
-exec --no-startup-id ~/dotfiles/scripts/randomwallpapers.sh
+exec --no-startup-id ~/dotfiles/files/dotfiles/scripts/randomwallpapers.sh
 
 # Open a floating calculator window
 bindsym $mod+Shift+p exec --no-startup-id gnome-calculator --class="floating_calculator" 
