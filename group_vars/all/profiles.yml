@@ -66,6 +66,7 @@ profiles:
       - .config/nvim
       - .config/starship.toml
       - .config/alacritty
+      - .claude
       # i3 window manager dotfiles (Linux X11 only)
       - .config/i3
       - .config/polybar

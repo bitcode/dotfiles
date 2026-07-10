@@ -229,7 +229,7 @@
 - name: Filter applications for GNU Stow compatibility and platform
   set_fact:
     # Base applications available on all platforms
-    base_apps: "{{ dotfiles_apps | select('match', '^(nvim|starship|alacritty|zsh|tmux|git|ranger|vim)$') | list }}"
+    base_apps: "{{ dotfiles_apps | select('match', '^(nvim|starship|alacritty|zsh|tmux|git|ranger|vim|claude)$') | list }}"
     # i3 window manager specific applications (only when i3 is detected or requested)
     i3_apps: "{{ dotfiles_apps | select('match', '^(i3|polybar|rofi|picom|dunst|dolphin)$') | list if deploy_i3_apps else [] }}"
     # General Linux applications (excluding i3-specific ones)

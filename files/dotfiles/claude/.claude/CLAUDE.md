@@ -22,9 +22,12 @@
 - `Esc` → `o` — open new line below in vim normal mode (most natural)
 - `Esc` → `O` — open new line above
 - `Ctrl+G` — open full Neovim buffer for complex prompts; `:wq` sends it
-- `\` + `Enter` — quick newline escape, works everywhere
-- `Shift+Enter` — works natively in Kitty; run `/terminal-setup` inside
-  Claude Code to enable it in Alacritty
+- `\` + `Enter` or `Ctrl+J` — quick newline escape, works everywhere
+- `Shift+Enter` — works via an explicit `[keyboard] bindings` entry in
+  `alacritty.toml` (`/terminal-setup` alone doesn't reliably fix Alacritty)
+  plus `extended-keys always` + `allow-passthrough on` in `.tmux.conf`,
+  since this setup always runs Claude Code inside tmux. See
+  `docs/CLAUDE_CODE.md`.
 
 ## File Referencing
 - Type `@` to trigger file autocomplete (powered by `~/.claude/file-suggest.sh`)

@@ -1,30 +1,28 @@
 {
+  "tui": "fullscreen",
+  "theme": "dark",
+  "model": "sonnet",
+  "agentPushNotifEnabled": true,
   "editorMode": "vim",
-
   "env": {
     "EDITOR": "nvim",
     "VISUAL": "nvim"
   },
-
   "terminalProgressBarEnabled": true,
   "showTurnDuration": true,
   "spinnerTipsEnabled": false,
   "voiceEnabled": true,
   "alwaysThinkingEnabled": false,
-
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "padding": 1
   },
-
   "fileSuggestion": {
     "type": "command",
     "command": "~/.claude/file-suggest.sh"
   },
-
   "respectGitignore": true,
-
   "permissions": {
     "defaultMode": "acceptEdits",
     "allow": [
@@ -36,7 +34,126 @@
       "Bash(/usr/bin/sudo pacman*)"
     ]
   },
-
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v notify-send >/dev/null 2>&1 && notify-send -a 'Claude Code' 'Claude Code' 'Needs your input' || true"
+          }
+        ]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bit/.tmux/plugins/tmux-claude/scripts/hook.sh"
+          }
+        ]
+      }
+    ]
+  },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
       "source": {

@@ -38,6 +38,13 @@ program = "zsh"
 args = ["-c", "tmux new-session -A -s $(uuidgen | tr -d '-')"]
 
 # Key bindings
+# Shift+Enter -> newline, for multiline prompts in Claude Code (and other
+# apps that read \n on Shift+Enter, e.g. some REPLs). See docs/CLAUDE_CODE.md.
+[keyboard]
+bindings = [
+    { key = "Return", mods = "Shift", chars = "\n" },
+]
+
 #[key_bindings]
 # - { key = "V", mods = "Control|Shift", action = "Paste" }
 
