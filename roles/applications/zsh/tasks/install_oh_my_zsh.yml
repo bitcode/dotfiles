@@ -25,12 +25,14 @@
       shell: |
         export RUNZSH=no
         export CHSH=no
+        export KEEP_ZSHRC=yes
         sh /tmp/install_oh_my_zsh.sh
       args:
         creates: "{{ zsh_oh_my_zsh_path }}"
       environment:
         RUNZSH: "no"
         CHSH: "no"
+        KEEP_ZSHRC: "yes"
 
     - name: Clean up installation script
       file:

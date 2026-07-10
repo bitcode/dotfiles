@@ -120,6 +120,18 @@ bindkey '^J' autosuggest-accept
 [[ -f ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search/zsh-fzf-history-search.zsh
 [[ -f ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh ]] && source ~/.oh-my-zsh/custom/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
+# zsh-history-substring-search
+HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="bg=cyan,fg=white,bold"
+HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="bg=magenta,fg=white,bold"
+HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="i"
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey '^P' history-substring-search-up
+bindkey '^N' history-substring-search-down
+
+# zsh-syntax-highlighting (must be loaded last)
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
+
 # Theme
 eval "$(starship init zsh)"
 
@@ -247,68 +259,6 @@ bindkey '^[[6~' down-line-or-history # Page Down
 
 
 
-# BEGIN ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins
-# Oh My Zsh Configuration
-export ZSH="$HOME/.oh-my-zsh"
-
-# Plugins configuration (including custom plugins)
-plugins=(
-  git
-  sudo
-  history
-  colored-man-pages
-  docker
-  docker-compose
-  node
-  npm
-  python
-  pip
-  virtualenv
-  tmux
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-  zsh-completions
-  zsh-fzf-history-search
-  zsh-history-substring-search
-  zsh-vi-mode
-)
-
-# Load Oh My Zsh
-if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
-  source $ZSH/oh-my-zsh.sh
-fi
-# END ANSIBLE MANAGED BLOCK - Oh My Zsh Plugins
-# BEGIN ANSIBLE MANAGED BLOCK - Plugin Settings
-# Plugin-specific configurations
-
-# BEGIN ANSIBLE MANAGED BLOCK - Plugin Settings
-# Plugin-specific configurations
-
-# zsh-autosuggestions
-if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
-  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=10"
-  ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=(end-of-line vi-end-of-line vi-add-eol)
-  ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(vi-forward-word forward-word vi-forward-word-end forward-word-end vi-find vi-find-next)
-  bindkey '^J' autosuggest-accept
-fi
-
-# zsh-history-substring-search
-if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh ]]; then
-  HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND="bg=cyan,fg=white,bold"
-  HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_NOT_FOUND="bg=magenta,fg=white,bold"
-  HISTORY_SUBSTRING_SEARCH_GLOBBING_FLAGS="i"
-  bindkey '^[[A' history-substring-search-up
-  bindkey '^[[B' history-substring-search-down
-  bindkey '^P' history-substring-search-up
-  bindkey '^N' history-substring-search-down
-fi
-
-# zsh-syntax-highlighting (must be loaded last)
-if [[ -f $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
-  ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
-fi
-# END ANSIBLE MANAGED BLOCK - Plugin Settings
-# END ANSIBLE MANAGED BLOCK - Plugin Settings
 # BEGIN ANSIBLE MANAGED BLOCK - Theme Configuration
 # ZSH Theme Configuration
 ZSH_THEME="robbyrussell"
