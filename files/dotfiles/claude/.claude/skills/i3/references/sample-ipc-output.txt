@@ -1,0 +1,68 @@
+[
+    {
+        "id": 94753002438000,
+        "num": 1,
+        "name": "1",
+        "visible": true,
+        "focused": true,
+        "rect": {
+            "x": 0,
+            "y": 28,
+            "width": 1920,
+            "height": 1052
+        },
+        "output": "DP-3",
+        "urgent": false
+    },
+    {
+        "id": 94753002454272,
+        "num": 2,
+        "name": "2",
+        "visible": false,
+        "focused": false,
+        "rect": {
+            "x": 0,
+            "y": 28,
+            "width": 1920,
+            "height": 1052
+        },
+        "output": "DP-3",
+        "urgent": false
+    },
+    {
+        "id": 94753002479424,
+        "num": 3,
+        "name": "3",
+        "visible": false,
+        "focused": false,
+        "rect": {
+            "x": 0,
+            "y": 28,
+            "width": 1920,
+            "height": 1052
+        },
+        "output": "DP-3",
+        "urgent": false
+    }
+]
+
+---
+
+Example `i3-msg -t get_tree` excerpt (trimmed to the relevant branch), showing
+two Alacritty windows on different workspaces — this is the exact ambiguity
+Rule 1 in SKILL.md guards against, since "Alacritty" alone doesn't tell you
+which one is running Claude Code:
+
+  [output] name='DP-3'
+    [workspace] name='1'
+      [con] name='Alacritty' window=16777219   <-- this one has focused=true
+    [workspace] name='2'
+      [con] name='Alacritty' window=16777230
+    [workspace] name='3'
+      [con] name='Mozilla Firefox' window=16777241
+
+The "window" field is the X11 window ID (decimal). It matches $WINDOWID in
+the shell env of the terminal that owns that container, and matches the
+output of `xdotool getactivewindow`. This is the only reliable way to find
+"my own window" in the tree — container "id" (the i3-internal container id,
+e.g. 94753002452432) is NOT the same value and will not match $WINDOWID.
