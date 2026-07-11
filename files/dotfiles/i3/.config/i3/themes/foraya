@@ -1,27 +1,27 @@
-######################### FORAYA (medium/vivid) #########################
+######################### FORAYA (hard/muted) #########################
 # Ayu base + Gruvbox/Everforest accents. See theming/foraya/palette.yml.
 
-set $bgdim    #0D1017
-set $bg0      #10141C
-set $bg1      #141821
-set $bg2      #0F131A
-set $bg3      #161A24
-set $bg4      #1B1F29
-set $fg       #EBDBB2
-set $gray0    #7C6F64
-set $gray1    #928374
-set $gray2    #A89984
-set $red      #FB4934
-set $orange   #FE8019
-set $yellow   #FABD2F
-set $green    #B8BB26
-set $blue     #83A598
-set $aqua     #8EC07C
-set $purple   #D3869B
+set $bgdim    #272E33
+set $bg0      #2E383C
+set $bg1      #374145
+set $bg2      #272E33
+set $bg3      #374145
+set $bg4      #414B4F
+set $fg       #D3C6AA
+set $gray0    #7A8478
+set $gray1    #859289
+set $gray2    #9DA9A0
+set $red      #E67E80
+set $orange   #E69875
+set $yellow   #DBBC7F
+set $green    #A7C080
+set $blue     #7FBBB3
+set $aqua     #83C092
+set $purple   #D699B6
 set $gold     #E6B450
 
 # target                  border   bg       text     indicator  child_border
-client.focused            $green   $green   $bgdim   $green     $green
+client.focused            $aqua    $bgdim   $fg      $aqua      $aqua
 client.focused_inactive   $bg1     $bgdim   $gray1   $bg1       $bg1
 client.unfocused          $bg1     $bgdim   $gray1   $bg1       $bg1
 client.urgent             $red     $red     $bgdim   $red       $red

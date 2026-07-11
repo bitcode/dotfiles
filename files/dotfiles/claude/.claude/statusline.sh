@@ -73,22 +73,22 @@ ICON_BOLT='⚡'                          # U+26A1  (standard Unicode)
 ICON_DOLLAR=''  # fmt_cost already includes the $ sign
 
 # ── Foraya 256-color palette (nearest xterm-256 to palette.yml truecolor;
-# contrast=medium accent=vivid) ──────────────────────
+# contrast=hard accent=muted) ──────────────────────
 # BG tiers are nudged apart when two dark shades round to the same 256-color
 # index (see xterm256_distinct_ramp) — a powerline needs adjacent segments to
 # render as visibly different backgrounds even if the truecolor values are close.
-BG_DARK=233      # background.base   #0D1017
-BG_MID=234      # background.panel  #141821
-BG_MID2=235    # background.gutter #1B1F29
-FG_DARK=233      # background.base, for on-accent text
-FG_YELLOW=220  # accents.yellow #FABD2F
-FG_GREEN=184   # accents.green  #B8BB26
-FG_RED=203     # accents.red    #FB4934
-FG_AQUA=150    # accents.aqua   #8EC07C
-FG_BLUE=109    # accents.blue   #83A598
-FG_PURPLE=175  # accents.purple #D3869B
-FG_ORANGE=208  # accents.orange #FE8019
-FG_GRAY=245     # neutral.mid    #928374
+BG_DARK=236      # background.base   #272E33
+BG_MID=237      # background.panel  #374145
+BG_MID2=238    # background.gutter #414B4F
+FG_DARK=236      # background.base, for on-accent text
+FG_YELLOW=222  # accents.yellow #DBBC7F
+FG_GREEN=150   # accents.green  #A7C080
+FG_RED=210     # accents.red    #E67E80
+FG_AQUA=115    # accents.aqua   #83C092
+FG_BLUE=116    # accents.blue   #7FBBB3
+FG_PURPLE=182  # accents.purple #D699B6
+FG_ORANGE=216  # accents.orange #E69875
+FG_GRAY=245     # neutral.mid    #859289
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 int_val() {

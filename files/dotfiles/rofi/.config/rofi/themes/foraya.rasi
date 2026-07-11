@@ -1,14 +1,14 @@
-/* Foraya — Ayu base + Gruvbox/Everforest accents (contrast=medium, accent=vivid) */
+/* Foraya — Ayu base + Gruvbox/Everforest accents (contrast=hard, accent=muted) */
 
 * {
-    bg-col:  #0D1017;
-    bg-col-light: #141821;
-    border-col: #EBDBB2;
-    selected-col: #10141C;
+    bg-col:  #272E33;
+    bg-col-light: #374145;
+    border-col: #D3C6AA;
+    selected-col: #2E383C;
     blue: #E6B450;
-    fg-col: #EBDBB2;
-    fg-col2: #FABD2F;
-    grey: #928374;
+    fg-col: #D3C6AA;
+    fg-col2: #DBBC7F;
+    grey: #859289;
 
     width: 1000;
     font: "JetBrainsMono Nerd Font SemiBold 14";

@@ -20,8 +20,8 @@ from lib.resolver import resolve
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Foraya per-app theme files.")
-    parser.add_argument("--contrast", choices=["soft", "medium", "hard"], default="medium")
-    parser.add_argument("--accent", choices=["vivid", "muted"], default="vivid")
+    parser.add_argument("--contrast", choices=["soft", "medium", "hard"], default="hard")
+    parser.add_argument("--accent", choices=["vivid", "muted"], default="muted")
     parser.add_argument("--apps", help="comma-separated subset of apps (default: all)")
     parser.add_argument("--dry-run", action="store_true", help="print rendered diffs, write nothing")
     parser.add_argument("--diff", action="store_true", help="print a diff before writing")

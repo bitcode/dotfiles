@@ -30,14 +30,14 @@ def resolve(contrast="medium", accent="vivid", palette=None):
 
     delta = palette["meta"]["contrast_delta_l"]
     if contrast == "soft":
+        shift = 2 * delta
+    elif contrast == "medium":
         shift = delta
-    elif contrast == "hard":
-        shift = -delta
     else:
         shift = 0.0
 
-    bg_medium = palette["background"]
-    bg = {layer: shift_lightness(bg_medium[layer], shift) if shift else bg_medium[layer] for layer in BG_LAYERS}
+    bg_hard = palette["background"]
+    bg = {layer: shift_lightness(bg_hard[layer], shift) if shift else bg_hard[layer] for layer in BG_LAYERS}
 
     fg_primary = palette["foreground"][accent]
     neutral = palette["neutral"][accent]

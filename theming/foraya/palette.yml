@@ -1,6 +1,8 @@
-# Foraya — a blend of Ayu (base/structure), Gruvbox (vivid accents), and
-# Everforest (muted accents), anchored on #0D1017 (Ayu's own ui.bg /
-# surface.base, and independently the user's favorite background color).
+# Foraya — a blend of Ayu (structure/cursor/diagnostics), Gruvbox (vivid
+# accents), and Everforest (muted accents + background), anchored on
+# #272E33 (Everforest Hard's own bg0 — the darkest of the user's two
+# favorite schemes, and independently the user's preferred background
+# darkness).
 #
 # This is the single source of truth. theming/foraya/generate.py resolves
 # this file plus the --contrast and --accent knobs into per-app config
@@ -12,21 +14,25 @@ meta:
   contrast_tiers: [soft, medium, hard]
   accent_tracks: [vivid, muted]
   # Lightness delta (as a fraction of HSL L) applied to background tokens
-  # for the soft/hard contrast tiers, relative to medium. Measured from
-  # Everforest's own published soft/medium/hard bg0 spread (#333C43 /
-  # #2D353B / #272E33), which is symmetric at ~2.745 percentage points of
-  # HSL lightness. medium +delta = soft, medium -delta = hard.
+  # for the soft/medium tiers, relative to hard. Measured from Everforest's
+  # own published soft/medium/hard bg0 spread (#333C43 / #2D353B /
+  # #272E33), which is symmetric at ~2.745 percentage points of HSL
+  # lightness. `background` below is the hard tier directly (the anchor);
+  # medium = hard +delta, soft = hard +2*delta.
   contrast_delta_l: 0.02745
 
 # Background layer stack (medium tier — soft/hard are derived at render
-# time by lib/colorspace.py). All from Ayu Dark; base is the anchor.
+# time by lib/colorspace.py). Anchored on Everforest Hard's own published
+# bg0-bg4 ladder (the darkest of the user's two favorite schemes); Ayu no
+# longer contributes to the background, only to cursor/diagnostic accents
+# (see `special` below) and the overall cool-neutral structural philosophy.
 background:
-  base: "#0D1017"    # Ayu ui.bg / surface.base — the anchor
-  lift: "#10141C"    # Ayu editor.bg / surface.lift
-  panel: "#141821"   # Ayu ui.panel.bg
-  popup: "#0F131A"   # Ayu ui.popup.bg
-  line: "#161A24"    # Ayu editor.line (cursorline / active line)
-  gutter: "#1B1F29"  # Ayu ui.line (sign column / gutter)
+  base: "#272E33"    # Everforest hard bg0 — the anchor
+  lift: "#2E383C"    # Everforest hard bg1
+  panel: "#374145"   # Everforest hard bg2
+  popup: "#272E33"   # Everforest hard bg0 (popups sit flush with base)
+  line: "#374145"    # Everforest hard bg2 (cursorline / active line)
+  gutter: "#414B4F"  # Everforest hard bg3 (sign column / gutter)
 
 # Foreground / text. vivid = Gruvbox light1, muted = Everforest fg (same
 # value the existing Gruvforest kitty theme already uses). dim is

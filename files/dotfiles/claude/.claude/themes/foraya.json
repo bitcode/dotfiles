@@ -15,12 +15,12 @@
     "promptBorder": "#7C6F64",
     "promptBorderShimmer": "#928374",
     "text": "#EBDBB2",
-    "inverseText": "#0D1017",
+    "inverseText": "#272E33",
     "inactive": "#7C6F64",
-    "subtle": "#1B1F29",
+    "subtle": "#414B4F",
     "suggestion": "#39BAE6",
     "remember": "#FABD2F",
-    "background": "#0D1017",
+    "background": "#272E33",
     "success": "#70BF56",
     "error": "#FB4934",
     "warning": "#FE8019",
@@ -57,11 +57,11 @@
     "rainbow_indigo_shimmer": "#E0AAB9",
     "rainbow_violet_shimmer": "#E0AAB9",
     "clawd_body": "#E6B450",
-    "clawd_background": "#0D1017",
-    "userMessageBackground": "#141821",
-    "bashMessageBackgroundColor": "#141821",
-    "memoryBackgroundColor": "#0F131A",
+    "clawd_background": "#272E33",
+    "userMessageBackground": "#374145",
+    "bashMessageBackgroundColor": "#374145",
+    "memoryBackgroundColor": "#272E33",
     "rate_limit_fill": "#8EC07C",
-    "rate_limit_empty": "#1B1F29"
+    "rate_limit_empty": "#414B4F"
   }
 }

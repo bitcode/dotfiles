@@ -9,7 +9,7 @@
 set -euo pipefail
 
 GOLD="#E6B450"
-BG="#0D1017"
+BG="#272E33"
 
 YEAR=$(date +%Y)
 MONTH=$(date +%m)

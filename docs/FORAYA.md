@@ -2,13 +2,16 @@
 
 Foraya is a custom color scheme blending three themes:
 
-- **Ayu Dark** supplies the base/surface structure. Ayu's own `ui.bg` /
-  `surface.base` value is `#0D1017` — this is also the anchor background
-  color for the whole scheme.
+- **Everforest Hard** supplies the base/surface structure. Its own
+  published `bg0` value, `#272E33`, is the anchor background color for
+  the whole scheme (the darkest of the user's two favorite schemes).
+- **Ayu Dark** supplies the cursor, LSP diagnostic hints, and VCS colors
+  (the `special` palette block) — a smaller structural thread than in
+  earlier drafts, no longer the background.
 - **Gruvbox** supplies vivid, warm, saturated accent colors (the "vivid"
   accent track).
 - **Everforest** supplies muted, soft, natural-toned accent colors (the
-  "muted" accent track).
+  "muted" accent track, and the default).
 
 The philosophy mirrors the repo's existing hand-built `Gruvforest` kitty
 theme (`files/dotfiles/kitty/.config/kitty/themes/custom.conf`, a
@@ -37,13 +40,14 @@ Edit `palette.yml` and regenerate instead.
 ## Knobs
 
 ```
-python3 theming/foraya/generate.py --contrast medium --accent vivid
+python3 theming/foraya/generate.py --contrast hard --accent muted
 ```
 
-- `--contrast {soft,medium,hard}` (default `medium`) — background
-  darkness. `medium` is the anchor (`#0D1017`); `soft`/`hard` are
-  computed at render time.
-- `--accent {vivid,muted}` (default `vivid`) — `vivid` pulls the 7
+- `--contrast {soft,medium,hard}` (default `hard`) — background
+  darkness. `hard` is the anchor (`#272E33`, Everforest Hard's own
+  `bg0`); `medium`/`soft` are computed at render time by shifting
+  lighter.
+- `--accent {vivid,muted}` (default `muted`) — `vivid` pulls the 7
   semantic accent colors from Gruvbox, `muted` pulls them from
   Everforest. Ayu's own accent (gold `#E6B450`, used for the cursor and a
   few UI highlights) is fixed regardless of this knob.
