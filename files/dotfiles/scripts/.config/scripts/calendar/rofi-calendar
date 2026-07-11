@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Rofi custom mode: renders the current month as a day grid, today
+# highlighted. Purely informational — Esc or clicking away dismisses it,
+# same interaction model as rofi-power-menu.
+#
+#   rofi -show calendar -modi calendar:./rofi-calendar
+
+set -euo pipefail
+
+GOLD="#E6B450"
+BG="#0D1017"
+
+YEAR=$(date +%Y)
+MONTH=$(date +%m)
+TODAY=$(date +%-d)
+FIRST_DOW=$(date -d "${YEAR}-${MONTH}-01" +%u)   # 1=Mon .. 7=Sun
+DAYS_IN_MONTH=$(date -d "${YEAR}-${MONTH}-01 +1 month -1 day" +%-d)
+MONTH_LABEL=$(date +"%B %Y")
+
+echo -en "\0markup-rows\x1ftrue\n"
+echo -en "\0message\x1f${MONTH_LABEL}\n"
+echo -en "Mo   Tu   We   Th   Fr   Sa   Su\0nonselectable\x1ftrue\n"
+
+line=""
+for ((i = 1; i < FIRST_DOW; i++)); do
+    line+="     "
+done
+
+for ((d = 1; d <= DAYS_IN_MONTH; d++)); do
+    dow=$(( (FIRST_DOW - 1 + d - 1) % 7 + 1 ))
+    if ((d == TODAY)); then
+        cell=$(printf "<b><span foreground='%s' background='%s'> %2d </span></b>" "$BG" "$GOLD" "$d")
+    else
+        cell=$(printf " %2d  " "$d")
+    fi
+    line+="$cell"
+    if ((dow == 7)); then
+        echo -en "${line}\0nonselectable\x1ftrue\n"
+        line=""
+    fi
+done
+[[ -n "$line" ]] && echo -en "${line}\0nonselectable\x1ftrue\n"
