@@ -72,23 +72,24 @@ ICON_CLOCK=$(printf '\xe2\x8f\xb1')   # U+23F1 ⏱ (standard Unicode)
 ICON_BOLT='⚡'                          # U+26A1  (standard Unicode)
 ICON_DOLLAR=''  # fmt_cost already includes the $ sign
 
+{% set bg_ramp = [bg.base, bg.panel, bg.gutter] | xterm256_distinct_ramp %}
 # ── Foraya 256-color palette (nearest xterm-256 to palette.yml truecolor;
-# contrast=medium accent=vivid) ──────────────────────
+# contrast={{ meta.contrast }} accent={{ meta.accent }}) ──────────────────────
 # BG tiers are nudged apart when two dark shades round to the same 256-color
 # index (see xterm256_distinct_ramp) — a powerline needs adjacent segments to
 # render as visibly different backgrounds even if the truecolor values are close.
-BG_DARK=233      # background.base   #0D1017
-BG_MID=234      # background.panel  #141821
-BG_MID2=235    # background.gutter #1B1F29
-FG_DARK=233      # background.base, for on-accent text
-FG_YELLOW=220  # accents.yellow #FABD2F
-FG_GREEN=184   # accents.green  #B8BB26
-FG_RED=203     # accents.red    #FB4934
-FG_AQUA=150    # accents.aqua   #8EC07C
-FG_BLUE=109    # accents.blue   #83A598
-FG_PURPLE=175  # accents.purple #D3869B
-FG_ORANGE=208  # accents.orange #FE8019
-FG_GRAY=245     # neutral.mid    #928374
+BG_DARK={{ bg_ramp[0] }}      # background.base   {{ bg.base }}
+BG_MID={{ bg_ramp[1] }}      # background.panel  {{ bg.panel }}
+BG_MID2={{ bg_ramp[2] }}    # background.gutter {{ bg.gutter }}
+FG_DARK={{ bg_ramp[0] }}      # background.base, for on-accent text
+FG_YELLOW={{ accents.yellow | xterm256 }}  # accents.yellow {{ accents.yellow }}
+FG_GREEN={{ accents.green | xterm256 }}   # accents.green  {{ accents.green }}
+FG_RED={{ accents.red | xterm256 }}     # accents.red    {{ accents.red }}
+FG_AQUA={{ accents.aqua | xterm256 }}    # accents.aqua   {{ accents.aqua }}
+FG_BLUE={{ accents.blue | xterm256 }}    # accents.blue   {{ accents.blue }}
+FG_PURPLE={{ accents.purple | xterm256 }}  # accents.purple {{ accents.purple }}
+FG_ORANGE={{ accents.orange | xterm256 }}  # accents.orange {{ accents.orange }}
+FG_GRAY={{ neutral.mid | xterm256 }}     # neutral.mid    {{ neutral.mid }}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 int_val() {
@@ -279,7 +280,7 @@ DUR=$(fmt_duration "$DUR_MS")
 push $FG_GRAY $BG_MID "${ICON_CLOCK} ${DUR}"
 
 # ── Render powerline ──────────────────────────────────────────────────────────
-N=${#SEG_FG[@]}
+N=${{ "{" }}#SEG_FG[@]}
 LINE=''
 
 for (( i=0; i<N; i++ )); do

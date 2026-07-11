@@ -7,6 +7,8 @@ from pathlib import Path
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
+from .colorspace import hex_to_xterm256, xterm256_distinct_ramp
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 FORAYA_DIR = Path(__file__).resolve().parent.parent
 TARGETS_PATH = FORAYA_DIR / "targets.yml"
@@ -35,6 +37,8 @@ def render(target, context):
         lstrip_blocks=True,
     )
     env.filters["hexrgb"] = hexrgb
+    env.filters["xterm256"] = hex_to_xterm256
+    env.filters["xterm256_distinct_ramp"] = xterm256_distinct_ramp
     template = env.get_template(target["template"])
     return template.render(**context)
 

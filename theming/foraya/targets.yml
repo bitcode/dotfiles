@@ -63,3 +63,8 @@ targets:
     template: kde_colorscheme.colors.j2
     output: files/dotfiles/dolphin/.local/share/color-schemes/Foraya.colors
     mode: new
+
+  - app: claude
+    template: claude_statusline.sh.j2
+    output: files/dotfiles/claude/.claude/statusline.sh
+    mode: overwrite
