@@ -113,6 +113,7 @@ This leaves the user's desktop exactly as found. Always restore the original foc
 ## What NOT to do
 
 - Don't run `i3-msg kill` (closes focused window) without first confirming via Rule 1 that the focused window isn't Claude's own terminal.
+- Don't assume `i3-msg kill` / `$mod+Shift+q` on an Alacritty window ends whatever tmux session was running inside it. This machine's tmux config (`detach-on-destroy off`) keeps the session alive server-side as an orphan with no attached client — live-confirmed. Killing the window ≠ killing the session; see the `tmux` skill's Rule 5 if the goal is actually ending that tmux session, not just closing the window.
 - Don't run `i3-msg exit` (logs out of the X session) or `i3-msg restart` — both are destructive to the user's whole session; never run without explicit confirmation, and `exit` should essentially never be run by Claude.
 - Don't assume workspace numbers/names beyond what `get_workspaces` just showed you.
 - Don't assume h/j/k/l are the direction keys on this config — they aren't (see table above). This only matters if you're simulating keypresses (`xdotool key`); `i3-msg focus <direction>` takes the literal word `left`/`right`/`up`/`down` regardless of keybinding.

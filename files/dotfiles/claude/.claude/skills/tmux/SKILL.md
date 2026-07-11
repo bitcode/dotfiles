@@ -50,6 +50,15 @@ Use the `pane_current_command` / `session_name` columns to confirm you've found 
 
 These require explicit user confirmation before running, same as any other destructive action (per global instructions): `kill-session`, `kill-server`, `kill-window`, `kill-pane -a`, `detach-client`, `respawn-pane`/`respawn-window` on a pane with unsaved state. `kill-pane` on a pane you just created yourself for a scoped task is fine without asking. Never run `kill-server` — it takes down every session on the machine, including this one.
 
+## Rule 5 — closing the i3 window does NOT kill the tmux session (orphans accumulate)
+
+This machine's `.tmux.conf` sets `set -g detach-on-destroy off` (line 42). Consequence, live-confirmed: killing the Alacritty *window* that a tmux client is attached to (e.g. `$mod+Shift+q` in i3 — see the `i3` skill) only removes that one client. The tmux **session** — and every process running inside it, including a `claude` process if one was running — keeps running server-side, invisible, with zero attached clients. Confirmed on this machine: session `f9bfa452ed1647fc94eb0c5919fc056b` exists right now with 2 live panes (one still running `claude`, pid 2907) and `tmux list-clients` shows no client attached to it at all.
+
+Practical implications:
+- **Don't assume closing a window cleaned anything up.** If the user says "I closed that terminal" or you closed one via the `i3` skill, the tmux session it held may still be alive. Check with `tmux list-sessions` before concluding a session is gone.
+- **Orphaned sessions can pile up silently** over a long-running desktop session — each window close that doesn't explicitly `tmux kill-session` first leaves one behind. If asked to clean up or audit tmux state, check for sessions with no attached client (`tmux list-clients` cross-referenced against `tmux list-sessions`) as candidates, but confirm with the user before killing any — an orphaned session may still hold work the user intends to reattach to later (`tmux attach -t <name>`).
+- **To actually end a session when closing its window**, kill the tmux session explicitly first (`tmux kill-session -t <target>`, per Rule 4 — ask first), then close the window — don't rely on window-close to do it.
+
 ## Common operations
 
 Read command reference: [`references/tmux-cheatsheet.md`](references/tmux-cheatsheet.md) — grouped by session/window/pane/copy-mode/send-keys, with the exact syntax for scripted (non-interactive) use.
