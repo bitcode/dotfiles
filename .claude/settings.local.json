@@ -271,7 +271,11 @@
       "Bash(timeout 8 flameshot gui)",
       "Bash(flameshot config *)",
       "Read(//home/bit/.claude/**)",
-      "Read(//home/bit/.claude/backups/**)"
+      "Read(//home/bit/.claude/backups/**)",
+      "Read(//home/bit/.config/**)",
+      "Read(//home/bit/.config/i3blocks/**)",
+      "Bash(find / -path /proc -prune -o -iname \"internet.sh\" -print)",
+      "Bash(find / -path /proc -prune -o -iname \"system-usb-mount.sh\" -print)"
     ]
   }
 }

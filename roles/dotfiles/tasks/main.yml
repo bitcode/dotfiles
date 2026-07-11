@@ -223,7 +223,7 @@
 - name: Set detected window manager
   set_fact:
     detected_window_manager: "{{ window_manager_detection.stdout | default('unknown') if is_linux else 'none' }}"
-    deploy_i3_apps: "{{ is_linux and (window_manager_detection.stdout | default('') == 'i3' or window_manager | default('auto') == 'i3' or ansible_env.XDG_CURRENT_DESKTOP | default('') | lower == 'i3') }}"
+    deploy_i3_apps: "{{ is_linux and (window_manager_detection.stdout | default('') == 'i3' or window_manager | default('auto') == 'i3' or ansible_env.XDG_CURRENT_DESKTOP | default('') | lower == 'i3' or dotsible_window_manager | default('') == 'i3') }}"
   tags: ['dotfiles', 'discovery']
 
 - name: Filter applications for GNU Stow compatibility and platform

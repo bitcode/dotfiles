@@ -112,9 +112,8 @@ bindsym $mod+d exec --no-startup-id rofi -show combi -run-command "i3-msg exec '
 # flameshot keybind
 bindsym Print exec --no-startup-id flameshot gui
 
-# file manager (Dolphin), opens on the "4:files" workspace
+# file manager (Dolphin)
 bindsym $mod+Shift+f exec --no-startup-id dolphin
-assign [class="dolphin"] "4"
 
 # change focus
 bindsym $mod+j focus left

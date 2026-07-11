@@ -1,8 +1,10 @@
-# Dolphin — "cool browsing" defaults: rich previews, split view, natural
-# sorting, tabs remembered across restarts. Panel visibility (Places,
-# Information, Terminal) and window layout are stored by Qt outside this
-# file's plain keys — toggle them once via Dolphin's View > Panels menu (or
-# F6/F4) after first launch and they persist automatically from then on.
+# Dolphin — "cool browsing" defaults: rich previews, natural sorting, tabs
+# remembered across restarts. Details view (not icons) and no split view are
+# the global default (GlobalViewProps=true), applied to all folders. Panel
+# visibility (Places, Information, Terminal) and window layout are stored by
+# Qt outside this file's plain keys — toggle them once via Dolphin's View >
+# Panels menu (or F6/F4) after first launch and they persist automatically
+# from then on.
 #
 # Colors come from kdeglobals (ColorScheme=Foraya); see
 # theming/foraya/palette.yml to change them.
@@ -11,7 +13,7 @@
 BrowseThroughArchives=true
 ConfirmClosingMultipleTabs=false
 EditableUrl=false
-GlobalViewProps=false
+GlobalViewProps=true
 ModifiedStartupSettings=true
 RememberOpenedTabs=true
 ShowFullPath=false
@@ -21,7 +23,7 @@ ShowSpaceInfo=true
 ShowStatusBar=true
 ShowZoomSlider=true
 SortingChoice=NaturalSorting
-SplitView=true
+SplitView=false
 Version=200
 
 [IconsMode]

@@ -243,7 +243,11 @@
     dotsible_os: "{{ detected_os }}"
     dotsible_distribution: "{{ detected_distribution }}"
     dotsible_architecture: "{{ detected_architecture }}"
-    dotsible_window_manager: "{{ detected_window_manager | default('none') }}"
+    # An explicit -e dotsible_window_manager=<wm> (e.g. from run-dotsible.sh's
+    # interactive prompt on a fresh box where the WM binary isn't installed
+    # yet) takes precedence over autodetection here, otherwise this set_fact
+    # would silently clobber the user's choice with "unknown"/"none".
+    dotsible_window_manager: "{{ dotsible_window_manager | default(detected_window_manager | default('none')) }}"
     dotsible_environment: "{{ detected_environment }}"
     dotsible_python_version: "{{ detected_python_version | default('unknown') }}"
     dotsible_python_needs_upgrade: "{{ python_needs_upgrade | default(true) }}"

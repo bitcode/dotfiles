@@ -9,6 +9,11 @@
 # kdenetwork-filesharing: "Share" tab in folder properties (Samba)
 # konsole: provides the KPart embedded by Dolphin's terminal panel (F4)
 # breeze / breeze-icons / papirus-icon-theme: clean widget style + icon set
+# plasma-integration: Qt platform-theme plugin that makes Qt/KDE apps read
+#   kdeglobals/color-schemes outside a full Plasma session (e.g. under i3).
+#   Without it, Dolphin falls back to a default palette that can clash with
+#   the icon theme. Pair with QT_QPA_PLATFORMTHEME=kde (see i3's
+#   environment.d) for it to actually take effect.
 dolphin_packages:
   archlinux:
     - dolphin
@@ -24,6 +29,7 @@ dolphin_packages:
     - breeze-icons
     - papirus-icon-theme
     - kcolorscheme
+    - plasma-integration
   debian:
     - dolphin
     - dolphin-plugins
@@ -37,6 +43,7 @@ dolphin_packages:
     - breeze
     - breeze-icon-theme
     - papirus-icon-theme
+    - plasma-integration
 
 dolphin_config_dir: "{{ ansible_user_dir }}/.config"
 dolphin_color_scheme_dir: "{{ ansible_user_dir }}/.local/share/color-schemes"
