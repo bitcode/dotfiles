@@ -275,7 +275,8 @@
       "Read(//home/bit/.config/**)",
       "Read(//home/bit/.config/i3blocks/**)",
       "Bash(find / -path /proc -prune -o -iname \"internet.sh\" -print)",
-      "Bash(find / -path /proc -prune -o -iname \"system-usb-mount.sh\" -print)"
+      "Bash(find / -path /proc -prune -o -iname \"system-usb-mount.sh\" -print)",
+      "Bash(tmux -V)"
     ]
   }
 }

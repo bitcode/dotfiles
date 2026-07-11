@@ -20,6 +20,8 @@ If `$TMUX` is unset, you are not inside tmux — `tmux` commands still work (the
 
 If `$TMUX` is set, that session/window/pane is **yours**. Never target it with a mutating command unless the user explicitly asked you to affect *this* Claude session (e.g. "rename this window"). Treat `-t` targets as unsafe until you've compared them against your own identity string above.
 
+**Live-confirmed gotcha:** when more than one Claude-Code-in-tmux window exists on screen (e.g. two Alacritty windows on different i3 workspaces — see the `i3` skill), they can look visually identical in a screenshot: same terminal chrome, similar-looking output. The tmux status bar's session ID (bottom-left) is the only reliable visual differentiator — cross-check it against the `#{session_id}`/`#{session_name}` from the Rule 1 command above, not against how the screenshot looks. A workspace switch between two such windows can appear to have "done nothing" when it actually worked correctly; don't diagnose that as a bug without checking the session ID first.
+
 ## Rule 2 — Target explicitly, never rely on "current"
 
 Every mutating command must carry an explicit `-t <target>` derived from `tmux list-sessions` / `tmux list-windows` / `tmux list-panes` output you just read — not from memory, not from what you assume is "the other pane." Ambiguous/omitted `-t` falls back to the attached client's active pane, which is frequently *your own pane* when Claude is the one issuing the command.

@@ -21,6 +21,8 @@ xdotool getactivewindow      # decimal X11 window id of whatever currently has f
 
 `$WINDOWID` (set by Alacritty in the shell env) is the ground truth for "this terminal, right now." It matches the `"window"` field in `i3-msg -t get_tree` output — **not** the `"id"` field, which is i3's own internal container id and looks similar but is a different number. See [`references/sample-ipc-output.txt`](references/sample-ipc-output.txt) for a worked example of exactly this ambiguity (two Alacritty windows, only one of which is "self").
 
+**Live-confirmed gotcha:** when two Alacritty windows are each running Claude Code inside tmux, a screenshot of one is often visually indistinguishable from the other — same terminal chrome, similar-looking content, sometimes even similar conversation state. Switching workspaces between two such windows can look like nothing happened. It did happen; the windows just look alike. The only reliable visual differentiator is the tmux status bar's session ID (bottom-left, e.g. `d0923e4b...`) — cross-check it against the tmux skill's Rule 1 identity string, not just "does the screenshot look different." Don't conclude a workspace switch silently failed or "copied" one workspace into another based on visual similarity alone — verify with `get_workspaces`/`get_tree` (Rule 2), which is authoritative regardless of how the screenshot looks.
+
 ## Rule 2 — Query before you act, every time
 
 Never assume the current workspace/window layout from memory — it changes as the user works. Read state fresh:
@@ -96,6 +98,17 @@ i3-msg split h
 ```
 
 **Check what's currently on screen before describing it to the user** — always `get_workspaces` + `get_tree` first rather than assuming; the visible workspace can change between turns if the user switches manually.
+
+**Verified round trip** (self-identify → switch → confirm → switch back → re-verify identity unchanged), tested live on this machine with the tmux and flameshot skills combined:
+```bash
+i3-msg -t get_workspaces        # record which workspace is currently focused
+i3-msg 'workspace number 2'     # switch
+i3-msg -t get_workspaces        # confirm the switch actually landed (don't trust the screenshot alone — see gotcha above)
+# ... do the work / take the screenshot ...
+i3-msg 'workspace number 1'     # switch back to what was focused originally
+i3-msg -t get_workspaces        # confirm restored
+```
+This leaves the user's desktop exactly as found. Always restore the original focused workspace when the switch was only for Claude's own inspection purposes, not something the user asked to end up on.
 
 ## What NOT to do
 
