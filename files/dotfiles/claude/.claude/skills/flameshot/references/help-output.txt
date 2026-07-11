@@ -1,0 +1,90 @@
+Usage: flameshot [flameshot-options] [subcommands]
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -h, --help     Displays this help
+  -v, --version  Displays version information
+
+Subcommands:
+  gui            Start a manual capture in GUI mode.
+  screen         Capture a screenshot of the specified monitor.
+  full           Capture screenshot of all monitors at the same time.
+  launcher       Open the capture launcher.
+  config         Configure flameshot.
+
+=== flameshot gui --help ===
+Usage: flameshot gui [gui-options] 
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -p, --path <path>             Existing directory or new file to save to
+  -c, --clipboard               Save the capture to the clipboard
+  -d, --delay <milliseconds>    Delay time in milliseconds
+  --region <WxH+X+Y or string>  Screenshot region to select
+  --last-region                 Repeat screenshot with previously selected region
+  -r, --raw                     Print raw PNG capture
+  -g, --print-geometry          Print geometry of the selection in the format WxH+X+Y. Does nothing if raw is specified
+  --pin                         Pin the capture to the screen
+  -s, --accept-on-select        Accept capture as soon as a selection is made
+  -h, --help                    Displays this help
+
+
+=== flameshot screen --help ===
+Usage: flameshot screen [screen-options] 
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -n, --number <Screen number>  Define the screen to capture (starting from 0),
+                                default: screen containing the cursor
+  -e, --edit                    Interactively select and edit the screenshot region
+  -c, --clipboard               Save the capture to the clipboard
+  -p, --path <path>             Existing directory or new file to save to
+  -d, --delay <milliseconds>    Delay time in milliseconds
+  --region <WxH+X+Y or string>  Screenshot region to select
+  -r, --raw                     Print raw PNG capture
+  --pin                         Pin the capture to the screen
+  -h, --help                    Displays this help
+
+
+=== flameshot full --help ===
+Usage: flameshot full [full-options] 
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -p, --path <path>           Existing directory or new file to save to
+  -c, --clipboard             Save the capture to the clipboard
+  -d, --delay <milliseconds>  Delay time in milliseconds
+  -r, --raw                   Print raw PNG capture
+  -h, --help                  Displays this help
+
+
+=== flameshot launcher --help ===
+Usage: flameshot launcher [launcher-options] 
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -h, --help  Displays this help
+
+
+=== flameshot config --help ===
+Usage: flameshot config [config-options] 
+
+Per default runs Flameshot in the background and adds a tray icon for configuration.
+
+Options:
+  -a, --autostart <bool>            Enable or disable run at startup
+  -n, --notifications <bool>        Enable or disable the notifications
+  -f, --filename <pattern>          Set the filename pattern
+  -t, --trayicon <bool>             Enable or disable the trayicon
+  -s, --showhelp <bool>             Show the help message in the capture mode
+  -m, --maincolor <color-code>      Define the main UI color
+  -k, --contrastcolor <color-code>  Define the contrast UI color
+  --check                           Check the configuration for errors
+  -h, --help                        Displays this help
+
+
