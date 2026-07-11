@@ -1,6 +1,6 @@
 # Core Ansible requirements for Dotsible
-ansible>=6.0,<8.0
-ansible-core>=2.12,<2.16
+ansible>=6.0,<12.3
+ansible-core>=2.12,<2.19
 ansible-lint>=6.0,<7.0
 
 # Additional Python dependencies
