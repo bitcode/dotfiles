@@ -99,6 +99,17 @@
     - tmux_scripts_check.stat.exists
   tags: ['tmux', 'scripts']
 
+# tmux-file-picker: third-party fuzzy file picker (raine/tmux-file-picker),
+# fetched from a pinned commit rather than vendored, since it's not our code.
+- name: Download tmux-file-picker
+  get_url:
+    url: "{{ tmux_file_picker_url }}"
+    dest: "{{ tmux_file_picker_dest }}"
+    mode: '0755'
+    force: yes
+  when: ansible_os_family != "Windows"
+  tags: ['tmux', 'scripts', 'tmux-file-picker']
+
 - name: Verify Tmux installation
   command: tmux -V
   register: tmux_version

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Same fuzzy file picker as tmux-file-picker, but copies the selected
+# absolute path(s) to the system clipboard instead of inserting them
+# into the pane.
+
+if [[ -z "${TMUX-}" ]]; then
+	echo "Error: This script must be run inside a tmux session." >&2
+	exit 1
+fi
+
+pane_dir=$(tmux display-message -p '#{pane_current_path}')
+
+fd_cmd="fd"
+command -v fd >/dev/null 2>&1 || fd_cmd="fdfind"
+
+preview_cmd="cat {}"
+command -v bat >/dev/null 2>&1 && preview_cmd="bat --style=numbers --color=always {}"
+
+selected=$(
+	cd "$pane_dir"
+	"$fd_cmd" -H --follow --type f --exclude .git |
+		fzf --multi --reverse --preview "$preview_cmd" || true
+)
+
+[[ -z "$selected" ]] && exit 0
+
+paths=()
+while IFS= read -r line; do
+	[[ -n "$line" ]] && paths+=("$pane_dir/$line")
+done <<<"$selected"
+
+joined=$(printf "%s\n" "${paths[@]}")
+
+if command -v xclip >/dev/null 2>&1; then
+	# xclip forks and stays resident to serve the selection; the popup's
+	# pane gets torn down as soon as this script exits, which would kill
+	# that background process before anything can paste. Detach it fully
+	# (setsid + disown) so it survives the popup closing.
+	setsid xclip -selection clipboard <<<"$joined" >/dev/null 2>&1 &
+	disown
+	sleep 0.2
+elif command -v wl-copy >/dev/null 2>&1; then
+	printf "%s" "$joined" | wl-copy
+elif command -v pbcopy >/dev/null 2>&1; then
+	printf "%s" "$joined" | pbcopy
+else
+	echo "Error: no clipboard tool found (xclip/wl-copy/pbcopy)." >&2
+	exit 1
+fi
+
+tmux display-message "Copied ${#paths[@]} path(s) to clipboard"

@@ -19,3 +19,10 @@ git_package_name:
   Archlinux: git
   Debian: git
   Ubuntu: git
+
+# tmux-file-picker (https://github.com/raine/tmux-file-picker)
+# Pinned to a specific commit so updates are a deliberate version bump here,
+# not a silent re-pull of main on every deploy.
+tmux_file_picker_commit: "d1561a75aebfb50e5ad38facac684252014a44a0"
+tmux_file_picker_url: "https://raw.githubusercontent.com/raine/tmux-file-picker/{{ tmux_file_picker_commit }}/tmux-file-picker"
+tmux_file_picker_dest: "{{ ansible_user_dir }}/.local/bin/tmux-file-picker"
