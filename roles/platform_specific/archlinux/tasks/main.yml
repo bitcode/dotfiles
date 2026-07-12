@@ -525,6 +525,21 @@
     create: yes
   loop: "{{ arch_environment_vars }}"
 
+# === XORG KEYBOARD CUSTOMIZATION (Caps Lock <-> Escape swap) ===
+# Deployed as a separate xorg.conf.d file (not the localectl-managed
+# 00-keyboard.conf) so it survives `localectl set-keymap` calls, which
+# regenerate 00-keyboard.conf from vconsole.conf and drop custom XkbOptions.
+# Applies at X server start (login/greeter), before i3 or any terminal loads.
+- name: Deploy custom Xorg keyboard config (swap Caps Lock and Escape)
+  copy:
+    src: "{{ playbook_dir }}/files/system/xorg.conf.d/90-custom-keyboard.conf"
+    dest: /etc/X11/xorg.conf.d/90-custom-keyboard.conf
+    mode: '0644'
+    owner: root
+    group: root
+  become: yes
+  when: dotsible_privilege_escalation | default(false)
+
 # === FINAL ARCH LINUX PLATFORM SUMMARY ===
 - name: Arch Linux platform setup completed
   debug:
