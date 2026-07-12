@@ -280,7 +280,13 @@
       "Bash(git -C /home/bit/dotfiles log --oneline --all -- 'files/dotfiles/i3/.config/i3/themes/*')",
       "Bash(python3 *)",
       "Skill(artifact-design)",
-      "Artifact"
+      "Artifact",
+      "Bash(git check-ignore *)",
+      "Bash(tmux source-file *)",
+      "Bash(tmux display-message *)",
+      "Skill(flameshot)",
+      "Bash(tmux list-sessions *)",
+      "Bash(tmux list-clients *)"
     ]
   }
 }
