@@ -33,11 +33,12 @@ function bg($c) { "`e[48;5;${c}m" }
 $R = "`e[0m"
 $SEP = [char]0xE0B0  # Nerd Font powerline arrow
 
-# Gruvbox palette
-$BG_DARK = 235; $BG_MID = 237; $BG_MID2 = 239
-$FG_DARK = 235; $FG_LIGHT = 229; $FG_YELLOW = 214
-$FG_GREEN = 142; $FG_RED = 167; $FG_AQUA = 108
-$FG_BLUE = 109; $FG_PURPLE = 175; $FG_ORANGE = 208; $FG_GRAY = 245
+# Foraya 256-color palette (nearest xterm-256 to palette.yml truecolor;
+# contrast=hard accent=muted) — see theming/foraya/palette.yml
+$BG_DARK = 236; $BG_MID = 237; $BG_MID2 = 238
+$FG_DARK = 236; $FG_YELLOW = 222
+$FG_GREEN = 150; $FG_RED = 210; $FG_AQUA = 115
+$FG_BLUE = 116; $FG_PURPLE = 182; $FG_ORANGE = 216; $FG_GRAY = 245
 
 # Context progress bar
 function ctxBar($pct) {

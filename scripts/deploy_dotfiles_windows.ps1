@@ -283,6 +283,11 @@ function Deploy-DotfilesToHome {
         $tgt = Join-Path $claudeTarget $file
         Deploy-File -Source $src -Target $tgt -Name "[$UserName] Claude/$file"
     }
+    # Themes dir (Claude Code UI theme, e.g. foraya.json) — skills/ intentionally
+    # NOT deployed here; each machine keeps its own project-scoped skill set.
+    $claudeThemesSource = Join-Path $claudeSource "themes"
+    $claudeThemesTarget = Join-Path $claudeTarget "themes"
+    Deploy-Directory -Source $claudeThemesSource -Target $claudeThemesTarget -Name "[$UserName] Claude/themes"
 
     # --- Windows Terminal ---
     # The WindowsTerminal package dir uses a wildcard, so resolve it per user
@@ -436,11 +441,11 @@ Write-Host ""
 
 # Linux-only dotfiles (not deployed on Windows)
 $skippedApps = @(
-    "compton", "cron", "dockerfiles", "etc", "hyprCaps2Esc", "hyprland",
-    "i3", "i3blocks", "kitty", "nixos", "picom", "polybar", "rofi",
-    "swaync", "systemd", "udevmonCaps2Esc", "walls", "waybar", "weston",
-    "wofi", "zsh", "tmux", "zellij", "sesh", "ranger", "radare2",
-    "markdown", "prompts", "docs"
+    "compton", "cron", "dockerfiles", "dolphin", "etc", "flameshot",
+    "hyprCaps2Esc", "hyprland", "i3", "i3blocks", "kitty", "nixos",
+    "picom", "polybar", "rofi", "swaync", "systemd", "udevmonCaps2Esc",
+    "walls", "waybar", "weston", "wofi", "zsh", "tmux", "zellij", "sesh",
+    "ranger", "radare2", "markdown", "prompts", "docs"
 )
 Write-Log "Skipped Linux-only apps: $($skippedApps.Count) apps" "SKIP"
 Write-Host ""
