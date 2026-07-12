@@ -1,0 +1,23 @@
+{
+    "name": "Foraya",
+    "background": "#272E33",
+    "foreground": "#D3C6AA",
+    "cursorColor": "#E6B450",
+    "selectionBackground": "#543A48",
+    "black": "#2E383C",
+    "red": "#E67E80",
+    "green": "#A7C080",
+    "yellow": "#DBBC7F",
+    "blue": "#7FBBB3",
+    "purple": "#D699B6",
+    "cyan": "#83C092",
+    "white": "#9DA9A0",
+    "brightBlack": "#414B4F",
+    "brightRed": "#E67E80",
+    "brightGreen": "#A7C080",
+    "brightYellow": "#DBBC7F",
+    "brightBlue": "#7FBBB3",
+    "brightPurple": "#D699B6",
+    "brightCyan": "#83C092",
+    "brightWhite": "#D3C6AA"
+}
