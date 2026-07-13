@@ -1,0 +1,9 @@
+# Sourced by /etc/lightdm/Xsession before i3 starts.
+#
+# Qt/KDE apps (Dolphin, etc.) need QT_QPA_PLATFORMTHEME=kde to read
+# kdeglobals/color-schemes outside a full Plasma session. systemd's
+# environment.d (files/dotfiles/i3/.config/environment.d/) sets this too,
+# but LightDM's classic X session launches i3 without importing that
+# environment first, so i3 (and everything it execs, e.g. Dolphin) never
+# sees it. Sourcing here guarantees it lands before i3 starts.
+export QT_QPA_PLATFORMTHEME=kde
