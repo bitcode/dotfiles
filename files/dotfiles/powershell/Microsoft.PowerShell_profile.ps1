@@ -49,10 +49,19 @@ foreach ($p in $pathAdditions) {
 }
 
 # ============================================================================
+# COMMAND AVAILABILITY CACHE
+# ============================================================================
+# Single pass: resolve all optional commands once instead of 8+ Get-Command calls
+$_cmds = @{}
+foreach ($c in @('lsd','bat','starship','zoxide','dotnet','winget','lazygit','nvim')) {
+    $_cmds[$c] = [bool](Get-Command $c -ErrorAction Ignore)
+}
+
+# ============================================================================
 # PSREADLINE CONFIGURATION
 # ============================================================================
-# PS7 auto-loads PSReadLine; on PS5.1 import only if not already present
-if (-not (Get-Module PSReadLine)) {
+# PS7 auto-loads PSReadLine; only import on PS5.1
+if ($PSVersionTable.PSVersion.Major -lt 7 -and -not (Get-Module PSReadLine)) {
     Import-Module PSReadLine -ErrorAction SilentlyContinue
 }
 if (Get-Module PSReadLine) {
@@ -80,19 +89,40 @@ if (Get-Module PSReadLine) {
 }
 
 # ============================================================================
-# MODULES
+# MODULES (lazy-loaded)
 # ============================================================================
-# Direct imports — avoids the slow Get-Module -ListAvailable filesystem scan
-Import-Module posh-git      -ErrorAction SilentlyContinue
-Import-Module Terminal-Icons -ErrorAction SilentlyContinue
-Import-Module PSFzf          -ErrorAction SilentlyContinue
-
-if (Get-Module PSFzf) {
-    Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
-    $env:FZF_DEFAULT_COMMAND = "fd --type f --hidden --follow --exclude .git"
-    $env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
-    $env:FZF_ALT_C_COMMAND   = "fd --type d --hidden --follow --exclude .git"
+# posh-git: defer until first git prompt or explicit call
+$_poshGitLoaded = $false
+function _EnsurePoshGit {
+    if (-not $script:_poshGitLoaded) {
+        Import-Module posh-git -ErrorAction SilentlyContinue
+        $script:_poshGitLoaded = $true
+    }
 }
+
+# Terminal-Icons: defer until first ls/dir call
+$_terminalIconsLoaded = $false
+function _EnsureTerminalIcons {
+    if (-not $script:_terminalIconsLoaded) {
+        Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+        $script:_terminalIconsLoaded = $true
+    }
+}
+
+# PSFzf: defer until first Ctrl+T / Ctrl+R or explicit fzf use
+$_psfzfLoaded = $false
+function _EnsurePSFzf {
+    if (-not $script:_psfzfLoaded) {
+        Import-Module PSFzf -ErrorAction SilentlyContinue
+        if (Get-Module PSFzf) {
+            Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
+        }
+        $script:_psfzfLoaded = $true
+    }
+}
+$env:FZF_DEFAULT_COMMAND = "fd --type f --hidden --follow --exclude .git"
+$env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
+$env:FZF_ALT_C_COMMAND   = "fd --type d --hidden --follow --exclude .git"
 
 # ============================================================================
 # ALIASES (equivalent to .zshrc aliases)
@@ -108,7 +138,7 @@ if (Get-Module PSFzf) {
     }
 }
 
-if (Get-Command lsd -ErrorAction SilentlyContinue) {
+if ($_cmds['lsd']) {
     function ls  { lsd --icon never @args }
     function dir { lsd --icon never -la @args }
     function l   { lsd --icon never -l @args }
@@ -124,13 +154,13 @@ if (Get-Command lsd -ErrorAction SilentlyContinue) {
 }
 
 # Enhanced cat (bat if available)
-if (Get-Command bat -ErrorAction SilentlyContinue) {
+if ($_cmds['bat']) {
     Set-Alias -Name cat -Value bat -Option AllScope -Force
     function catn { bat --style=plain @args }
 }
 
 # Git aliases
-Set-Alias -Name lg -Value lazygit -ErrorAction SilentlyContinue
+if ($_cmds['lazygit']) { Set-Alias -Name lg -Value lazygit }
 function gs  { git status @args }
 function gd  { git diff @args }
 function gl  { git log --oneline -20 @args }
@@ -144,7 +174,7 @@ function .... { Set-Location ..\..\.. }
 
 # Common shortcuts
 Set-Alias -Name c -Value Clear-Host
-Set-Alias -Name vim -Value nvim -ErrorAction SilentlyContinue
+if ($_cmds['nvim']) { Set-Alias -Name vim -Value nvim }
 function dc { Set-Location .. }
 function path { $env:PATH -split ";" | ForEach-Object { $_ } }
 function myip { (Invoke-WebRequest -Uri "https://ifconfig.me" -UseBasicParsing).Content.Trim() }
@@ -254,26 +284,54 @@ Set-Alias -Name profileconfig -Value Edit-Profile
 Set-Alias -Name nvimconfig -Value Edit-Nvim
 
 # ============================================================================
-# STARSHIP PROMPT
+# STARSHIP PROMPT (cached init)
 # ============================================================================
-if (Get-Command starship -ErrorAction SilentlyContinue) {
-    Invoke-Expression (&starship init powershell)
+if ($_cmds['starship']) {
+    $starshipCache = "$env:XDG_CACHE_HOME\starship\init.ps1"
+    $starshipBin = (Get-Command starship).Source
+    $needsRegen = -not (Test-Path $starshipCache)
+    if (-not $needsRegen) {
+        $cacheAge = (Get-Item $starshipCache).LastWriteTime
+        $binAge   = (Get-Item $starshipBin).LastWriteTime
+        if ($binAge -gt $cacheAge) { $needsRegen = $true }
+    }
+    if ($needsRegen) {
+        $cacheDir = Split-Path $starshipCache
+        if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+        & starship init powershell | Out-String | Set-Content $starshipCache -Force
+    }
+    . $starshipCache
+    # posh-git needed for git status in prompt
+    _EnsurePoshGit
 }
 
 # ============================================================================
-# ZOXIDE (smart cd)
+# ZOXIDE (smart cd — cached init)
 # ============================================================================
-if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (zoxide init --cmd cd powershell | Out-String) })
+if ($_cmds['zoxide']) {
+    $zoxideCache = "$env:XDG_CACHE_HOME\zoxide\init.ps1"
+    $zoxideBin = (Get-Command zoxide).Source
+    $needsRegen = -not (Test-Path $zoxideCache)
+    if (-not $needsRegen) {
+        $cacheAge = (Get-Item $zoxideCache).LastWriteTime
+        $binAge   = (Get-Item $zoxideBin).LastWriteTime
+        if ($binAge -gt $cacheAge) { $needsRegen = $true }
+    }
+    if ($needsRegen) {
+        $cacheDir = Split-Path $zoxideCache
+        if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+        & zoxide init --cmd cd powershell | Set-Content $zoxideCache -Force
+    }
+    . $zoxideCache
 }
 
 # ============================================================================
 # COMPLETIONS
 # ============================================================================
-# Git completions (via posh-git, loaded above)
+# Git completions loaded lazily with posh-git (see _EnsurePoshGit)
 
-# dotnet completions
-if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+# dotnet completions (register is cheap — the completer runs on demand)
+if ($_cmds['dotnet']) {
     Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock {
         param($wordToComplete, $commandAst, $cursorPosition)
         dotnet complete --position $cursorPosition "$commandAst" | ForEach-Object {
@@ -283,7 +341,7 @@ if (Get-Command dotnet -ErrorAction SilentlyContinue) {
 }
 
 # winget completions
-if (Get-Command winget -ErrorAction SilentlyContinue) {
+if ($_cmds['winget']) {
     Register-ArgumentCompleter -Native -CommandName winget -ScriptBlock {
         param($wordToComplete, $commandAst, $cursorPosition)
         winget complete --word="$wordToComplete" --commandline "$commandAst" --position $cursorPosition | ForEach-Object {
@@ -291,3 +349,6 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
         }
     }
 }
+
+# Clean up profile-internal variables
+Remove-Variable _cmds, c, p -ErrorAction Ignore
