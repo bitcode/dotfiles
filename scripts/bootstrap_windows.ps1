@@ -124,6 +124,7 @@ $Script:Config = @{
         "zoxide"
         "lsd"
         "lazygit"
+        "gh"
     )
 
     # Development tools (Chocolatey) — heavier installs, separate step
@@ -137,6 +138,7 @@ $Script:Config = @{
         "sed"
         "gawk"
         "which"
+        "less"
         "sysinternals"
     )
 
@@ -396,11 +398,13 @@ function Test-AppInstalledExternally {
         "zoxide"                     = @{ Cmd = "zoxide" }
         "lsd"                        = @{ Cmd = "lsd" }
         "lazygit"                    = @{ Cmd = "lazygit" }
+        "gh"                         = @{ Cmd = "gh" }
         "llvm"                       = @{ Cmd = "clang" }
         "cmake"                      = @{ Cmd = "cmake" }
         "ninja"                      = @{ Cmd = "ninja" }
         "make"                       = @{ Cmd = "make" }
         "nasm"                       = @{ Cmd = "nasm" }
+        "less"                       = @{ Cmd = "less" }
         "firefox"                    = @{ Reg = "Mozilla Firefox" }
         "googlechrome"               = @{ Reg = "Google Chrome" }
         "obsidian"                   = @{ Reg = "Obsidian" }
@@ -428,6 +432,34 @@ function Test-AppInstalledExternally {
         }
     }
     return $false
+}
+
+
+# Chocolatey packages that ship as MSIX/AppX bundles installed via
+# Add-AppPackage. Windows S mode's code-integrity policy blocks that
+# sideload path outright (fails deep inside the AppX deployment stack with
+# an opaque "type initializer for '<Module>' threw an exception" error)
+# even though winget's own installer path is still permitted. Map choco
+# package name -> winget package id so those specific packages can fall
+# back to winget instead of being reported as a hard failure.
+$Script:WingetFallback = @{
+    "microsoft-windows-terminal" = "Microsoft.WindowsTerminal"
+}
+
+function Install-ViaWinget {
+    param([string]$WingetId)
+
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        return $false
+    }
+    try {
+        & winget install --id $WingetId --source winget `
+            --accept-package-agreements --accept-source-agreements `
+            --disable-interactivity 2>&1 | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
 }
 
 function Install-ChocoPackages {
@@ -476,6 +508,9 @@ function Install-ChocoPackages {
             if ($LASTEXITCODE -in @(0, 1641, 3010)) {
                 $installed++
                 Write-Log "$pkg installed" "SUCCESS"
+            } elseif ($Script:WingetFallback.ContainsKey($pkg) -and (Install-ViaWinget -WingetId $Script:WingetFallback[$pkg])) {
+                $installed++
+                Write-Log "$pkg installed via winget (choco sideload blocked, likely Windows S mode)" "SUCCESS"
             } else {
                 $failed++
                 Write-Log "$pkg failed (choco exit $LASTEXITCODE) - see C:\ProgramData\chocolatey\logs\chocolatey.log" "WARN"
@@ -1056,6 +1091,8 @@ function Invoke-Validation {
         @{ Name = "bat"; Cmd = "bat" }
         @{ Name = "zoxide"; Cmd = "zoxide" }
         @{ Name = "lsd"; Cmd = "lsd" }
+        @{ Name = "GitHub CLI"; Cmd = "gh" }
+        @{ Name = "Windows Terminal"; Cmd = "wt" }
     )
 
     $passed = 0
