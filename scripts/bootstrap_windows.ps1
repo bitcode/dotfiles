@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Self-sufficient Windows bootstrap for Dotsible.
@@ -219,6 +219,31 @@ function Refresh-Path {
     if ((Test-Path $scoopShims) -and ($env:Path -notlike "*$scoopShims*")) {
         $env:Path = "$scoopShims;$env:Path"
     }
+}
+
+# Windows ships "App Execution Alias" stubs under WindowsApps (python.exe,
+# python3.exe, winget.exe...). Get-Command finds them even when the tool is not
+# installed; running one prints a Store advert and exits 9009. Plain
+# Get-Command therefore reports false positives. Return the first genuine
+# command, probing any WindowsApps candidate to tell a real Store install from a
+# stub. Returns $null when only stubs exist.
+function Get-RealCommand {
+    param([Parameter(Mandatory)][string]$Name)
+
+    foreach ($cmd in @(Get-Command $Name -All -ErrorAction SilentlyContinue)) {
+        if ($cmd.Source -notlike "*\WindowsApps\*") { return $cmd }
+
+        $prevExit = $global:LASTEXITCODE
+        try {
+            & $cmd.Source --version *> $null
+            $isStub = ($LASTEXITCODE -eq 9009)
+        } catch {
+            $isStub = $true
+        }
+        $global:LASTEXITCODE = $prevExit
+        if (-not $isStub) { return $cmd }
+    }
+    return $null
 }
 
 # ============================================================================
@@ -643,6 +668,48 @@ function Install-NerdFonts {
 # ============================================================================
 # STEP 6: POWERSHELL MODULES
 # ============================================================================
+
+# Install-Module has two undeclared prerequisites that both fail badly on a
+# clean PS 5.1 box: it needs the NuGet provider (absent by default - it prompts
+# to fetch one, which hard-fails in a non-interactive session), and PSGallery
+# ships untrusted (so each install prompts for confirmation). Settle both up
+# front. Returns $false only if the provider could not be obtained.
+function Initialize-PSGallery {
+    # PSGallery requires TLS 1.2. PS 5.1 negotiates TLS 1.0 by default and the
+    # resulting failure surfaces as an unrelated-looking download error.
+    try {
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    } catch {
+        Write-Log "Could not enable TLS 1.2: $_" "WARN"
+    }
+
+    $hasNuGet = Get-PackageProvider -ListAvailable -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -eq "NuGet" -and $_.Version -ge [version]"2.8.5.201" }
+    if (-not $hasNuGet) {
+        try {
+            $providerScope = if ($AllUsers -and $Script:IsAdmin) { "AllUsers" } else { "CurrentUser" }
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 `
+                -Scope $providerScope -Force -ErrorAction Stop | Out-Null
+            Write-Log "NuGet package provider installed ($providerScope)" "SUCCESS"
+        } catch {
+            Write-Log "Could not install NuGet provider: $_" "WARN"
+            return $false
+        }
+    }
+
+    try {
+        $gallery = Get-PSRepository -Name PSGallery -ErrorAction Stop
+        if ($gallery.InstallationPolicy -ne "Trusted") {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction Stop
+            Write-Log "PSGallery marked trusted" "SUCCESS"
+        }
+    } catch {
+        Write-Log "Could not configure PSGallery: $_" "WARN"
+    }
+    return $true
+}
+
 function Install-PSModules {
     # Check if Install-Module works (PS 5.1 on some machines has broken PowerShellGet)
     $canInstall = $true
@@ -652,6 +719,12 @@ function Install-PSModules {
         $canInstall = $false
         Write-Log "Install-Module not available in this PowerShell session" "WARN"
         Write-Log "Run this bootstrap from PowerShell 7 (pwsh) for module installation" "WARN"
+    }
+
+    # Only bootstrap the gallery if we are actually going to install something.
+    $pending = @($Script:Config.PowerShellModules | Where-Object { -not (Get-Module -ListAvailable -Name $_) })
+    if ($canInstall -and -not $DryRun -and $pending.Count -gt 0) {
+        $canInstall = Initialize-PSGallery
     }
 
     foreach ($module in $Script:Config.PowerShellModules) {
@@ -872,10 +945,13 @@ function Install-NeovimDeps {
     }
 
     # --- pylatexenc (via pip) ---
+    # Resolve to a full path: a real interpreter can sit behind a WindowsApps
+    # stub on PATH, so invoking by bare name could still hit the stub.
     $pythonCmd = $null
     foreach ($candidate in @("python", "python3", "py")) {
-        if (Get-Command $candidate -ErrorAction SilentlyContinue) {
-            $pythonCmd = $candidate
+        $resolved = Get-RealCommand $candidate
+        if ($resolved) {
+            $pythonCmd = if ($resolved.Source) { $resolved.Source } else { $resolved.Name }
             break
         }
     }
@@ -963,7 +1039,7 @@ function Invoke-Validation {
     $total = $checks.Count
 
     foreach ($check in $checks) {
-        if (Get-Command $check.Cmd -ErrorAction SilentlyContinue) {
+        if (Get-RealCommand $check.Cmd) {
             Write-Log "$($check.Name): OK" "SUCCESS"
             $passed++
         } else {
@@ -1126,6 +1202,11 @@ function Invoke-WindowsBootstrap {
         Write-Host ""
         Write-Host "  Log: $Script:LogFile" -ForegroundColor DarkGray
         Write-Host ""
+
+        # Report success explicitly. Probing for absent tools leaves a non-zero
+        # $LASTEXITCODE behind (a WindowsApps stub exits 9009), which would
+        # otherwise become this script's exit code and read as a failure.
+        exit 0
 
     } catch {
         Write-Log "Bootstrap failed: $_" "ERROR"

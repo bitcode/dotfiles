@@ -10,8 +10,17 @@ param(
     [switch]$Force
 )
 
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 $ErrorActionPreference = "Stop"
+
+# Group Policy can pin the effective policy at a more specific scope, making the
+# CurrentUser scope unsettable. That is only fatal if the effective policy is
+# also too strict to run this script - and if it were, we would never have got
+# here. So treat a failure as informational.
+try {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
+} catch {
+    Write-Host "  Note: ExecutionPolicy is managed elsewhere (currently: $(Get-ExecutionPolicy)). Continuing." -ForegroundColor DarkYellow
+}
 
 # Logging
 $LogDir = "$env:USERPROFILE\.dotsible\logs"
@@ -41,3 +50,4 @@ if ($DryRun)       { $params["DryRun"]       = $true }
 if ($Force)        { $params["Force"]         = $true }
 
 & $BootstrapScript @params
+exit $LASTEXITCODE
