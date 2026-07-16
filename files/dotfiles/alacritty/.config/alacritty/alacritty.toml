@@ -14,10 +14,10 @@ opacity = 0.8
 
 # Font configuration
 [font]
-normal = { family = "Iosevka Nerd Font", style = "normal" }
-bold = { family = "Iosevka Nerd Font", style = "bold" }
-italic = { family = "Iosevka Nerd Font", style = "italic" }
-bold_italic = { family = "Iosevka Nerd Font", style = "bold_italic" }
+normal = { family = "JetBrainsMono Nerd Font", style = "normal" }
+bold = { family = "JetBrainsMono Nerd Font", style = "bold" }
+italic = { family = "JetBrainsMono Nerd Font", style = "italic" }
+bold_italic = { family = "JetBrainsMono Nerd Font", style = "bold_italic" }
 
 [general]
 # Import additional configuration files

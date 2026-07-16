@@ -89,7 +89,7 @@
             "historySize": 65535,
             "font":
             {
-                "face": "Iosevka NF",
+                "face": "JetBrainsMono NF",
                 "size": 11,
                 "weight": "normal"
             },
