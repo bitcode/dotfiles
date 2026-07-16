@@ -1045,6 +1045,41 @@ function Install-NeovimDeps {
 }
 
 # ============================================================================
+# STEP 8c: NODE GLOBAL PACKAGES
+# ============================================================================
+function Install-NodeGlobals {
+    Refresh-Path
+
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        Write-Log "npm not found — skipping yarn (install Node.js first)" "WARN"
+        return
+    }
+
+    if (Get-Command yarn -ErrorAction SilentlyContinue) {
+        Write-Log "yarn already installed" "SUCCESS"
+        return
+    }
+
+    if ($DryRun) {
+        Write-Log "Would install: yarn via npm" "INFO"
+        return
+    }
+
+    Write-Log "Installing yarn via npm..." "INFO"
+    try {
+        & npm install -g yarn 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Refresh-Path
+            Write-Log "yarn installed" "SUCCESS"
+        } else {
+            Write-Log "npm install -g yarn failed (exit $LASTEXITCODE)" "WARN"
+        }
+    } catch {
+        Write-Log "Failed to install yarn: $_" "WARN"
+    }
+}
+
+# ============================================================================
 # STEP 9: DOTFILE DEPLOYMENT
 # ============================================================================
 function Deploy-Dotfiles {
@@ -1093,6 +1128,7 @@ function Invoke-Validation {
         @{ Name = "lsd"; Cmd = "lsd" }
         @{ Name = "GitHub CLI"; Cmd = "gh" }
         @{ Name = "Windows Terminal"; Cmd = "wt" }
+        @{ Name = "yarn"; Cmd = "yarn" }
     )
 
     $passed = 0
@@ -1186,7 +1222,7 @@ function Invoke-WindowsBootstrap {
         if ($SkipPackages) { Write-Log "Skipping package installation" "INFO" }
         if ($SkipDotfiles) { Write-Log "Skipping dotfile deployment" "INFO" }
 
-        $totalSteps = 12
+        $totalSteps = 13
         $step = 0
 
         # Step 1: Windows Features
@@ -1236,19 +1272,23 @@ function Invoke-WindowsBootstrap {
             # Step 10: Neovim runtime dependencies (tree-sitter CLI, pylatexenc)
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Neovim Dependencies"
             Install-NeovimDeps
+
+            # Step 11: Node global packages (yarn)
+            Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Node Global Packages"
+            Install-NodeGlobals
         } else {
-            $step++
+            $step += 2
         }
 
         if (-not $SkipDotfiles) {
-            # Step 11: Dotfile Deployment
+            # Step 12: Dotfile Deployment
             Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Dotfile Deployment"
             Deploy-Dotfiles
         } else {
             $step++
         }
 
-        # Step 12: Validation
+        # Step 13: Validation
         Show-StepBanner -Step (++$step) -Total $totalSteps -Title "Validation"
         Invoke-Validation
 
