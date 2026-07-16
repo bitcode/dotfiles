@@ -1,4 +1,4 @@
-# research.ps1 — convenience wrappers around Firecrawl + BrightData REST.
+﻿# research.ps1 — convenience wrappers around Firecrawl + BrightData REST.
 # Dot-source after load-env.ps1, then call the functions directly:
 #
 #   . "$HOME\.claude\skills\deep-research\scripts\load-env.ps1"
