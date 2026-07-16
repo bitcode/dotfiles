@@ -573,3 +573,8 @@ export PATH="$PATH:/home/bit/.local/bin"
 export BROWSER="firefox"
 export TERMINAL="alacritty"
 export PATH="/home/bit/.local/bin:/home/bit/.cargo/bin:/home/bit/go/bin:$PATH"
+
+# favault-wasm-cpp: emscripten SDK (added by Claude Code)
+if [[ -f "/home/bit/favault-wasm-cpp/build/emsdk/emsdk_env.sh" ]]; then
+  EMSDK_QUIET=1 source "/home/bit/favault-wasm-cpp/build/emsdk/emsdk_env.sh"
+fi

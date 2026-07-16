@@ -286,7 +286,8 @@
       "Bash(tmux display-message *)",
       "Skill(flameshot)",
       "Bash(tmux list-sessions *)",
-      "Bash(tmux list-clients *)"
+      "Bash(tmux list-clients *)",
+      "Read(//home/bit/.local/share/color-schemes/**)"
     ]
   }
 }
