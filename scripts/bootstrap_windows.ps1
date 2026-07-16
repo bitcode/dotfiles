@@ -324,7 +324,14 @@ function Install-Scoop {
 
     try {
         Write-Log "Installing Scoop..." "INFO"
-        Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        # Group Policy can pin the effective policy at a more specific scope,
+        # making CurrentUser unsettable. That is not fatal: if the policy were
+        # too strict to run Scoop's installer, we could not have got here.
+        try {
+            Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
+        } catch {
+            Write-Log "ExecutionPolicy is managed elsewhere (currently: $(Get-ExecutionPolicy)). Continuing." "SKIP"
+        }
         # Scoop refuses admin installs by default. When elevated we must pass
         # -RunAsAdmin explicitly; that requires downloading the installer as a
         # script block we can invoke with args, rather than piping to iex.
@@ -403,7 +410,10 @@ function Test-AppInstalledExternally {
     $entry = $detectMap[$ChocoName]
 
     if ($entry.Cmd) {
-        if (Get-Command $entry.Cmd -ErrorAction SilentlyContinue) { return $true }
+        # Get-RealCommand, not Get-Command: a WindowsApps stub (python.exe et al)
+        # is on PATH whether or not the tool is installed, and would otherwise be
+        # detected as an external install, skipping the real package.
+        if (Get-RealCommand $entry.Cmd) { return $true }
     }
     if ($entry.Reg) {
         $uninstallKeys = @(
@@ -432,6 +442,11 @@ function Install-ChocoPackages {
     $skipped = 0
     $failed = 0
 
+    # Enumerate installed packages once, not per package. Note: `list` is
+    # local-only in Chocolatey v2 and rejects the old --local-only argument
+    # outright, which would make every lookup below silently miss.
+    $chocoList = @(& choco list 2>$null)
+
     foreach ($pkg in $Packages) {
         # Skip if installed by another package manager / installer
         if (Test-AppInstalledExternally -ChocoName $pkg) {
@@ -441,7 +456,7 @@ function Install-ChocoPackages {
         }
 
         # Check if already installed via Chocolatey
-        $check = & choco list --local-only 2>$null | Select-String "^$pkg\s"
+        $check = $chocoList | Select-String "^$([regex]::Escape($pkg))\s"
         if ($check) {
             $skipped++
             Write-Log "$pkg already installed" "SKIP"
@@ -455,8 +470,16 @@ function Install-ChocoPackages {
 
         try {
             & choco install $pkg -y --no-progress 2>&1 | Out-Null
-            $installed++
-            Write-Log "$pkg installed" "SUCCESS"
+            # choco reports failure via exit code and does not throw, so without
+            # this check every install is logged as a success. 1641 and 3010 are
+            # "installed, reboot pending" and are genuine successes.
+            if ($LASTEXITCODE -in @(0, 1641, 3010)) {
+                $installed++
+                Write-Log "$pkg installed" "SUCCESS"
+            } else {
+                $failed++
+                Write-Log "$pkg failed (choco exit $LASTEXITCODE) - see C:\ProgramData\chocolatey\logs\chocolatey.log" "WARN"
+            }
         } catch {
             $failed++
             Write-Log "$pkg failed: $_" "WARN"
@@ -1047,11 +1070,18 @@ function Invoke-Validation {
         }
     }
 
-    # Check Nerd Fonts
+    # Check Nerd Fonts. Install-NerdFonts targets the system dir when elevated
+    # and the user dir otherwise, so check both rather than assuming either.
     Write-Host ""
-    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
-    $iosevkaFonts = (Get-ChildItem -Path $fontDir -Filter "IosevkaNerd*" -ErrorAction SilentlyContinue).Count
-    $jbFonts = (Get-ChildItem -Path $fontDir -Filter "JetBrainsMono*Nerd*" -ErrorAction SilentlyContinue).Count
+    $fontDirs = @("$env:WINDIR\Fonts", "$env:LOCALAPPDATA\Microsoft\Windows\Fonts")
+    $countFonts = {
+        param([string]$Filter)
+        ($fontDirs | ForEach-Object {
+            (Get-ChildItem -Path $_ -Filter $Filter -ErrorAction SilentlyContinue).Count
+        } | Measure-Object -Sum).Sum
+    }
+    $iosevkaFonts = & $countFonts "IosevkaNerd*"
+    $jbFonts = & $countFonts "JetBrainsMono*Nerd*"
     if ($iosevkaFonts -gt 0) {
         Write-Log "Iosevka Nerd Font: $iosevkaFonts files installed" "SUCCESS"
     } else {

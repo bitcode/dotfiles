@@ -147,7 +147,7 @@ function Deploy-Directory {
             Write-Log "${Name}: target exists at $Target (use -Force to overwrite)" "WARN"
             return
         }
-        Backup-Item -Path $Target
+        Backup-Item -Path $Target | Out-Null
     }
 
     $targetParent = Split-Path -Parent $Target
@@ -198,7 +198,7 @@ function Deploy-File {
             Write-Log "${Name}: target exists at $Target (use -Force to overwrite)" "WARN"
             return
         }
-        Backup-Item -Path $Target
+        Backup-Item -Path $Target | Out-Null
     }
 
     $targetParent = Split-Path -Parent $Target
